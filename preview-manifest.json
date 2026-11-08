@@ -1,0 +1,10 @@
+{
+  "files": {
+    "app/c09-v5.html": "3f5b9ab6fed9f0adcc3cf4d3ccac53a36b6de27331544f39446d304e5a31d205",
+    "app/c09-v5.js": "6f125e344362f1d230a71d77f47f6f3e9455f09b8f01fe7ed4cc5b59beabb70c",
+    "index.html": "3fa2c74911a37b648b7b93bb84aea2aa7f30692b096f190a71cd8fe0660b8eb5"
+  },
+  "mode": "offline-preview-only",
+  "remote_backend": false,
+  "remote_deployment": false
+}
