@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>樂享家｜C09 V5 分享流程（未部署）</title>
+<style>
+:root{font-family:system-ui,"Noto Sans TC",sans-serif;background:#078b50;color:#173b2a}*{box-sizing:border-box}
+body{margin:0}main{max-width:540px;margin:auto;padding:20px 15px 48px}header,footer{text-align:center;color:white}
+.card{background:white;border-radius:20px;padding:22px 18px;box-shadow:0 8px 30px #00381b24}
+h1{margin:8px 0}h2{margin:0}label{display:block;margin:14px 0;font-weight:600}
+input,select,textarea{font:inherit;width:100%;padding:12px;border:1px solid #bfcfc5;border-radius:10px}
+input[type=checkbox],input[type=radio]{width:auto;accent-color:#078b50}
+button{font:inherit;width:100%;padding:14px;margin-top:12px;border:0;border-radius:12px;background:#078b50;color:white;font-weight:700}
+button:disabled{opacity:.45}.muted{color:#66786d;font-size:14px;line-height:1.6}
+#status{white-space:pre-wrap;background:#eef6f0;border-radius:12px;padding:14px;line-height:1.6}
+#preview{max-width:100%;max-height:250px}.hidden{display:none}.row{display:flex;gap:12px;align-items:center}
+</style></head><body><main><header><h1>樂享家</h1><p>分享，讓美好開始傳遞</p></header>
+<section class="card"><h2>我要分享衣物</h2>
+<p class="muted">P1-FIX 測試分支開發版。正式分享開關未開啟時，不會送出申報。</p>
+<p id="identity" class="muted">確認登入中…</p>
+<label>衣物件數（2～1000）<input id="count" type="number" min="2" max="1000" value="2"></label>
+<label class="row"><input type="radio" name="kind" value="home" checked> 自家門口</label>
+<label class="row"><input type="radio" name="kind" value="collection_point"> 核准集貨點</label>
+<div id="home"><p id="address" class="muted">讀取地址中…</p></div>
+<div id="point" class="hidden"><label>集貨點<select id="pointSelect"><option value="">請選擇</option></select></label></div>
+<label>放置說明（選填）<textarea id="note" rows="2" maxlength="500"></textarea></label>
+<label>分享袋現場照片（自動壓縮為 WebP，最長邊 1280 px，單張不超過 300 KB）<input id="photo" type="file" accept="image/jpeg,image/png,image/webp" capture="environment"></label>
+<img id="preview" alt="照片預覽">
+<label class="row"><input id="placed" type="checkbox"> 我確認分享袋已放妥</label>
+<button id="save" type="button">儲存分享草稿</button>
+<button id="preflight" type="button" disabled>提交前檢查</button>
+<div id="agreement" class="hidden"><h3>分享協議</h3><div id="terms" class="muted"></div>
+<label class="row"><input id="transfer" type="checkbox"> 同意衣物所有權移轉</label>
+<label class="row"><input id="noReturn" type="checkbox"> 同意交付後不退回</label>
+<label class="row"><input id="recycling" type="checkbox"> 同意不合格衣物依法轉贈或回收</label>
+<button id="submit" type="button" disabled>確認正式申報</button></div>
+<div id="status" role="status">尚未開始</div></section><footer>樂享家 · C09 V5 · 測試分支專用</footer></main>
+<script type="module" src="./c09-v5.js"></script></body></html>
