@@ -4,7 +4,7 @@ const loopback=['127.0.0.1','localhost'].includes(location.hostname);
 const localConfig=loopback?globalThis.__P1_LOCAL_TEST_CONFIG__:null;
 const localUrl=(value)=>{try{const u=new URL(value);return u.protocol==='http:'&&['127.0.0.1','localhost'].includes(u.hostname);}catch{return false;}};
 const CONFIG=Object.freeze({
-  base:localConfig&&localUrl(localConfig.base)?localConfig.base:'https://rfwqcrvxyjhtmafnbuyy.supabase.co',
+  base:localConfig&&localUrl(localConfig.base)?localConfig.base:'',
   key:localConfig&&localUrl(localConfig.base)?String(localConfig.key||''):'',
   submitEndpoint:localConfig&&localUrl(localConfig.submitEndpoint)?localConfig.submitEndpoint:'',
   sessionKey:'lx_supabase_auth_v066g',
@@ -16,7 +16,8 @@ const PHOTO_MAX_BYTES=300000;
 const PHOTO_MAX_EDGE=1280;
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const note=(message)=>{$('status').textContent=message;};
-const setBusy=(busy)=>{state.busy=busy;$('save').disabled=busy;$('preflight').disabled=busy||!state.draft;$('submit').disabled=busy||!state.ready||!CONFIG.submitEndpoint;};
+const offlineLocked=()=>!loopback||!CONFIG.base||!CONFIG.key;
+const setBusy=(busy)=>{state.busy=busy;$('save').disabled=busy||offlineLocked();$('preflight').disabled=busy||offlineLocked()||!state.draft;$('submit').disabled=busy||offlineLocked()||!state.ready||!CONFIG.submitEndpoint;};
 function session(){
  try{return JSON.parse(sessionStorage.getItem(CONFIG.sessionKey)||'null');}catch{return null;}
 }
@@ -71,6 +72,7 @@ async function upload(file,path){
  if(!r.ok){const x=await r.json().catch(()=>({}));throw Error(x.message||x.error||'照片上傳失敗 '+r.status);}
 }
 async function save(){
+ if(offlineLocked()){note('隔離預覽安全鎖定：未連接測試後端，無法儲存草稿。照片只在手機本機預覽。');return;}
  if(state.busy)return;
  try{
   const {count,file}=validate();setBusy(true);state.ready=false;state.version='';$('agreement').classList.add('hidden');
@@ -120,6 +122,13 @@ async function submit(){
  finally{setBusy(false);}
 }
 async function init(){
+ if(offlineLocked()){
+  $('identity').textContent='隔離預覽｜尚未登入測試會員';
+  $('address').textContent='隔離預覽未連接測試後端，無法讀取住家地址。';
+  $('save').disabled=true;$('preflight').disabled=true;$('submit').disabled=true;
+  note('隔離預覽安全鎖定：可以測試拍照與表單，但不能儲存草稿、讀取會員資料或正式提交。請勿輸入真實個資。');
+  return;
+ }
  const s=session();state.token=s?.token||'';state.uid=parseUid(state.token);
  if(!state.uid){note('請先登入測試會員；隔離預覽不會連線或寫入資料。');$('identity').textContent='尚未登入';$('address').textContent='登入測試會員後才會顯示住家地址；目前不會讀取個人資料。';$('save').disabled=true;$('preflight').disabled=true;return;}
  $('identity').textContent='測試會員已登入';
