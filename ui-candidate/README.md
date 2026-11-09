@@ -1,11 +1,13 @@
-# B-01B｜樂享家正式 UI 整合候選版（隔離預覽）
-- 建立前 main SHA：`6a25cfe76c34476263603e28e2930b3af8efc748`
-- 授權範圍：僅 `letshare-tw/lets-share-test-site/ui-candidate/`
-- 歷史視覺基準：`letshare-tw/lets-share-app` 的 `index.html` @ `45f1b4f312ab8920a1904a5245e0734efb591c0f`；模組化參考 `mod-preview/index.html`、`css/legacy-01.css`、`js/legacy-01.js`
-- 品牌主色 #078b50，深綠 #056e40，黃色 #ffe52c；保留四分頁：賣場／我要分享／購物車／會員中心。
-- 此候選版不是完整舊版 APP 的一比一還原：原版內嵌圖片、完整商品及會員功能未複製；原始 LOGO 由 GitHub 公開靜態圖片唯讀載入，失敗則顯示文字。
-- C09 僅復用已驗證的拍照、預覽、重新拍攝及表單交互概念；不會壓縮上傳照片，也不連接任何後端。滑動確認、草稿、提交、登入、交易全部停用。
-- 本目錄僅有靜態 HTML/CSS/JS，無 API、Supabase URL、憑證或資料持久化；禁止輸入真實個資。
-- 既有 `/app/c09-v5.html` 與 `preview-manifest.json` 不修改；正式網站 `lets-share.com.tw` 不修改。
-- 回復：若候選頁有問題，移除 `ui-candidate/` 或將其回復至部署前版本；保留既有 Pages 根目錄與 C09 預覽不變。執行前需再次確認 HEAD，避免覆蓋其他提交。
-- 驗收：檢查四分頁、拍照預覽與重拍、所有交易按鈕停用、沒有遠端 API、GitHub Pages workflow 成功；實際手機操作另行驗收。
+# 樂享家 ui-candidate｜B-01C-07B 離線安全整合候選版
+
+- 基準：B-01C-06D 手機驗收 PASS，Commit `74ab57b5dccd5e1c510237ace228e15defe7ae4a`。
+- 範圍：僅 `letshare-tw/lets-share-test-site/ui-candidate/`，與正式網站及 Supabase 隔離。
+- 視覺：沿用原有 LOGO（42×42）、Banner、賣場／我要分享／購物車／會員中心四大分頁。
+- `demo-adapter.js`：完全離線、僅記憶體示範會員／地址／集貨點／草稿／模擬回執。
+- `test-api-adapter.js`：C09 V5 資料契約及預設拒絕的安全鎖；無任何實際 API 呼叫。
+- `adapter-selector.js`：唯一允許 `getAdapter("demo")`；任何其他模式及切換均拋出錯誤。
+- `app.js`：只從 `LX_ADAPTER_SELECTOR.getAdapter("demo")` 取得既有 Demo 介面，沿用原拍照、表單及滑動模擬操作。
+- `lockdown-selftest.js`：載入時執行 10 項 API 拒絕檢查、6 項模式拒絕檢查與選擇器相容性檢查；結果寫在 `document.documentElement.dataset.lxLockdownTest`（PASS／FAIL），可用瀏覽器 Console 執行 `LX_LOCKDOWN_SELFTEST.run()` 再測。
+- 安全：不連接任何 Supabase，不啟用真實登入、上傳、提交或付款；請勿輸入真實個資。
+- 驗收：核對檔案改動範圍、靜態檢查、GitHub Pages Actions SUCCESS、手機視覺與離線流程 PASS。瀏覽器自我測試 PASS 須以實際執行結果為證，不以原始碼檢查取代。
+- 回復：若有異常，僅將 `ui-candidate/` 恢復至上述穩定 Commit 的內容；不重設整個 repo 的 main，不修改正式站。
