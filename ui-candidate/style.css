@@ -40,3 +40,21 @@
 .bottom .nav-icon svg{display:block;width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .bottom button{color:#7a847e}
 .bottom button.active{color:#078b50}
+
+/* B-01C-04 original sharing page visual: banner + rounded white steps form */
+.share-page{margin:16px 16px 24px}
+.share-page>h1{font-size:24px;margin:0 0 18px;font-weight:800}
+.share-banner{border-radius:20px;overflow:hidden;margin:0 0 18px}
+.share-banner img{width:100%;height:auto;display:block}
+.share-form{background:#fff;border:1px solid #e7eae6;border-radius:22px;padding:22px 20px 24px}
+.share-steps{display:flex;flex-direction:column;gap:20px;padding:12px 0 18px}
+.share-step{display:flex;align-items:flex-start;gap:14px}
+.step-num{display:flex;align-items:center;justify-content:center;width:36px;height:36px;min-width:36px;border-radius:50%;background:#078b50;color:#fff;font-size:20px;font-weight:800;box-shadow:0 2px 5px #078b5033}
+.share-step>div{display:flex;flex-direction:column;gap:4px;padding-top:2px}
+.share-step strong{font-size:17px;line-height:1.35}
+.share-step small{font-size:13px;color:#828b84;line-height:1.55}
+.share-form label:not(.radio):not(.check):not(.camera){font-size:17px;font-weight:500}
+.share-form fieldset{margin-top:18px}
+.share-form fieldset legend{font-size:17px;font-weight:500}
+.share-form .camera{margin-top:18px}
+@media(max-width:380px){.share-page{margin:14px 12px}.share-form{padding:20px 16px}.share-step strong{font-size:16px}}
