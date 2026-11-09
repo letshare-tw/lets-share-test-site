@@ -62,3 +62,18 @@
 /* LOGO-42: compact top-left brand icon, no other layout changes */
 .brand .logo{width:42px;min-height:42px;flex:0 0 42px}
 .brand .logo img{display:block;width:42px;height:42px;max-width:42px;max-height:42px}
+
+/* B-01C-05A: isolated form feedback and tactile simulation; preserve original UI */
+.field-feedback{font-size:13px;line-height:1.5;color:#66756d;margin:8px 0 14px}
+#count[aria-invalid="true"]{border-color:#c98965}
+#photoFeedback{margin-top:8px}
+.swipe-wrap{margin-top:16px}
+.swipe-track{position:relative;display:flex;align-items:center;justify-content:center;min-height:66px;border-radius:18px;background:#d4e8db;color:#416c53;overflow:hidden;user-select:none;-webkit-user-select:none}
+.swipe-track.ready{background:#b3d9c4;color:#165f3c}
+.swipe-track.completed{background:#098e50;color:#fff}
+.swipe-track>span{font-size:14px;font-weight:700;text-align:center;padding:0 20px 0 58px;pointer-events:none}
+.swipe-handle{position:absolute;left:4px;top:4px;width:58px;height:58px;border:0;border-radius:15px;background:#078b50;color:#fff;font-size:28px;font-weight:700;touch-action:none;cursor:grab;z-index:1;box-shadow:0 2px 6px #0002}
+.swipe-handle:disabled{background:#a2bcae;cursor:not-allowed}
+.swipe-handle:focus-visible{outline:3px solid #ffcd4e;outline-offset:-3px}
+.swipe-track.completed .swipe-handle{background:#fff;color:#078b50}
+.demo-result{padding:14px;margin:12px 0;border-radius:12px;background:#edf8f0;color:#17633d;font-weight:700}
