@@ -1,7 +1,7 @@
 "use strict";
 /* B-01C-05A: isolated in-memory simulation only. No network, storage or transaction. */
 (()=>{
-  const api=window.LX_DEMO_ADAPTER;
+  const api=window.LX_ADAPTER_SELECTOR?.getAdapter("demo");
   if(!api||api.mode!=="offline-memory-only")throw Error("離線資料介面未載入，安全停止");
   const demoState={member:null,address:null,points:[],draft:null,receipt:null};
   let generation=0,pending=false;
