@@ -1,6 +1,39 @@
 "use strict";
 /* B-01C-05A: isolated in-memory simulation only. No network, storage or transaction. */
 (()=>{
+  const api=window.LX_DEMO_ADAPTER;
+  if(!api||api.mode!=="offline-memory-only")throw Error("離線資料介面未載入，安全停止");
+  const demoState={member:null,address:null,points:[],draft:null,receipt:null};
+  const demoPanel=document.createElement("section");
+  demoPanel.className="demo-flow-panel";
+  demoPanel.setAttribute("aria-label","離線測試會員與草稿");
+  demoPanel.innerHTML='<h2>離線測試會員與分享流程</h2><p id="demoIdentity">載入示範會員中…</p><label for="demoPoint">模擬取件資料</label><select id="demoPoint" disabled><option value="">載入示範資料中…</option></select><p id="demoAddressInfo" role="status">不讀取真實會員地址。</p><p id="demoDraftInfo" role="status">尚未建立模擬草稿。</p><p id="demoReceiptInfo" role="status">尚未產生模擬回執。</p><p class="field-feedback">全部為記憶體假資料；重新整理即消失。不得輸入真實個資。</p>';
+  document.querySelector("#view-share .share-steps").insertAdjacentElement("afterend",demoPanel);
+  const demoSelect=document.getElementById("demoPoint");
+  const placeInfoDemo=document.getElementById("demoAddressInfo");
+  const draftInfo=document.getElementById("demoDraftInfo");
+  const receiptInfo=document.getElementById("demoReceiptInfo");
+  const memberDemo=document.createElement("p");
+  memberDemo.className="demo-member-status";
+  document.querySelector("#view-member .section").append(memberDemo);
+  function invalidateDemo(){demoState.draft=null;demoState.receipt=null;draftInfo.textContent="尚未建立模擬草稿。";receiptInfo.textContent="尚未產生模擬回執。";}
+  function selectedDemoPlace(){return document.querySelector('input[name="place"]:checked')?.value==="station"?demoSelect.value:demoState.address?.id;}
+  function validDemoPlace(){return !!selectedDemoPlace();}
+  function updateDemoPlace(){
+   const station=document.querySelector('input[name="place"]:checked')?.value==="station";
+   demoSelect.disabled=!station;
+   if(!station){placeInfoDemo.textContent=demoState.address?.label+"： "+demoState.address?.detail;}
+   else{const point=demoState.points.find(p=>p.id===demoSelect.value);placeInfoDemo.textContent=point?point.label+"： "+point.detail:"請選擇示範集貨點";}
+  }
+  demoSelect.addEventListener("change",()=>{invalidateDemo();updateDemoPlace();resetSwipe();check()});
+  Promise.all([api.getMember(),api.getAddress(),api.listCollectionPoints()]).then(([member,address,points])=>{
+   demoState.member=member;demoState.address=address;demoState.points=points;
+   document.getElementById("demoIdentity").textContent="測試身分："+member.name+"（沒有登入）";
+   memberDemo.textContent="離線示範身分："+member.name+"；沒有讀取帳號、地址或歷程。";
+   demoSelect.innerHTML='<option value="">請選擇示範集貨點</option>';
+   points.forEach(p=>{const o=document.createElement("option");o.value=p.id;o.textContent=p.label;demoSelect.append(o)});
+   updateDemoPlace();check();
+  }).catch(()=>{document.getElementById("demoIdentity").textContent="示範資料載入失敗，無法完成模擬";});
   const names=["home","share","cart","member"];
   function go(name){
     if(!names.includes(name))return;
@@ -33,7 +66,7 @@
     countHelp.textContent=validCount?"衣物件數有效。":"請輸入 2～1000 件整數（不能留空或輸入小數）。";
     const place=getPlace();
     placeInfo.textContent=place==="home"?"會員住址（模擬）：測試地址，不代表真實會員資料。":"已核定集貨點（模擬）：示範集貨點，未讀取任何真實據點。";
-    const ready=validCount&&validPhoto&&placed.checked;
+    const ready=validCount&&validPhoto&&placed.checked&&validDemoPlace();
     swipeHandle.disabled=!ready;
     swipeTrack.classList.toggle("ready",ready);
     if(!simulated){
@@ -42,16 +75,16 @@
     }
     return ready;
   }
-  count.addEventListener("input",()=>{resetSwipe();check()});
-  notes.addEventListener("input",()=>{resetSwipe();check()});
-  document.querySelectorAll('input[name="place"]').forEach(el=>el.addEventListener("change",()=>{resetSwipe();check()}));
-  placed.addEventListener("change",()=>{resetSwipe();check()});
+  count.addEventListener("input",()=>{invalidateDemo();resetSwipe();check()});
+  notes.addEventListener("input",()=>{invalidateDemo();resetSwipe();check()});
+  document.querySelectorAll('input[name="place"]').forEach(el=>el.addEventListener("change",()=>{invalidateDemo();updateDemoPlace();resetSwipe();check()}));
+  placed.addEventListener("change",()=>{invalidateDemo();resetSwipe();check()});
   function clearPhoto(){
     if(photoUrl){URL.revokeObjectURL(photoUrl);photoUrl=null;}
     preview.removeAttribute("src");preview.hidden=true;validPhoto=false;
   }
   photo.addEventListener("change",()=>{
-    resetSwipe();clearPhoto();
+    invalidateDemo();resetSwipe();clearPhoto();
     const file=photo.files&&photo.files[0];
     if(!file){
       photoFeedback.textContent="尚未選擇照片。";check();return;
@@ -79,6 +112,18 @@
       swipeText.textContent="模擬確認完成 ✓";
       formFeedback.textContent="本機模擬已完成；沒有儲存、上傳、登入或送出資料。";
       demoResult.hidden=false;
+      swipeHandle.disabled=true;
+      const payload={count:Number(count.value),placeId:selectedDemoPlace(),hasPhoto:validPhoto,noteLength:notes.value.length};
+      api.saveDraft(payload).then(draft=>{
+       demoState.draft=draft;
+       draftInfo.textContent="模擬草稿："+draft.id+"（僅本機記憶體）";
+       return api.submitSimulation(draft);
+      }).then(receipt=>{
+       demoState.receipt=receipt;
+       receiptInfo.textContent="模擬回執："+receipt.receiptId+"；"+receipt.message;
+       demoResult.textContent="離線模擬完成 ✓ 草稿與回執均未送出。";
+      }).catch(()=>{receiptInfo.textContent="模擬失敗，沒有送出資料";});
+
       swipeHandle.style.transform="translateX("+maxTravel()+"px)";
     }else{moveTo(0)}
   }
