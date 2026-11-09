@@ -1,0 +1,11 @@
+# B-01B｜樂享家正式 UI 整合候選版（隔離預覽）
+- 建立前 main SHA：`6a25cfe76c34476263603e28e2930b3af8efc748`
+- 授權範圍：僅 `letshare-tw/lets-share-test-site/ui-candidate/`
+- 歷史視覺基準：`letshare-tw/lets-share-app` 的 `index.html` @ `45f1b4f312ab8920a1904a5245e0734efb591c0f`；模組化參考 `mod-preview/index.html`、`css/legacy-01.css`、`js/legacy-01.js`
+- 品牌主色 #078b50，深綠 #056e40，黃色 #ffe52c；保留四分頁：賣場／我要分享／購物車／會員中心。
+- 此候選版不是完整舊版 APP 的一比一還原：原版內嵌圖片、完整商品及會員功能未複製；原始 LOGO 由 GitHub 公開靜態圖片唯讀載入，失敗則顯示文字。
+- C09 僅復用已驗證的拍照、預覽、重新拍攝及表單交互概念；不會壓縮上傳照片，也不連接任何後端。滑動確認、草稿、提交、登入、交易全部停用。
+- 本目錄僅有靜態 HTML/CSS/JS，無 API、Supabase URL、憑證或資料持久化；禁止輸入真實個資。
+- 既有 `/app/c09-v5.html` 與 `preview-manifest.json` 不修改；正式網站 `lets-share.com.tw` 不修改。
+- 回復：若候選頁有問題，移除 `ui-candidate/` 或將其回復至部署前版本；保留既有 Pages 根目錄與 C09 預覽不變。執行前需再次確認 HEAD，避免覆蓋其他提交。
+- 驗收：檢查四分頁、拍照預覽與重拍、所有交易按鈕停用、沒有遠端 API、GitHub Pages workflow 成功；實際手機操作另行驗收。
