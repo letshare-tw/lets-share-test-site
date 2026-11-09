@@ -77,3 +77,12 @@
 .swipe-handle:focus-visible{outline:3px solid #ffcd4e;outline-offset:-3px}
 .swipe-track.completed .swipe-handle{background:#fff;color:#078b50}
 .demo-result{padding:14px;margin:12px 0;border-radius:12px;background:#edf8f0;color:#17633d;font-weight:700}
+
+/* B-01C-05C — isolated offline member/pickup/draft/receipt panel */
+.demo-flow-panel{background:#f2f8f3;border:1px solid #d8e9de;border-radius:16px;padding:16px;margin:0 0 18px;color:#1d4930}
+.demo-flow-panel h2{font-size:17px;margin:0 0 10px}
+.demo-flow-panel p{font-size:13px;line-height:1.6;margin:9px 0;overflow-wrap:anywhere}
+.demo-flow-panel label{display:block;font-size:14px!important;margin:10px 0 5px}
+.demo-flow-panel select{width:100%;padding:12px;border:1px solid #b7d0be;border-radius:12px;background:white;color:#173b2a;font:inherit}
+.demo-flow-panel select:disabled{background:#e7eee8;color:#637b6b}
+.demo-member-status{padding:12px;background:#eef6f0;border-radius:12px;font-size:13px}
