@@ -5,6 +5,7 @@
   version:"C09-V5-contract-06B",
   target:"lets-share-test",
   status:"LOCKED",
+  environment:Object.freeze({allowedProjectRef:"rfwqcrvxyjhtmafnbuyy",allowedProjectName:"lets-share-test",allowedOrigin:"https://rfwqcrvxyjhtmafnbuyy.supabase.co",enabled:false,requiresSeparateAuthorization:true}),
   identity:Object.freeze({memberId:"auth.users.id (uuid)",profileId:"profiles.id (uuid)",name:"profiles.display_name",registration:"profiles.registration_completed_at"}),
   address:Object.freeze({source:"profiles",address:"home_address",placementNote:"home_placement_note"}),
   collectionPoint:Object.freeze({source:"lx_approved_collection_points",id:"id (uuid)",label:"name",detail:"address_text",required:"enabled=true AND approved_at IS NOT NULL"}),
@@ -16,6 +17,7 @@
  });
  const blocked=async()=>{throw Error("B-01C-06B 安全鎖定：僅資料契約，未授權任何後端操作");};
  const adapter=Object.freeze({mode:"contract-locked",contract:CONTRACT,
+  checkEnvironment:blocked,connect:blocked,signIn:blocked,
   getMember:blocked,getAddress:blocked,listCollectionPoints:blocked,
   saveDraft:blocked,preflight:blocked,uploadPhoto:blocked,submit:blocked
  });
