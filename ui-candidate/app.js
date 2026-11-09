@@ -156,6 +156,12 @@
     if(e.key==="Enter"||e.key===" "){e.preventDefault();moveTo(maxTravel());finish()}
   });
   window.addEventListener("resize",()=>{if(!simulated)moveTo(0)});
-  window.addEventListener("pagehide",clearPhoto);
+  function resetAfterNavigation(){
+    invalidateDemo();resetSwipe();clearPhoto();photo.value="";
+    photoFeedback.textContent="返回頁面後，請重新拍攝分享放置點。";
+    check();
+  }
+  window.addEventListener("pagehide",resetAfterNavigation);
+  window.addEventListener("pageshow",e=>{if(e.persisted)resetAfterNavigation()});
   check();go("home");
 })();
