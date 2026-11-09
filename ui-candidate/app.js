@@ -4,6 +4,7 @@
   const api=window.LX_DEMO_ADAPTER;
   if(!api||api.mode!=="offline-memory-only")throw Error("離線資料介面未載入，安全停止");
   const demoState={member:null,address:null,points:[],draft:null,receipt:null};
+  let generation=0,pending=false;
   const demoPanel=document.createElement("section");
   demoPanel.className="demo-flow-panel";
   demoPanel.setAttribute("aria-label","離線測試會員與草稿");
@@ -16,9 +17,9 @@
   const memberDemo=document.createElement("p");
   memberDemo.className="demo-member-status";
   document.querySelector("#view-member .section").append(memberDemo);
-  function invalidateDemo(){demoState.draft=null;demoState.receipt=null;draftInfo.textContent="尚未建立模擬草稿。";receiptInfo.textContent="尚未產生模擬回執。";}
+  function invalidateDemo(){generation++;pending=false;demoState.draft=null;demoState.receipt=null;draftInfo.textContent="尚未建立模擬草稿。";receiptInfo.textContent="尚未產生模擬回執。";}
   function selectedDemoPlace(){return document.querySelector('input[name="place"]:checked')?.value==="station"?demoSelect.value:demoState.address?.id;}
-  function validDemoPlace(){return !!selectedDemoPlace();}
+  function validDemoPlace(){return getPlace()==="station"?demoState.points.some(p=>p.id===demoSelect.value):!!(demoState.address&&selectedDemoPlace()===demoState.address.id);}
   function updateDemoPlace(){
    const station=document.querySelector('input[name="place"]:checked')?.value==="station";
    demoSelect.disabled=!station;
@@ -66,8 +67,8 @@
     countHelp.textContent=validCount?"衣物件數有效。":"請輸入 2～1000 件整數（不能留空或輸入小數）。";
     const place=getPlace();
     placeInfo.textContent=place==="home"?"會員住址（模擬）：測試地址，不代表真實會員資料。":"已核定集貨點（模擬）：示範集貨點，未讀取任何真實據點。";
-    const ready=validCount&&validPhoto&&placed.checked&&validDemoPlace();
-    swipeHandle.disabled=!ready;
+    const ready=validCount&&validPhoto&&placed.checked&&validDemoPlace()&&!!demoState.member;
+    swipeHandle.disabled=!ready||pending||simulated;
     swipeTrack.classList.toggle("ready",ready);
     if(!simulated){
       formFeedback.textContent=ready?"資料已齊全，可向右滑動完成本機模擬；不會送出任何申請。":"請確認衣物件數、測試照片及分享袋勾選；取件地點僅為模擬選擇。";
@@ -89,12 +90,13 @@
     if(!file){
       photoFeedback.textContent="尚未選擇照片。";check();return;
     }
-    if(!file.type.startsWith("image/")){
-      photoFeedback.textContent="請選擇圖片檔案。";check();return;
+    if(!/^image\/(jpeg|png|webp|gif)$/i.test(file.type)||file.size===0||file.size>10*1024*1024){
+      photoFeedback.textContent="請選擇 10MB 以下的 JPG、PNG、WebP 或 GIF 圖片。";check();return;
     }
     photoUrl=URL.createObjectURL(file);
-    preview.onload=()=>{validPhoto=true;photoFeedback.textContent="照片已在本機預覽，沒有上傳。";check()};
-    preview.onerror=()=>{clearPhoto();photoFeedback.textContent="照片無法預覽，請重新選擇。";check()};
+    const currentUrl=photoUrl;
+    preview.onload=()=>{if(photoUrl!==currentUrl)return;validPhoto=true;photoFeedback.textContent="照片已在本機預覽，沒有上傳。";check()};
+    preview.onerror=()=>{if(photoUrl!==currentUrl)return;clearPhoto();photoFeedback.textContent="照片無法預覽，請重新選擇。";check()};
     preview.src=photoUrl;preview.hidden=false;
     cameraLabel.textContent="📷 重新拍攝分享放置點";
     photoFeedback.textContent="正在載入本機照片…";
@@ -106,29 +108,41 @@
     swipeHandle.style.transform="translateX("+dragX+"px)";
   }
   function finish(){
+    if(pending||simulated)return;
     if(!check()){resetSwipe();check();return;}
     if(dragX>=maxTravel()*0.85&&maxTravel()>20){
-      simulated=true;swipeTrack.classList.add("completed");
-      swipeText.textContent="模擬確認完成 ✓";
-      formFeedback.textContent="本機模擬已完成；沒有儲存、上傳、登入或送出資料。";
-      demoResult.hidden=false;
+      pending=true;
+      const token=++generation;
       swipeHandle.disabled=true;
+      swipeText.textContent="正在產生離線模擬回執…";
       const payload={count:Number(count.value),placeId:selectedDemoPlace(),hasPhoto:validPhoto,noteLength:notes.value.length};
       api.saveDraft(payload).then(draft=>{
-       demoState.draft=draft;
-       draftInfo.textContent="模擬草稿："+draft.id+"（僅本機記憶體）";
-       return api.submitSimulation(draft);
+        if(token!==generation)return null;
+        demoState.draft=draft;
+        draftInfo.textContent="模擬草稿："+draft.id+"（僅本機記憶體）";
+        return api.submitSimulation(draft);
       }).then(receipt=>{
-       demoState.receipt=receipt;
-       receiptInfo.textContent="模擬回執："+receipt.receiptId+"；"+receipt.message;
-       demoResult.textContent="離線模擬完成 ✓ 草稿與回執均未送出。";
-      }).catch(()=>{receiptInfo.textContent="模擬失敗，沒有送出資料";});
-
+        if(token!==generation||!receipt)return;
+        if(!demoState.draft||receipt.draftId!==demoState.draft.id)throw Error("回執與草稿不一致");
+        demoState.receipt=receipt;
+        pending=false;simulated=true;
+        swipeTrack.classList.add("completed");
+        swipeText.textContent="模擬確認完成 ✓";
+        formFeedback.textContent="本機模擬完成；沒有儲存、上傳、登入或送出資料。";
+        receiptInfo.textContent="模擬回執："+receipt.receiptId+"；"+receipt.message;
+        demoResult.hidden=false;
+        demoResult.textContent="離線模擬完成 ✓ 草稿與回執均未送出。";
+        swipeHandle.disabled=true;
+      }).catch(()=>{
+        if(token!==generation)return;
+        invalidateDemo();resetSwipe();check();
+        receiptInfo.textContent="模擬失敗，未產生回執；可重新滑動再試。";
+      });
       swipeHandle.style.transform="translateX("+maxTravel()+"px)";
     }else{moveTo(0)}
   }
   swipeHandle.addEventListener("pointerdown",e=>{
-    if(swipeHandle.disabled)return;
+    if(swipeHandle.disabled||pending||simulated)return;
     resetSwipe();dragging=true;dragStart=e.clientX;
     swipeHandle.setPointerCapture(e.pointerId);
     e.preventDefault();
@@ -137,7 +151,7 @@
   swipeHandle.addEventListener("pointerup",()=>{if(dragging){dragging=false;finish()}});
   swipeHandle.addEventListener("pointercancel",()=>{dragging=false;moveTo(0)});
   swipeHandle.addEventListener("keydown",e=>{
-    if(swipeHandle.disabled)return;
+    if(swipeHandle.disabled||pending||simulated)return;
     if(e.key==="ArrowRight"){e.preventDefault();moveTo(maxTravel())}
     if(e.key==="Enter"||e.key===" "){e.preventDefault();moveTo(maxTravel());finish()}
   });
