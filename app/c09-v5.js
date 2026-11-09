@@ -121,9 +121,9 @@ async function submit(){
 }
 async function init(){
  const s=session();state.token=s?.token||'';state.uid=parseUid(state.token);
- if(!state.uid){note('請先登入測試會員');$('identity').textContent='尚未登入';return;}
+ if(!state.uid){note('請先登入測試會員；隔離預覽不會連線或寫入資料。');$('identity').textContent='尚未登入';$('address').textContent='登入測試會員後才會顯示住家地址；目前不會讀取個人資料。';$('save').disabled=true;$('preflight').disabled=true;return;}
  $('identity').textContent='測試會員已登入';
- if(!CONFIG.key){note('安全鎖定：未設定測試專案 publishable key，本頁不會連線或寫入資料');$('save').disabled=true;return;}
+ if(!CONFIG.key){note('安全鎖定：未設定測試專案 publishable key，本頁不會連線或寫入資料');$('address').textContent='隔離預覽未連接測試後端，無法讀取住家地址。';$('save').disabled=true;return;}
  try{
   const home=await request('rpc/lx_get_my_home_address',{});const item=Array.isArray(home)?home[0]:home;
   state.address=item?.address_text||'';
@@ -143,6 +143,20 @@ document.querySelectorAll('input[name="kind"]').forEach(el=>el.addEventListener(
  const home=kind()==='home';$('home').classList.toggle('hidden',!home);$('point').classList.toggle('hidden',home);
  state.ready=false;$('agreement').classList.add('hidden');
 }));
-$('photo').addEventListener('change',()=>{state.photo='';state.ready=false;const f=$('photo').files[0];if(f){$('preview').src=URL.createObjectURL(f);}});
+let previewUrl='';
+$('photo').addEventListener('change',()=>{
+ state.photo='';state.ready=false;state.draft='';$('agreement').classList.add('hidden');
+ if(previewUrl){URL.revokeObjectURL(previewUrl);previewUrl='';}
+ const f=$('photo').files[0];const preview=$('preview');
+ preview.removeAttribute('src');preview.classList.add('hidden');
+ $('photoLabel').textContent='📷 拍攝分享放置點';
+ if(!f)return;
+ if(!['image/jpeg','image/png','image/webp'].includes(f.type)||!f.size){note('請選擇有效的 JPG、PNG 或 WebP 照片');return;}
+ previewUrl=URL.createObjectURL(f);
+ preview.onload=()=>{preview.classList.remove('hidden');};
+ preview.onerror=()=>{preview.classList.add('hidden');note('照片預覽失敗，請重新拍攝');};
+ preview.src=previewUrl;
+ $('photoLabel').textContent='📷 重新拍攝分享放置點';
+});
 $('save').addEventListener('click',save);$('preflight').addEventListener('click',preflight);$('submit').addEventListener('click',submit);
 init();
