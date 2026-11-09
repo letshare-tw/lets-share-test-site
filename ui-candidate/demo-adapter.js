@@ -14,7 +14,7 @@
   async getAddress(){return copy(fixture.address)},
   async listCollectionPoints(){return copy(fixture.points)},
   async saveDraft(payload){return {id:"DEMO-DRAFT-"+String(++sequence).padStart(3,"0"),status:"simulated",clothingCount:payload.count,placeId:payload.placeId,hasPhoto:payload.hasPhoto}},
-  async submitSimulation(draft){if(!draft||!/^DEMO-DRAFT-\\d+$/.test(draft.id))throw Error("Invalid demo draft");return {receiptId:draft.id.replace("DEMO-DRAFT-","DEMO-RECEIPT-"),draftId:draft.id,status:"simulation-only",message:"離線模擬完成；未建立正式申請、分享袋編號或取件期限"}}
+  async submitSimulation(draft){if(!draft||!/^DEMO-DRAFT-[0-9]+$/.test(draft.id))throw Error("Invalid demo draft");return {receiptId:draft.id.replace("DEMO-DRAFT-","DEMO-RECEIPT-"),draftId:draft.id,status:"simulation-only",message:"離線模擬完成；未建立正式申請、分享袋編號或取件期限"}}
  });
  Object.defineProperty(window,"LX_DEMO_ADAPTER",{value:adapter,writable:false,configurable:false});
 })();
