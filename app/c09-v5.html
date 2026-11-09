@@ -11,7 +11,7 @@ input[type=checkbox],input[type=radio]{width:auto;accent-color:#078b50}
 button{font:inherit;width:100%;padding:14px;margin-top:12px;border:0;border-radius:12px;background:#078b50;color:white;font-weight:700}
 button:disabled{opacity:.45}.muted{color:#66786d;font-size:14px;line-height:1.6}
 #status{white-space:pre-wrap;background:#eef6f0;border-radius:12px;padding:14px;line-height:1.6}
-#preview{max-width:100%;max-height:250px}.hidden{display:none}.row{display:flex;gap:12px;align-items:center}
+#preview{display:block;max-width:100%;max-height:280px;width:auto;object-fit:cover;border-radius:12px;margin-top:12px}#preview.hidden{display:none}.photo-picker{display:block;position:relative;overflow:hidden;border:2px solid #078b50;border-radius:12px;padding:14px;text-align:center;color:#078b50;background:#f1faf5;cursor:pointer}.photo-picker input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}.photo-hint{margin:6px 0 0}.row{display:flex;gap:12px;align-items:center}
 </style></head><body><main><header><h1>樂享家</h1><p>分享，讓美好開始傳遞</p></header>
 <section class="card"><h2>我要分享衣物</h2>
 <p class="muted">P1-FIX 測試分支開發版。正式分享開關未開啟時，不會送出申報。</p>
@@ -19,11 +19,13 @@ button:disabled{opacity:.45}.muted{color:#66786d;font-size:14px;line-height:1.6}
 <label>衣物件數（2～1000）<input id="count" type="number" min="2" max="1000" value="2"></label>
 <label class="row"><input type="radio" name="kind" value="home" checked> 自家門口</label>
 <label class="row"><input type="radio" name="kind" value="collection_point"> 核准集貨點</label>
-<div id="home"><p id="address" class="muted">讀取地址中…</p></div>
+<div id="home"><p id="address" class="muted">登入測試會員後顯示住家地址；目前不會讀取個人資料。</p></div>
 <div id="point" class="hidden"><label>集貨點<select id="pointSelect"><option value="">請選擇</option></select></label></div>
 <label>放置說明（選填）<textarea id="note" rows="2" maxlength="500"></textarea></label>
-<label>分享袋現場照片（自動壓縮為 WebP，最長邊 1280 px，單張不超過 300 KB）<input id="photo" type="file" accept="image/jpeg,image/png,image/webp" capture="environment"></label>
-<img id="preview" alt="照片預覽">
+<label>分享袋現場照片</label>
+<label class="photo-picker"><span id="photoLabel">📷 拍攝分享放置點</span><input id="photo" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" aria-label="拍攝分享放置點"></label>
+<p class="muted photo-hint">照片會壓縮為 WebP，最長邊 1280 px、單張不超過 300 KB；目前僅供本機預覽。</p>
+<img id="preview" class="hidden" alt="分享袋放置位置照片預覽">
 <label class="row"><input id="placed" type="checkbox"> 我確認分享袋已放妥</label>
 <button id="save" type="button">儲存分享草稿</button>
 <button id="preflight" type="button" disabled>提交前檢查</button>
