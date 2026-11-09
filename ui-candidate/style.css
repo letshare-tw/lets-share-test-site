@@ -58,3 +58,7 @@
 .share-form fieldset legend{font-size:17px;font-weight:500}
 .share-form .camera{margin-top:18px}
 @media(max-width:380px){.share-page{margin:14px 12px}.share-form{padding:20px 16px}.share-step strong{font-size:16px}}
+
+/* LOGO-42: compact top-left brand icon, no other layout changes */
+.brand .logo{width:42px;min-height:42px;flex:0 0 42px}
+.brand .logo img{display:block;width:42px;height:42px;max-width:42px;max-height:42px}
