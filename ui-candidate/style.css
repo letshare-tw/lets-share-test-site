@@ -34,3 +34,9 @@
 .bottom .nav-icon svg{display:block}
 .bottom button{min-height:64px}
 @media(max-width:380px){.brand{padding-left:14px;padding-right:14px}.brand-title strong{font-size:21px}.brand-title small{font-size:10px}.tag{font-size:9px;padding:5px}.top-search input{font-size:13px}}
+
+/* B-01C-03: consistent monochrome SVG navigation */
+.bottom .nav-icon{width:24px;height:24px;display:flex;align-items:center;justify-content:center}
+.bottom .nav-icon svg{display:block;width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.bottom button{color:#7a847e}
+.bottom button.active{color:#078b50}
