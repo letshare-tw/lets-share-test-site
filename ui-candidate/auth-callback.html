@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><title>樂享家｜測試登入回跳（未啟用）</title>
+<style>body{margin:0;background:#078b50;font:16px/1.7 system-ui,"Noto Sans TC",sans-serif;color:#163b2b}main{max-width:520px;margin:10vh auto;padding:20px}.panel{background:#fff;border-radius:18px;padding:24px;box-shadow:0 8px 28px #003b1d24}h1{font-size:23px;margin:0 0 10px}p{margin:8px 0}a{color:#056e40;font-weight:700}small{color:#64766d}</style></head>
+<body><main><section class="panel"><h1>樂享家｜測試登入尚未啟用</h1><p id="message" role="status">此頁僅為 OAuth 回跳路徑預留位置；不處理驗證碼、不建立 Session，也不讀取會員資料。</p><p><a href="./index.html">返回樂享家離線測試站</a></p><small>隔離測試模式｜請勿輸入真實個資</small></section></main>
+<script>
+"use strict";
+(()=>{
+  // Do not inspect or exchange URL query/hash, nor call network or auth APIs.
+  // Immediately clear callback parameters without persisting them.
+  if(location.search||location.hash){
+    try{history.replaceState(null,"",location.pathname);}catch(_){}
+    document.getElementById("message").textContent="登入回跳未啟用。已清除網址參數；未交換憑證或建立 Session。";
+  }
+})();
+</script></body></html>
