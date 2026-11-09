@@ -9,12 +9,12 @@ h1{margin:8px 0}h2{margin:0}label{display:block;margin:14px 0;font-weight:600}
 input,select,textarea{font:inherit;width:100%;padding:12px;border:1px solid #bfcfc5;border-radius:10px}
 input[type=checkbox],input[type=radio]{width:auto;accent-color:#078b50}
 button{font:inherit;width:100%;padding:14px;margin-top:12px;border:0;border-radius:12px;background:#078b50;color:white;font-weight:700}
-button:disabled{opacity:.45}.muted{color:#66786d;font-size:14px;line-height:1.6}
+button:disabled{opacity:.45;cursor:not-allowed}.hidden{display:none!important}.muted{color:#66786d;font-size:14px;line-height:1.6}
 #status{white-space:pre-wrap;background:#eef6f0;border-radius:12px;padding:14px;line-height:1.6}
 #preview{display:block;max-width:100%;max-height:280px;width:auto;object-fit:cover;border-radius:12px;margin-top:12px}#preview.hidden{display:none}.photo-picker{display:block;position:relative;overflow:hidden;border:2px solid #078b50;border-radius:12px;padding:14px;text-align:center;color:#078b50;background:#f1faf5;cursor:pointer}.photo-picker input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}.photo-hint{margin:6px 0 0}.row{display:flex;gap:12px;align-items:center}
 </style></head><body><main><header><h1>樂享家</h1><p>分享，讓美好開始傳遞</p></header>
 <section class="card"><h2>我要分享衣物</h2>
-<p class="muted">P1-FIX 測試分支開發版。正式分享開關未開啟時，不會送出申報。</p>
+<p class="muted">隔離預覽模式｜可以測試表單與拍照預覽，但未連接後端，不能儲存草稿或正式提交。請勿輸入真實個資。</p><p class="muted" id="buildVersion">測試版本：B-01A-UX-002</p>
 <p id="identity" class="muted">確認登入中…</p>
 <label>衣物件數（2～1000）<input id="count" type="number" min="2" max="1000" value="2"></label>
 <label class="row"><input type="radio" name="kind" value="home" checked> 自家門口</label>
@@ -27,12 +27,12 @@ button:disabled{opacity:.45}.muted{color:#66786d;font-size:14px;line-height:1.6}
 <p class="muted photo-hint">照片會壓縮為 WebP，最長邊 1280 px、單張不超過 300 KB；目前僅供本機預覽。</p>
 <img id="preview" class="hidden" alt="分享袋放置位置照片預覽">
 <label class="row"><input id="placed" type="checkbox"> 我確認分享袋已放妥</label>
-<button id="save" type="button">儲存分享草稿</button>
+<button id="save" type="button" disabled>儲存分享草稿（隔離預覽停用）</button>
 <button id="preflight" type="button" disabled>提交前檢查</button>
 <div id="agreement" class="hidden"><h3>分享協議</h3><div id="terms" class="muted"></div>
 <label class="row"><input id="transfer" type="checkbox"> 同意衣物所有權移轉</label>
 <label class="row"><input id="noReturn" type="checkbox"> 同意交付後不退回</label>
 <label class="row"><input id="recycling" type="checkbox"> 同意不合格衣物依法轉贈或回收</label>
 <button id="submit" type="button" disabled>確認正式申報</button></div>
-<div id="status" role="status">尚未開始</div></section><footer>樂享家 · C09 V5 · 測試分支專用</footer></main>
-<script type="module" src="./c09-v5.js"></script></body></html>
+<div id="status" role="status">安全鎖定：未連接測試後端，無法儲存或正式提交；照片僅供本機預覽。</div></section><footer>樂享家 · C09 V5 · 測試分支專用</footer></main>
+<script type="module" src="./c09-v5.js?v=B-01A-UX-002"></script></body></html>
