@@ -15,7 +15,7 @@
  const adultBox=document.createElement("div");adultBox.style.cssText="margin:14px 0;padding:12px;border:1px solid #d3e4d7;border-radius:10px";
  const dobLabel=document.createElement("label");dobLabel.textContent="出生年月日（年滿18歲）";dobLabel.htmlFor="lxRegBirthDate";
  const dob=document.createElement("input");dob.id="lxRegBirthDate";dob.type="hidden";dob.value="";
- const wheel=document.createElement("div");wheel.id="lxBirthWheel";wheel.setAttribute("role","group");wheel.setAttribute("aria-label","出生年月日三欄滾輪");wheel.style.cssText="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;max-width:360px;margin:12px 0;position:relative";
+ const wheel=document.createElement("div");wheel.id="lxBirthWheel";wheel.setAttribute("role","group");wheel.setAttribute("aria-label","出生年月日三欄滾輪");wheel.style.cssText="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;max-width:360px;margin:8px 0 6px;position:relative";
  const wheelColumns=[],wheelSelections={year:2000,month:1,day:1},wheelHeight=44;
  const wheelData={year:Array.from({length:new Date().getFullYear()-1899},(_,i)=>new Date().getFullYear()-i),month:Array.from({length:12},(_,i)=>i+1),day:[]};
  function daysInMonth(){return new Date(wheelSelections.year||2000,wheelSelections.month||1,0).getDate();}
@@ -24,7 +24,7 @@
   const column=wheelColumns.find(c=>c.kind===kind);if(!column)return;
   const values=kind==="day"?Array.from({length:daysInMonth()},(_,i)=>i+1):wheelData[kind];
   column.track.replaceChildren();column.values=values;
-  for(const value of values){const option=document.createElement("button");option.type="button";option.textContent=String(value).padStart(kind==="year"?4:2,"0");option.setAttribute("aria-label",kind+" "+value);option.style.cssText="display:block;box-sizing:border-box;width:100%;height:44px;border:0;background:transparent;color:#263d2e;font-size:21px;font-weight:500;scroll-snap-align:center;flex:none";option.addEventListener("click",()=>chooseWheel(kind,value,true));column.track.append(option);}
+  for(const value of values){const option=document.createElement("button");option.type="button";option.textContent=String(value).padStart(kind==="year"?4:2,"0");option.setAttribute("aria-label",kind+" "+value);option.style.cssText="display:block;box-sizing:border-box;width:100%;height:44px;border:0;background:transparent;color:#252525;font-size:20px;font-weight:500;scroll-snap-align:center;flex:none";option.addEventListener("click",()=>chooseWheel(kind,value,true));column.track.append(option);}
   if(wheelSelections[kind]!==null){const index=values.indexOf(wheelSelections[kind]);if(index>=0)column.track.scrollTop=index*wheelHeight;}
  }
  function chooseWheel(kind,value,scroll){
@@ -38,12 +38,12 @@
  for(const [kind,label] of [["year","年"],["month","月"],["day","日"]]){
   const column=document.createElement("div");column.style.cssText="min-width:0;text-align:center";
   const heading=document.createElement("div");heading.textContent=label;heading.style.cssText="font-size:14px;color:#526457;margin-bottom:5px";
-  const track=document.createElement("div");track.id="lxBirthWheel-"+kind;track.setAttribute("aria-label",label+"，上下滑動選擇");track.style.cssText="height:220px;overflow-y:auto;overscroll-behavior:contain;scroll-snap-type:y mandatory;scrollbar-width:none;padding:88px 0;box-sizing:border-box;border:1px solid #cfe1d4;border-radius:12px;background:linear-gradient(#f5faf6,#fff 36%,#fff 64%,#f5faf6)";
+  const track=document.createElement("div");track.id="lxBirthWheel-"+kind;track.setAttribute("aria-label",label+"，上下滑動選擇");track.style.cssText="height:132px;overflow-y:auto;overscroll-behavior:contain;scroll-snap-type:y mandatory;scrollbar-width:none;padding:44px 0;box-sizing:border-box;border:1px solid #e2e2e2;border-radius:14px;background:linear-gradient(#fafafa,#fff 36%,#fff 64%,#fafafa)";
   const entry={kind,track,values:[]};wheelColumns.push(entry);column.append(heading,track);wheel.append(column);
   track.addEventListener("scroll",()=>{if(dob.disabled)return;const index=Math.max(0,Math.min(entry.values.length-1,Math.round(track.scrollTop/wheelHeight)));const value=entry.values[index];if(value!==undefined&&wheelSelections[kind]!==value)chooseWheel(kind,value,false);});
  }
- const wheelMarker=document.createElement("div");wheelMarker.id="lxBirthWheelMarker";wheelMarker.setAttribute("aria-hidden","true");wheelMarker.style.cssText="position:absolute;left:0;right:0;top:calc(50% - 17px);height:44px;border:2px solid #12834c;border-radius:10px;background:rgba(18,131,76,.07);pointer-events:none;box-sizing:border-box";wheel.append(wheelMarker);
- const wheelHint=document.createElement("p");wheelHint.textContent="上下滑動年、月、日，中央位置為選取值";wheelHint.style.cssText="font-size:13px;color:#526457;margin:4px 0";
+ const wheelMarker=document.createElement("div");wheelMarker.id="lxBirthWheelMarker";wheelMarker.setAttribute("aria-hidden","true");wheelMarker.style.cssText="position:absolute;left:0;right:0;top:calc(50% - 11px);height:44px;border:1px solid #bfc2c5;border-radius:10px;background:rgba(225,227,229,.34);pointer-events:none;box-sizing:border-box";wheel.append(wheelMarker);
+ const wheelHint=document.createElement("p");wheelHint.textContent="上下滑動年、月、日，中央位置為選取值";wheelHint.style.cssText="font-size:12px;color:#777;margin:2px 0 8px";
  for(const kind of ["year","month","day"])populateWheel(kind);
  syncBirth();
  function resetWheel(){wheelSelections.year=2000;wheelSelections.month=1;wheelSelections.day=1;for(const c of wheelColumns){const index=c.values.indexOf(wheelSelections[c.kind]);c.track.scrollTop=Math.max(0,index)*wheelHeight;}syncBirth();}
