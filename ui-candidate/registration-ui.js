@@ -84,7 +84,7 @@
  terms.input.addEventListener("change",updateButton);privacy.input.addEventListener("change",updateButton);
  adultSave.addEventListener("click",async()=>{
   if(busy||!state||state.registered||!state.registration_enabled||!state.legal_ready)return;
-  if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(dob.value)||!adultCheck.checked){adultFeedback.textContent="請填寫生日並勾選成年聲明。";return;}
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(dob.value)||!adultCheck.checked){adultFeedback.textContent="請填寫生日並勾選成年聲明。";return;}
   const [y,m,d]=dob.value.split("-").map(Number),date=new Date(Date.UTC(y,m-1,d));
   if(date.getUTCFullYear()!==y||date.getUTCMonth()!==m-1||date.getUTCDate()!==d){adultFeedback.textContent="出生日期無效。";return;}
   busy=true;adultSave.disabled=true;adultFeedback.textContent="正在確認成年資格…";
