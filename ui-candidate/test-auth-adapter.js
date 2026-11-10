@@ -133,7 +133,7 @@
   return Error(reasons[error?.message]||"註冊操作未完成，請重新確認狀態後再試。");
  }
  async function saveAdultVerification(birthDate,declared){
-  if(typeof birthDate!=="string"||!/^\\d{4}-\\d{2}-\\d{2}$/.test(birthDate)||declared!==true)throw Error("請填寫有效生日並確認成年聲明。");
+  if(typeof birthDate!=="string"||!/^\d{4}-\d{2}-\d{2}$/.test(birthDate)||declared!==true)throw Error("請填寫有效生日並確認成年聲明。");
   const before=await verifiedSession();if(!before)throw Error("請先使用 Google 登入。");
   const {data,error}=await getClient().rpc("lx_save_member_adult_verification",{p_birth_date:birthDate,p_adult_declared:true});
   if(error)throw registrationError(error);
