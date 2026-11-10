@@ -87,6 +87,10 @@ function uiFixture(initial){
  check(uiSource.includes("daysInMonth()"));
  ui=uiFixture({...ready,registration_enabled:false,legal_ready:false,can_complete:false,legal:null});await tick();
  check(ui.doc.ids.lxBirthWheelMarker!==undefined);
+ check(ui.doc.ids.lxBirthWheelMarker.style.cssText.includes("#bfc2c5"));
+ check(ui.doc.ids["lxBirthWheel-year"].style.cssText.includes("height:132px"));
+ check(ui.doc.ids["lxBirthWheel-year"].style.cssText.includes("padding:44px 0"));
+ check(ui.doc.ids["lxBirthWheel-month"].children[0].style.cssText.includes("color:#252525"));
  check(ui.doc.ids.lxRegBirthDate.value==="2000-01-01");
  check(!ui.doc.ids["lxBirthWheel-year"].children[0].disabled);
  check(ui.doc.ids.lxRegSaveAdult.disabled);
