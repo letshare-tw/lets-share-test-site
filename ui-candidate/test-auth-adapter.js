@@ -75,7 +75,7 @@
  const phoneOtp=Object.freeze({enabled:false,reason:"測試專案 SMS 提供者尚未確認，為避免發送簡訊已安全停用。"});
  async function requestPhoneOtp(){throw Error(phoneOtp.reason);}
  async function verifyPhoneOtp(){throw Error(phoneOtp.reason);}
- function cleanAddress(value,max){if(typeof value!=="string")throw Error("地址欄位格式不正確");const v=value.trim();if(Array.from(v).length>max||/[\\u0000-\\u001f\\u007f]/.test(v))throw Error("地址欄位含無效字元或過長");return v;}
+ function cleanAddress(value,max){if(typeof value!=="string")throw Error("地址欄位格式不正確");const v=value.trim();if(Array.from(v).length>max||Array.from(v).some(ch=>{const n=ch.codePointAt(0);return n<32||n===127;}))throw Error("地址欄位含無效字元或過長");return v;}
  async function saveAddress(fields){
   const session=await verifiedSession();if(!session)throw Error("請先登入");
   if(!fields||typeof fields!=="object")throw Error("地址格式不正確");
