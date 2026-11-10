@@ -12,6 +12,15 @@
  const editName=document.createElement("button");editName.type="button";editName.textContent="修改會員名稱";
  editName.style.cssText="border:0;background:transparent;color:#087d43;text-decoration:underline;padding:10px 0;font-size:16px";
  editName.addEventListener("click",()=>document.getElementById("lxDisplayName")?.focus());
+ const adultBox=document.createElement("div");adultBox.style.cssText="margin:14px 0;padding:12px;border:1px solid #d3e4d7;border-radius:10px";
+ const dobLabel=document.createElement("label");dobLabel.textContent="出生年月日（年滿18歲）";dobLabel.htmlFor="lxRegBirthDate";
+ const dob=document.createElement("input");dob.id="lxRegBirthDate";dob.type="date";dob.autocomplete="bday";dob.style.cssText="display:block;width:100%;max-width:340px;box-sizing:border-box;padding:10px;margin:8px 0;font-size:16px";
+ const adultLabel=document.createElement("label");adultLabel.style.cssText="display:flex;gap:10px;align-items:center";
+ const adultCheck=document.createElement("input");adultCheck.type="checkbox";adultCheck.id="lxRegAdultDeclare";adultCheck.checked=false;
+ const adultText=document.createElement("span");adultText.textContent="我確認本人已年滿18歲，且出生日期填寫屬實。";adultLabel.append(adultCheck,adultText);
+ const adultSave=document.createElement("button");adultSave.type="button";adultSave.id="lxRegSaveAdult";adultSave.textContent="確認成年資格";adultSave.style.cssText="display:block;margin:12px 0;padding:12px;background:#12834c;color:white;border:0;border-radius:8px";
+ const adultFeedback=document.createElement("p");adultFeedback.setAttribute("role","status");
+ adultBox.append(dobLabel,dob,adultLabel,adultSave,adultFeedback);
  const documents=document.createElement("div");documents.style.cssText="display:flex;flex-wrap:wrap;gap:12px";
  const termsButton=document.createElement("button"),privacyButton=document.createElement("button");
  for(const button of [termsButton,privacyButton]){button.type="button";button.disabled=true;button.style.cssText="background:white;color:#087d43;border:1px solid #b9cfbf;border-radius:8px;padding:12px;font-size:16px;min-height:48px";}
@@ -31,26 +40,26 @@
  const dialogTitle=document.createElement("h2"),dialogText=document.createElement("div"),close=document.createElement("button");
  dialogText.style.cssText="white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.8";close.type="button";close.textContent="關閉文件";close.style.cssText="padding:12px 18px;margin-top:16px;font-size:16px";close.addEventListener("click",()=>dialog.close());
  dialog.append(dialogTitle,dialogText,close);
- card.append(title,summary,checklist,editName,documents,terms.label,privacy.label,submit,note,refreshButton,dialog);
+ card.append(title,summary,checklist,editName,adultBox,documents,terms.label,privacy.label,submit,note,refreshButton,dialog);
  anchor.insertAdjacentElement("beforebegin",card);
  let state=null,revision=0,busy=false;
  function lock(){
   if(dialog.open)dialog.close();
-  terms.input.checked=privacy.input.checked=false;
+  terms.input.checked=privacy.input.checked=false;adultCheck.checked=false;dob.value="";adultFeedback.textContent="";
   terms.input.disabled=privacy.input.disabled=submit.disabled=termsButton.disabled=privacyButton.disabled=true;
   submit.style.opacity=".55";
  }
  function updateButton(){
-  submit.disabled=busy||!state?.can_complete||state.registered||!terms.input.checked||!privacy.input.checked;
+  submit.disabled=busy||!state?.adult_ready||!state?.can_complete||state.registered||!terms.input.checked||!privacy.input.checked;
   submit.style.opacity=submit.disabled?".55":"1";
  }
  function row(text,ready){const li=document.createElement("li");li.textContent=(ready?"✓ ":"待完成：")+text;checklist.append(li);}
  function paint(data){
   state=data;checklist.replaceChildren();
   row("Google 帳號",data.google_verified);row("會員名稱（2～30 字）",data.name_ready);row(data.phone_verified&&data.masked_phone?"手機驗證（"+data.masked_phone+"）":"手機驗證",data.phone_verified);
-  row("會員條款與隱私權政策發布",data.legal_ready);
+  row("出生日期與年滿18歲聲明",!!data.adult_ready);row("會員條款與隱私權政策發布",data.legal_ready);
   const open=data.registration_enabled&&data.legal_ready;
-  termsButton.disabled=privacyButton.disabled=!data.legal_ready;
+  termsButton.disabled=privacyButton.disabled=!data.legal_ready;adultSave.disabled=busy||!!data.registered;dob.disabled=adultCheck.disabled=!!data.registered;
   terms.input.disabled=privacy.input.disabled=!open||data.registered;
   if(data.registered){summary.textContent="會員註冊已完成。";submit.textContent="註冊已完成";terms.input.checked=privacy.input.checked=false;}
   else if(!open){summary.textContent="帳號資料已讀取。會員條款與隱私權政策確認中，暫時無法完成註冊。";submit.textContent="完成註冊（尚未開放）";}
@@ -73,6 +82,17 @@
  }
  termsButton.addEventListener("click",()=>openDocument("terms"));privacyButton.addEventListener("click",()=>openDocument("privacy"));
  terms.input.addEventListener("change",updateButton);privacy.input.addEventListener("change",updateButton);
+ adultSave.addEventListener("click",async()=>{
+  if(busy||!state||state.registered)return;
+  if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(dob.value)||!adultCheck.checked){adultFeedback.textContent="請填寫生日並勾選成年聲明。";return;}
+  const [y,m,d]=dob.value.split("-").map(Number),date=new Date(Date.UTC(y,m-1,d));
+  if(date.getUTCFullYear()!==y||date.getUTCMonth()!==m-1||date.getUTCDate()!==d){adultFeedback.textContent="出生日期無效。";return;}
+  busy=true;adultSave.disabled=true;adultFeedback.textContent="正在確認成年資格…";
+  const current=revision;
+  try{await auth.saveAdultVerification(dob.value,true);if(current!==revision)return;await refresh();adultFeedback.textContent="成年資格已確認。";}
+  catch(e){if(current===revision)adultFeedback.textContent=e?.message||"成年資格確認失敗。";}
+  finally{busy=false;adultSave.disabled=false;updateButton();}
+ });
  refreshButton.addEventListener("click",()=>{if(!busy)refresh();});
  window.addEventListener("lx-member-state-changed",()=>{busy=false;refresh();});
  submit.addEventListener("click",async()=>{
