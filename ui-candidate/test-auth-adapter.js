@@ -5,7 +5,7 @@
  const projectRef="rfwqcrvxyjhtmafnbuyy",url="https://"+projectRef+".supabase.co";
  const key="sb_publishable_0TIzPc-ys9IDUz44Ci3a4w_rGwpqPoa";
  const storageKey="lx-test-"+projectRef+"-auth",pendingKey=storageKey+"-pending";
- const contract=Object.freeze({version:"B-01D-02B",enabled:true,allowOAuth:true,allowSession:true,allowProfile:true,projectRef,allowedPageOrigin:origin,callbackPath:base+"auth-callback.html"});
+ const contract=Object.freeze({version:"B-01D-02C",enabled:true,allowOAuth:true,allowSession:true,allowProfile:true,projectRef,allowedPageOrigin:origin,callbackPath:base+"auth-callback.html"});
  let client;
  function environment(){
   if(location.origin!==origin||![base,base+"index.html",contract.callbackPath].includes(location.pathname))throw Error("登入僅供指定獨立測試站使用");
@@ -25,7 +25,8 @@
   const rawAvatar=meta.avatar_url||meta.picture||"";
   let avatarUrl="";
   try{const u=new URL(rawAvatar);if(u.protocol==="https:"&&(u.hostname==="googleusercontent.com"||u.hostname.endsWith(".googleusercontent.com")))avatarUrl=u.href;}catch(_){}
-  return {user:{id:check.data.user.id,email:check.data.user.email||"",avatarUrl}};
+  const googleName=[meta.full_name,meta.name,[meta.given_name,meta.family_name].filter(Boolean).join(" ")].find(v=>typeof v==="string"&&v.trim())||"";
+  return {user:{id:check.data.user.id,email:check.data.user.email||"",avatarUrl,googleName:googleName.trim()}};
  }
  async function signInWithGoogle(){
   const c=getClient();
