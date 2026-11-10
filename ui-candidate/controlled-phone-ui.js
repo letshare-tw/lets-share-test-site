@@ -30,5 +30,6 @@
   catch(e){say(e.message);}finally{busy=false;}
  });
  if(!api){say("測試元件載入失敗，已停止。");return;}
+ if(api.sendEnabled){document.querySelector(".notice").textContent="僅限本次指定會員與手機，最多一次發送嘗試；不自動重送。";$("send").textContent="發送一次簡訊";}
  inspect().catch(e=>say(e.message));
 })();

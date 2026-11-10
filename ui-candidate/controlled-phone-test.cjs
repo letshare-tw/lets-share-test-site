@@ -7,7 +7,7 @@ function setup({enabled=false,path="controlled-phone.html",userId=id,google=true
  const auth={getUser:async()=>({data:{user:user()}}),updateUser:async()=>{calls++;return {error:fail?{code:"provider_error"}:null}},verifyOtp:async o=>{assert.equal(o.type,"phone_change");verified=true;return {error:null}}};
  class Clock extends Date{static now(){return Date.parse(expired?"2026-11-13T08:00:00Z":"2026-11-10T08:00:00Z")}}
  const ctx={window:{supabase:{createClient:()=>({auth})}},Date:Clock,location:{origin:"https://letshare-tw.github.io",pathname:"/lets-share-test-site/ui-candidate/"+path},crypto:webcrypto,TextEncoder,URL,navigator:{locks:{request:(_k,fn)=>{const p=tail.then(fn);tail=p.catch(()=>{});return p}}},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)}};
- vm.runInNewContext(enabled?source.replace("const SEND_AUTHORIZED=false","const SEND_AUTHORIZED=true"):source,ctx);
+ vm.runInNewContext(source.replace(/const SEND_AUTHORIZED=(true|false)/,"const SEND_AUTHORIZED="+enabled),ctx);
  return {api:ctx.window.LX_CONTROLLED_PHONE,calls:()=>calls,storage};
 }
 (async()=>{

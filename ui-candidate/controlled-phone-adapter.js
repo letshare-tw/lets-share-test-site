@@ -18,7 +18,7 @@
  }
 
  // C07C-02: separate entry. No change to the public adapter or its SMS lock.
- const SEND_AUTHORIZED=false; // Implementation-only release: no SMS authorized.
+ const SEND_AUTHORIZED=true; // User authorized one controlled attempt on 2026-11-10.
  const targetId="80fcf7ae-101f-41b3-bcf2-9212706ac733";
  const phoneDigest="e892b7bb1bca8dd683ef939b48599088a2490eb1cb2af69dba79ed4b1ff6c8bf";
  const expiresAt=Date.parse("2026-11-12T00:00:00+08:00");
