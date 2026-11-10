@@ -5,14 +5,14 @@
  if(!auth||!anchor)return;
  const card=document.createElement("section");card.id="lxRegistrationCard";card.hidden=true;
  card.setAttribute("aria-label","完成會員註冊");
- card.style.cssText="margin:18px 0;padding:20px;border:1px solid #cfe1d4;border-radius:16px;background:#f5faf6";
- const title=document.createElement("h2");title.textContent="完成會員註冊";title.style.cssText="font-size:22px;margin:0 0 12px";
- const summary=document.createElement("p");summary.setAttribute("role","status");summary.setAttribute("aria-live","polite");
- const checklist=document.createElement("ul");checklist.style.cssText="padding-left:24px;line-height:1.9";
+ card.style.cssText="margin:18px 0;padding:20px;border:1px solid #e5e7eb;border-radius:16px;background:#ffffff;color:#222222";
+ const title=document.createElement("h2");title.textContent="完成會員註冊";title.style.cssText="font-size:22px;margin:0 0 12px;color:#222222";
+ const summary=document.createElement("p");summary.setAttribute("role","status");summary.style.cssText="color:#6b7280;line-height:1.65";summary.setAttribute("aria-live","polite");
+ const checklist=document.createElement("ul");checklist.style.cssText="padding-left:24px;line-height:1.9;color:#374151";
  const editName=document.createElement("button");editName.type="button";editName.textContent="修改會員名稱";
  editName.style.cssText="border:0;background:transparent;color:#087d43;text-decoration:underline;padding:10px 0;font-size:16px";
  editName.addEventListener("click",()=>document.getElementById("lxDisplayName")?.focus());
- const adultBox=document.createElement("div");adultBox.style.cssText="margin:14px 0;padding:12px;border:1px solid #d3e4d7;border-radius:10px";
+ const adultBox=document.createElement("div");adultBox.style.cssText="margin:14px 0;padding:12px;border:1px solid #e5e7eb;border-radius:10px;background:#ffffff";
  const dobLabel=document.createElement("label");dobLabel.textContent="出生年月日（年滿18歲）";dobLabel.htmlFor="lxRegBirthDate";
  const dob=document.createElement("input");dob.id="lxRegBirthDate";dob.type="hidden";dob.value="";
  const wheel=document.createElement("div");wheel.id="lxBirthWheel";wheel.setAttribute("role","group");wheel.setAttribute("aria-label","出生年月日三欄滾輪");wheel.style.cssText="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;max-width:360px;margin:8px 0 6px;position:relative";
@@ -37,7 +37,7 @@
  }
  for(const [kind,label] of [["year","年"],["month","月"],["day","日"]]){
   const column=document.createElement("div");column.style.cssText="min-width:0;text-align:center";
-  const heading=document.createElement("div");heading.textContent=label;heading.style.cssText="font-size:14px;color:#526457;margin-bottom:5px";
+  const heading=document.createElement("div");heading.textContent=label;heading.style.cssText="font-size:14px;color:#6b7280;margin-bottom:5px";
   const track=document.createElement("div");track.id="lxBirthWheel-"+kind;track.setAttribute("aria-label",label+"，上下滑動選擇");track.style.cssText="height:132px;overflow-y:auto;overscroll-behavior:contain;scroll-snap-type:y mandatory;scrollbar-width:none;padding:44px 0;box-sizing:border-box;border:1px solid #e2e2e2;border-radius:14px;background:linear-gradient(#fafafa,#fff 36%,#fff 64%,#fafafa)";
   const entry={kind,track,values:[]};wheelColumns.push(entry);column.append(heading,track);wheel.append(column);
   track.addEventListener("scroll",()=>{if(dob.disabled)return;const index=Math.max(0,Math.min(entry.values.length-1,Math.round(track.scrollTop/wheelHeight)));const value=entry.values[index];if(value!==undefined&&wheelSelections[kind]!==value)chooseWheel(kind,value,false);});
@@ -53,11 +53,11 @@
  const adultCheck=document.createElement("input");adultCheck.type="checkbox";adultCheck.id="lxRegAdultDeclare";adultCheck.checked=false;
  const adultText=document.createElement("span");adultText.textContent="我確認本人已年滿18歲，且出生日期填寫屬實。";adultLabel.append(adultCheck,adultText);
  const adultSave=document.createElement("button");adultSave.type="button";adultSave.id="lxRegSaveAdult";adultSave.textContent="確認成年資格";adultSave.style.cssText="display:block;margin:12px 0;padding:12px;background:#12834c;color:white;border:0;border-radius:8px";
- const adultFeedback=document.createElement("p");adultFeedback.setAttribute("role","status");
+ const adultFeedback=document.createElement("p");adultFeedback.setAttribute("role","status");adultFeedback.style.cssText="color:#6b7280";
  adultBox.append(dobLabel,wheel,wheelHint,dob,adultLabel,adultSave,adultFeedback);
  const documents=document.createElement("div");documents.style.cssText="display:flex;flex-wrap:wrap;gap:12px";
  const termsButton=document.createElement("button"),privacyButton=document.createElement("button");
- for(const button of [termsButton,privacyButton]){button.type="button";button.disabled=true;button.style.cssText="background:white;color:#087d43;border:1px solid #b9cfbf;border-radius:8px;padding:12px;font-size:16px;min-height:48px";}
+ for(const button of [termsButton,privacyButton]){button.type="button";button.disabled=true;button.style.cssText="background:#ffffff;color:#374151;border:1px solid #d1d5db;border-radius:8px;padding:12px;font-size:16px;min-height:48px";}
  termsButton.textContent="閱讀會員條款";privacyButton.textContent="閱讀隱私權政策";documents.append(termsButton,privacyButton);
  function consent(text,id){
   const label=document.createElement("label");label.style.cssText="display:flex;gap:10px;align-items:flex-start;margin:16px 0;font-size:16px";
