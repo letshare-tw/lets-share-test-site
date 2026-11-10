@@ -87,7 +87,7 @@
   if(Array.from(home).length>250)throw Error("地址內容過長");
   const payload={address_city:city,address_district:district,address_street:street,address_detail:detail,home_address:home,home_placement_note:note};
   const {data,error}=await getClient().from("profiles").update(payload).eq("id",session.user.id).select("id,address_city,address_district,address_street,address_detail,home_address,home_placement_note").maybeSingle();
-  if(error)throw Error("地址儲存失敗，請稍後重試");
+  if(error)throw Error("後端拒絕寫入（代碼："+String(error.code||"unknown").slice(0,20)+"），請回報小P");
   if(!data||data.id!==session.user.id||Object.keys(payload).some(k=>data[k]!==payload[k]))throw Error("地址儲存驗證失敗");
   return data;
  }
