@@ -5,7 +5,7 @@
  const projectRef="rfwqcrvxyjhtmafnbuyy",url="https://"+projectRef+".supabase.co";
  const key="sb_publishable_0TIzPc-ys9IDUz44Ci3a4w_rGwpqPoa";
  const storageKey="lx-test-"+projectRef+"-auth",pendingKey=storageKey+"-pending";
- const contract=Object.freeze({version:"B-01D-02C",enabled:true,allowOAuth:true,allowSession:true,allowProfile:true,projectRef,allowedPageOrigin:origin,callbackPath:base+"auth-callback.html"});
+ const contract=Object.freeze({version:"B-01D-03-C02",enabled:true,allowOAuth:true,allowSession:true,allowProfile:true,projectRef,allowedPageOrigin:origin,callbackPath:base+"auth-callback.html"});
  let client;
  function environment(){
   if(location.origin!==origin||![base,base+"index.html",contract.callbackPath].includes(location.pathname))throw Error("登入僅供指定獨立測試站使用");
@@ -26,7 +26,7 @@
   let avatarUrl="";
   try{const u=new URL(rawAvatar);if(u.protocol==="https:"&&(u.hostname==="googleusercontent.com"||u.hostname.endsWith(".googleusercontent.com")))avatarUrl=u.href;}catch(_){}
   const googleName=[meta.full_name,meta.name,[meta.given_name,meta.family_name].filter(Boolean).join(" ")].find(v=>typeof v==="string"&&v.trim())||"";
-  return {user:{id:check.data.user.id,email:check.data.user.email||"",avatarUrl,googleName:googleName.trim()}};
+  return {user:{id:check.data.user.id,email:check.data.user.email||"",avatarUrl,googleName:googleName.trim(),phone:check.data.user.phone||"",phoneVerified:!!check.data.user.phone_confirmed_at}};
  }
  async function signInWithGoogle(){
   const c=getClient();
@@ -56,7 +56,7 @@
  }
  async function getProfile(){
   const session=await verifiedSession();if(!session)return null;
-  const {data,error}=await getClient().from("profiles").select("id,display_name,full_name,registration_completed_at").eq("id",session.user.id).maybeSingle();
+  const {data,error}=await getClient().from("profiles").select("id,display_name,full_name,registration_completed_at,address_city,address_district,address_street,address_detail,home_address,home_placement_note").eq("id",session.user.id).maybeSingle();
   if(error)throw Error("會員資料暫時無法讀取，請稍後重試");
   return data;
  }
@@ -70,5 +70,26 @@
   if(!data||data.id!==session.user.id||data.display_name!==cleaned)throw Error("找不到可更新的本人會員資料");
   return data;
  }
- Object.defineProperty(window,"LX_TEST_AUTH_ADAPTER",{value:Object.freeze({mode:"test-auth-only",contract,signInWithGoogle,handleCallback,getSession:verifiedSession,restoreSession:verifiedSession,signOut,getProfile,saveDisplayName}),writable:false,configurable:false});
+
+ // SMS provider status is unverified: no request is ever sent from this build.
+ const phoneOtp=Object.freeze({enabled:false,reason:"測試專案 SMS 提供者尚未確認，為避免發送簡訊已安全停用。"});
+ async function requestPhoneOtp(){throw Error(phoneOtp.reason);}
+ async function verifyPhoneOtp(){throw Error(phoneOtp.reason);}
+ function cleanAddress(value,max){if(typeof value!=="string")throw Error("地址欄位格式不正確");const v=value.trim();if(Array.from(v).length>max||/[\\u0000-\\u001f\\u007f]/.test(v))throw Error("地址欄位含無效字元或過長");return v;}
+ async function saveAddress(fields){
+  const session=await verifiedSession();if(!session)throw Error("請先登入");
+  if(!fields||typeof fields!=="object")throw Error("地址格式不正確");
+  const city=cleanAddress(fields.address_city,20),district=cleanAddress(fields.address_district,20);
+  const street=cleanAddress(fields.address_street,120),detail=cleanAddress(fields.address_detail,120);
+  const note=cleanAddress(fields.home_placement_note,200);
+  if(!city||!district||!street)throw Error("請填寫縣市、行政區及街道門牌");
+  const home=[city,district,street,detail].filter(Boolean).join("");
+  if(Array.from(home).length>250)throw Error("地址內容過長");
+  const payload={address_city:city,address_district:district,address_street:street,address_detail:detail,home_address:home,home_placement_note:note};
+  const {data,error}=await getClient().from("profiles").update(payload).eq("id",session.user.id).select("id,address_city,address_district,address_street,address_detail,home_address,home_placement_note").maybeSingle();
+  if(error)throw Error("地址儲存失敗，請稍後重試");
+  if(!data||data.id!==session.user.id||Object.keys(payload).some(k=>data[k]!==payload[k]))throw Error("地址儲存驗證失敗");
+  return data;
+ }
+ Object.defineProperty(window,"LX_TEST_AUTH_ADAPTER",{value:Object.freeze({mode:"test-auth-only",contract,signInWithGoogle,handleCallback,getSession:verifiedSession,restoreSession:verifiedSession,signOut,getProfile,saveDisplayName,phoneOtp,requestPhoneOtp,verifyPhoneOtp,saveAddress}),writable:false,configurable:false});
 })();
