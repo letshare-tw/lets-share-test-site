@@ -27,14 +27,32 @@
  const otpVerify=document.createElement("button");otpVerify.type="button";otpVerify.textContent="驗證手機（尚未啟用）";otpVerify.disabled=true;
  const smsNotice=document.createElement("p");smsNotice.textContent="安全鎖定：測試專案 SMS 提供者尚未確認，不能寄送或驗證簡訊。";smsNotice.style.cssText="font-size:13px;color:#9b501b";
  const fields=[["address_city","縣市","例如：臺南市",20],["address_district","鄉鎮市區","例如：安南區",20],["address_street","街道門牌","路名、巷弄及門牌",120],["address_detail","樓層／補充地址","例如：3樓之2",120],["home_placement_note","衣物放置位置","例如：管理室旁指定置物架",200]];
+ const districts={
+ "臺南市":"中西區 東區 南區 北區 安平區 安南區 永康區 歸仁區 新化區 左鎮區 玉井區 楠西區 南化區 仁德區 關廟區 龍崎區 官田區 麻豆區 佳里區 西港區 七股區 將軍區 學甲區 北門區 新營區 後壁區 白河區 東山區 六甲區 下營區 柳營區 鹽水區 善化區 大內區 山上區 新市區 安定區".split(" "),
+ "高雄市":"新興區 前金區 苓雅區 鹽埕區 鼓山區 旗津區 前鎮區 三民區 楠梓區 小港區 左營區 仁武區 大社區 岡山區 路竹區 阿蓮區 田寮區 燕巢區 橋頭區 梓官區 彌陀區 永安區 湖內區 鳳山區 大寮區 林園區 鳥松區 大樹區 旗山區 美濃區 六龜區 內門區 杉林區 甲仙區 桃源區 那瑪夏區 茂林區 茄萣區".split(" "),
+ "臺北市":"中正區 大同區 中山區 松山區 大安區 萬華區 信義區 士林區 北投區 內湖區 南港區 文山區".split(" "),
+ "新北市":"板橋區 三重區 中和區 永和區 新莊區 新店區 土城區 蘆洲區 樹林區 鶯歌區 三峽區 淡水區 汐止區 瑞芳區 五股區 泰山區 林口區 八里區 深坑區 石碇區 坪林區 三芝區 石門區 金山區 萬里區 平溪區 雙溪區 貢寮區 烏來區".split(" "),
+ "臺中市":"中區 東區 南區 西區 北區 北屯區 西屯區 南屯區 太平區 大里區 霧峰區 烏日區 豐原區 后里區 石岡區 東勢區 和平區 新社區 潭子區 大雅區 神岡區 大肚區 沙鹿區 龍井區 梧棲區 清水區 大甲區 外埔區 大安區".split(" "),
+ "桃園市":"桃園區 中壢區 平鎮區 八德區 楊梅區 蘆竹區 大溪區 龜山區 大園區 觀音區 新屋區 龍潭區 復興區".split(" ")
+ };
+ function setOptions(select,values,placeholder){
+  select.replaceChildren();const blank=document.createElement("option");blank.value="";blank.textContent=placeholder;select.append(blank);
+  for(const value of values){const option=document.createElement("option");option.value=value;option.textContent=value;select.append(option);}
+ }
  const inputs={};
  for(const [key,title,placeholder,max] of fields){
   const label=document.createElement("label");label.textContent=title;label.htmlFor="lx-"+key;
-  const el=key==="home_placement_note"?document.createElement("textarea"):document.createElement("input");
-  el.id="lx-"+key;el.placeholder=placeholder;el.maxLength=max;el.disabled=true;
+  const el=key==="address_city"||key==="address_district"?document.createElement("select"):key==="home_placement_note"?document.createElement("textarea"):document.createElement("input");
+  el.id="lx-"+key;if(el.tagName!=="SELECT"){el.placeholder=placeholder;el.maxLength=max;}el.disabled=true;
   el.style.cssText="display:block;box-sizing:border-box;width:100%;max-width:420px;padding:10px;margin:6px 0 12px;border:1px solid #aeb9af;border-radius:8px;font-size:16px";
   inputs[key]=el;contact.append(label,el);
  }
+ setOptions(inputs.address_city,Object.keys(districts),"請選擇縣市");
+ setOptions(inputs.address_district,[],"請先選擇縣市");
+ inputs.address_city.addEventListener("change",()=>{
+  setOptions(inputs.address_district,districts[inputs.address_city.value]||[],"請選擇行政區");
+  inputs.address_district.value="";
+ });
  const addressSave=document.createElement("button");addressSave.type="button";addressSave.textContent="儲存取件地址";addressSave.disabled=true;addressSave.style.cssText="background:#12834c;color:white;border:0;border-radius:8px;padding:11px 18px;font-size:16px";
  const addressFeedback=document.createElement("p");addressFeedback.setAttribute("role","status");addressFeedback.style.cssText="font-size:14px;color:#366b4b";
  const phoneBox=document.createElement("div");phoneBox.style.cssText="display:grid;gap:8px;margin-bottom:20px";
@@ -44,7 +62,16 @@
  function paintContact(session,profile){
   contact.hidden=false;phoneInput.value=session.user.phone||"";
   phoneState.textContent=session.user.phoneVerified&&session.user.phone?"手機已驗證："+session.user.phone:"手機尚未驗證";
-  if(profile){for(const key of Object.keys(inputs))inputs[key].value=profile[key]||"";for(const el of Object.values(inputs))el.disabled=false;addressSave.disabled=false;}
+  if(profile){
+   const city=profile.address_city||"",district=profile.address_district||"";
+   if(city&&!districts[city]){districts[city]=[district].filter(Boolean);setOptions(inputs.address_city,Object.keys(districts),"請選擇縣市");}
+   inputs.address_city.value=city;
+   setOptions(inputs.address_district,districts[city]||[],"請選擇行政區");
+   if(district&&!districts[city]?.includes(district)){const option=document.createElement("option");option.value=district;option.textContent=district;inputs.address_district.append(option);}
+   inputs.address_district.value=district;
+   for(const key of Object.keys(inputs))if(key!=="address_city"&&key!=="address_district")inputs[key].value=profile[key]||"";
+   for(const el of Object.values(inputs))el.disabled=false;addressSave.disabled=false;
+  }
   else{addressFeedback.textContent="尚未建立會員資料，地址暫時無法儲存。";}
  }
  addressSave.addEventListener("click",async()=>{
@@ -60,7 +87,7 @@
    if(!latest||Object.keys(values).some(k=>latest[k]!==values[k].trim()))throw Error("重新讀取驗證失敗");
    for(const k of Object.keys(inputs))inputs[k].value=latest[k]||"";
    addressFeedback.textContent="取件地址已儲存，重新讀取驗證成功。";
-  }catch(_){if(token===version)addressFeedback.textContent="地址儲存失敗或驗證未完成，請檢查內容後重試。";}
+  }catch(_){if(token===version)addressFeedback.textContent="地址儲存未完成："+String(_?.message||"未知錯誤");}
   finally{busy=false;if(token===version){addressSave.disabled=false;logout.disabled=false;}}
  });
 
