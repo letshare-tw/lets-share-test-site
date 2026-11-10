@@ -59,7 +59,7 @@
   row("Google 帳號",data.google_verified);row("會員名稱（2～30 字）",data.name_ready);row(data.phone_verified&&data.masked_phone?"手機驗證（"+data.masked_phone+"）":"手機驗證",data.phone_verified);
   row("出生日期與年滿18歲聲明",!!data.adult_ready);row("會員條款與隱私權政策發布",data.legal_ready);
   const open=data.registration_enabled&&data.legal_ready;
-  termsButton.disabled=privacyButton.disabled=!data.legal_ready;adultSave.disabled=busy||!!data.registered;dob.disabled=adultCheck.disabled=!!data.registered;
+  termsButton.disabled=privacyButton.disabled=!data.legal_ready;adultSave.disabled=busy||!!data.registered||!open;dob.disabled=adultCheck.disabled=!!data.registered||!open;
   terms.input.disabled=privacy.input.disabled=!open||data.registered;
   if(data.registered){summary.textContent="會員註冊已完成。";submit.textContent="註冊已完成";terms.input.checked=privacy.input.checked=false;}
   else if(!open){summary.textContent="帳號資料已讀取。會員條款與隱私權政策確認中，暫時無法完成註冊。";submit.textContent="完成註冊（尚未開放）";}
@@ -83,7 +83,7 @@
  termsButton.addEventListener("click",()=>openDocument("terms"));privacyButton.addEventListener("click",()=>openDocument("privacy"));
  terms.input.addEventListener("change",updateButton);privacy.input.addEventListener("change",updateButton);
  adultSave.addEventListener("click",async()=>{
-  if(busy||!state||state.registered)return;
+  if(busy||!state||state.registered||!state.registration_enabled||!state.legal_ready)return;
   if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(dob.value)||!adultCheck.checked){adultFeedback.textContent="請填寫生日並勾選成年聲明。";return;}
   const [y,m,d]=dob.value.split("-").map(Number),date=new Date(Date.UTC(y,m-1,d));
   if(date.getUTCFullYear()!==y||date.getUTCMonth()!==m-1||date.getUTCDate()!==d){adultFeedback.textContent="出生日期無效。";return;}
@@ -91,7 +91,7 @@
   const current=revision;
   try{await auth.saveAdultVerification(dob.value,true);if(current!==revision)return;await refresh();adultFeedback.textContent="成年資格已確認。";}
   catch(e){if(current===revision)adultFeedback.textContent=e?.message||"成年資格確認失敗。";}
-  finally{busy=false;adultSave.disabled=false;updateButton();}
+  finally{busy=false;adultSave.disabled=!!state?.registered||!state?.registration_enabled||!state?.legal_ready;updateButton();}
  });
  refreshButton.addEventListener("click",()=>{if(!busy)refresh();});
  window.addEventListener("lx-member-state-changed",()=>{busy=false;refresh();});
