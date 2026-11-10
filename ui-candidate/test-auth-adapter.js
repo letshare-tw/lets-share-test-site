@@ -79,11 +79,11 @@
   if(typeof raw!=="string")throw Error("請輸入台灣手機號碼");
   const value=raw.trim().replace(/[ -]/g,"");
   if(/^09[0-9]{8}$/.test(value))return "+886"+value.slice(1);
-  if(/^\\+8869[0-9]{8}$/.test(value))return value;
+  if(/^\+8869[0-9]{8}$/.test(value))return value;
   throw Error("手機格式不正確，請輸入 09 開頭的十碼手機號碼");
  }
  function validatePhoneToken(raw){
-  if(typeof raw!=="string"||!/^\\d{6}$/.test(raw.trim()))throw Error("請輸入六位數驗證碼");
+  if(typeof raw!=="string"||!/^\d{6}$/.test(raw.trim()))throw Error("請輸入六位數驗證碼");
   return raw.trim();
  }
  async function requestPhoneOtp(raw){
@@ -128,5 +128,28 @@
   if(!data||data.id!==session.user.id||Object.keys(payload).some(k=>data[k]!==payload[k]))throw Error("地址儲存驗證失敗");
   return data;
  }
- Object.defineProperty(window,"LX_TEST_AUTH_ADAPTER",{value:Object.freeze({mode:"test-auth-only",contract,signInWithGoogle,handleCallback,getSession:verifiedSession,restoreSession:verifiedSession,signOut,getProfile,saveDisplayName,phoneOtp,normalizeTaiwanPhone,validatePhoneToken,requestPhoneOtp,verifyPhoneOtp,saveAddress}),writable:false,configurable:false});
+ function registrationError(error){
+  const reasons={REG_LOGIN_REQUIRED:"請先使用 Google 登入。",REG_PROFILE_REQUIRED:"尚未建立會員資料。",REG_LOCKED:"註冊尚未開放，請等待條款確認。",REG_EXPLICIT_CONSENT_REQUIRED:"請由本人確認會員條款與隱私權政策。",REG_LEGAL_VERSION_CHANGED:"文件版本已更新，請重新閱讀並確認。",REG_LEGAL_NOT_PUBLISHED:"文件尚未發布、已到期或已撤回。",REG_GOOGLE_REQUIRED:"請使用原 Google 會員帳號。",REG_PHONE_VERIFICATION_REQUIRED:"請先完成手機驗證。",REG_NAME_REQUIRED:"會員名稱須為 2～30 個字元。"};
+  return Error(reasons[error?.message]||"註冊操作未完成，請重新確認狀態後再試。");
+ }
+ async function getRegistrationStatus(){
+  const session=await verifiedSession();if(!session)return null;
+  const {data,error}=await getClient().rpc("lx_member_registration_status");
+  if(error)throw registrationError(error);
+  const latest=await verifiedSession();
+  if(!data||data.user_id!==session.user.id||!latest||latest.user.id!==session.user.id)throw Error("會員身分已變更，請重新確認。");
+  return {...data,masked_phone:latest.user.phoneVerified&&latest.user.phone?"09•••••"+latest.user.phone.slice(-3):""};
+ }
+ async function completeRegistration(legalVersion,termsAgreed,privacyAcknowledged){
+  if(typeof legalVersion!=="string"||!legalVersion||termsAgreed!==true||privacyAcknowledged!==true)throw Error("請閱讀並確認會員條款與隱私權政策。");
+  const before=await getRegistrationStatus();
+  if(!before?.can_complete||before.legal?.version!==legalVersion)throw Error("註冊尚未開放或文件版本已更新，請重新確認。");
+  const {data,error}=await getClient().rpc("lx_complete_member_registration",{p_legal_version:legalVersion,p_terms_agreed:true,p_privacy_acknowledged:true});
+  if(error)throw registrationError(error);
+  const latest=await verifiedSession();
+  if(!data?.registered||data.user_id!==before.user_id||!latest||latest.user.id!==before.user_id)throw Error("註冊結果與原會員不一致，請重新確認。");
+  return data;
+ }
+ Object.defineProperty(window,"LX_TEST_AUTH_ADAPTER",{value:Object.freeze({mode:"test-auth-only",contract,signInWithGoogle,handleCallback,getSession:verifiedSession,restoreSession:verifiedSession,signOut,getProfile,saveDisplayName,phoneOtp,normalizeTaiwanPhone,validatePhoneToken,requestPhoneOtp,verifyPhoneOtp,saveAddress,getRegistrationStatus,completeRegistration}),writable:false,configurable:false});
 })();
+

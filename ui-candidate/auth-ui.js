@@ -25,7 +25,7 @@
  const otpButton=document.createElement("button");otpButton.type="button";otpButton.textContent="發送驗證碼（尚未啟用）";otpButton.disabled=true;
  const otpInput=document.createElement("input");otpInput.type="text";otpInput.inputMode="numeric";otpInput.placeholder="六位數驗證碼";otpInput.maxLength=6;otpInput.autocomplete="one-time-code";otpInput.disabled=true;
  const otpVerify=document.createElement("button");otpVerify.type="button";otpVerify.textContent="驗證手機（尚未啟用）";otpVerify.disabled=true;
- const smsNotice=document.createElement("p");smsNotice.textContent="安全鎖定：Twilio Verify 尚未授權啟用；可檢查手機格式，但不會發送簡訊。";smsNotice.style.cssText="font-size:13px;color:#9b501b";
+ const smsNotice=document.createElement("p");smsNotice.textContent="公開測試站暫停發送簡訊；已驗證的手機狀態照常顯示。";smsNotice.style.cssText="font-size:13px;color:#9b501b";
  const phoneFeedback=document.createElement("p");phoneFeedback.setAttribute("role","status");phoneFeedback.style.cssText="font-size:14px;color:#366b4b";
  phoneInput.addEventListener("input",()=>{
   const value=phoneInput.value.trim();
@@ -154,6 +154,7 @@
   status.textContent=session?"已登入測試帳號："+session.user.email:"尚未登入測試帳號";
   login.hidden=!!session;logout.hidden=!session;reset();
   if(session){activeUserId=session.user.id;panel.hidden=false;showAvatar(session.user.avatarUrl);loadProfile(session,version);}
+  window.dispatchEvent(new Event("lx-member-state-changed"));
  }
  async function loadProfile(session,token){
   name.textContent="會員名稱：讀取中…";email.textContent="電子郵件："+session.user.email;registration.textContent="註冊狀態：確認中…";
@@ -181,6 +182,7 @@
    if(token!==version||userId!==activeUserId)return;
    if(!profile||profile.display_name!==value)throw Error("重新讀取驗證失敗");
    name.textContent="會員名稱："+profile.display_name;input.value=profile.display_name;feedback.textContent="會員名稱已儲存。";
+   window.dispatchEvent(new Event("lx-member-state-changed"));
   }catch(_){if(token===version)feedback.textContent="儲存失敗或驗證未完成，請稍後重試。";}
   finally{busy=false;if(token===version){save.disabled=input.disabled=false;logout.disabled=false;}}
  });
@@ -188,3 +190,4 @@
  logout.addEventListener("click",()=>action(async()=>{reset();await auth.signOut();paint(null);}));
  action(async()=>paint(await auth.restoreSession()));
 })();
+

@@ -1,14 +1,12 @@
-# 樂享家 ui-candidate｜B-01C-07C-02 測試登入
+# 樂享家 ui-candidate｜REG-01 註冊流程（保持鎖定）
 
-- 本次授權：僅本目錄，Google Auth 串接 lets-share-test（rfwqcrvxyjhtmafnbuyy）。不修改舊專案、正式站或 lets-share-app。
-- 部署前基準：fd32629909aed6c31210f7a713ec16c289e59370。
-- 會員中心 Google 登入，PKCE 回跳後返回賣場；重新整理驗證伺服器 user；登出僅終止本瀏覽器測試 session。
-- 固定 callback：https://letshare-tw.github.io/lets-share-test-site/ui-candidate/auth-callback.html
-- 僅允許指定 origin、三個頁面路徑與新測試專案。callback 清除 query/hash；拒絕過期、重複/缺少 code、未從本站發起或帶 hash 的回跳。無任意 next/returnTo 導向。
-- Supabase JS 2.119.0，固定 CDN 版本與 SHA-384 SRI。前端僅含 publishable key；Google Client Secret 不進入程式碼。
-- 專用 localStorage key 儲存測試 Session 與 PKCE verifier；不可與正式 session 共用。不要在共用裝置保留登入。
-- test-api-adapter、adapter-selector 與 demo-adapter 保持原樣。訂單、地址、草稿、照片、分享提交、付款與 profile API 仍停用；Google 身分不授予業務權限。會員文字以 textContent 顯示。
-- 保留原有 LOGO、Banner、四大分頁與離線分享操作。登入後的分享仍是示範，勿輸入真實個資。
-- lockdown-selftest：17 項 API／模式／Profile 拒絕檢查；不呼叫真實登入、登出或 callback。
-- 自動化以 mock 驗證登入目的地、PKCE 設定、Session 驗證／拒絕、登出及錯誤 callback；真實 Google 帳號授權、回跳與手機操作由豪哥驗收。
-- 回復：只將本目錄本次修改檔案恢復至上述部署前基準；不回退整個倉庫。
+- 僅連接 lets-share-test（rfwqcrvxyjhtmafnbuyy）；不修改舊專案、正式站、lets-share-app 或 Twilio。
+- Google 登入採 PKCE，固定 callback：https://letshare-tw.github.io/lets-share-test-site/ui-candidate/auth-callback.html；登入後仍返回賣場。
+- 新增完成註冊卡片：Google、會員名稱、Auth 已驗證手機、會員條款同意與隱私權政策確認。真實姓名、地址使用相關服務時補填。
+- 新增兩個註冊 RPC，後端核對本人、手機及現行文件版本，原子寫入同意與完成時間。前端不能直接修改註冊標記。
+- 條款未確認：沒有發布文件、沒有啟用註冊，確認欄與完成按鈕停用，沒有會員被標為完成。
+- 公開站 SMS 安全鎖維持 false；已驗證手機可正常顯示，不重送驗證碼。公開提示更新為「公開測試站暫停發送簡訊；已驗證的手機狀態照常顯示」。
+- 登入及會員名稱、取件地址讀寫沿用現有本人權限；分享、照片、訂單與付款仍為離線示範。完成會員註冊不會自動啟用分享服務。
+- 保留 LOGO、Banner、四大分頁與離線分享操作。Supabase JS 2.119.0 與既有 SHA-384 SRI 保持不變。沒有新增密鑰。
+- 驗收：node registration-test.cjs（32）、node auth-mock-test.cjs（39）、lockdown-selftest.js（31）；registration-db-test.sql（28，臨時測試資料全部回復）。
+- 詳見 REG-01.md 與 registration-backend.sql。後端開關及文件發布需要另行確認授權。
