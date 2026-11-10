@@ -81,11 +81,21 @@ function uiFixture(initial){
  check(ui.doc.ids.lxRegBirthDate.type==="hidden");
  for(const kind of ["year","month","day"])check(ui.doc.ids["lxBirthWheel-"+kind]!==undefined);
  check(uiSource.includes("scroll-snap-type:y mandatory"));
- check(uiSource.includes("setWheelDisabled(!!data.registered||!open)"));
+ check(uiSource.includes("setWheelDisabled(!!data.registered)"));
  check(uiSource.includes("const open=data.registration_enabled&&data.legal_ready"));
  check(uiSource.includes("dob.value=year&&month&&day?"));
  check(uiSource.includes("daysInMonth()"));
+ ui=uiFixture({...ready,registration_enabled:false,legal_ready:false,can_complete:false,legal:null});await tick();
+ check(ui.doc.ids.lxBirthWheelMarker!==undefined);
+ check(ui.doc.ids.lxRegBirthDate.value==="2000-01-01");
+ check(!ui.doc.ids["lxBirthWheel-year"].children[0].disabled);
  check(ui.doc.ids.lxRegSaveAdult.disabled);
+ await ui.doc.ids["lxBirthWheel-month"].children[1].fire("click");
+ check(ui.doc.ids.lxRegBirthDate.value==="2000-02-01");
+ check(ui.doc.ids.lxRegSaveAdult.disabled);
+ check(ui.doc.ids.lxCompleteRegistration.disabled);
+ check(ui.doc.ids.lxRegTermsAgree.disabled);
+
 
  check(!uiSource.includes("signInWithOtp")&&!uiSource.includes("updateUser")&&!uiSource.includes("innerHTML"));
  console.log(JSON.stringify({result:"PASS",assertions,realNetworkRequests:0,realConsentWrites:0,realSms:0}));
