@@ -10,12 +10,13 @@ async function reject(p,pattern){await assert.rejects(p,pattern);assertions++;}
 function adapterFixture(options={}){
  let rpcCalls=[],completeCalls=0,current=id;
  const user=()=>({id:current,email:"fixture@example.invalid",phone:"886900000001",phone_confirmed_at:"fixture",user_metadata:{}});
- const initial={user_id:id,google_verified:true,name_ready:true,phone_verified:true,registered:false,registration_enabled:false,legal_ready:false,can_complete:false,legal:null};
+ const initial={user_id:id,google_verified:true,name_ready:true,phone_verified:true,adult_ready:false,registered:false,registration_enabled:false,legal_ready:false,can_complete:false,legal:null};
  let state={...initial,...options.state};
  const auth={getSession:async()=>({data:{session:options.loggedOut?null:{user:user()}}}),getUser:async()=>({data:{user:user()}})};
  const client={auth,rpc:async(name,args)=>{
   rpcCalls.push(name);
   if(name==="lx_member_registration_status"){if(options.switchUser)current="another";return {data:state};}
+  if(name==="lx_save_member_adult_verification")return {data:{adult_ready:true}};
   completeCalls++;if(options.error)return {error:{message:options.error}};
   return {data:{registered:true,user_id:current}};
  }};
@@ -43,7 +44,7 @@ function uiFixture(initial){
  const name=doc.createElement("input");name.id="lxDisplayName";anchor.append(name);
  const win={handlers:{},addEventListener(type,fn){(this.handlers[type]??=[]).push(fn);},async fire(type){for(const fn of this.handlers[type]||[])fn();await tick();}};
  let state=initial,calls=0;
- win.LX_TEST_AUTH_ADAPTER={getRegistrationStatus:async()=>state,completeRegistration:async(version,t,p)=>{
+ win.LX_TEST_AUTH_ADAPTER={getRegistrationStatus:async()=>state,saveAdultVerification:async()=>({adult_ready:true}),completeRegistration:async(version,t,p)=>{
   check(version==="fixture-v1"&&t===true&&p===true);calls++;state={...state,registered:true,registration_completed_at:"fixture"};return {registered:true};
  },getProfile:async()=>({registration_completed_at:"fixture"})};
  vm.runInNewContext(uiSource,{window:win,document:doc});
@@ -57,7 +58,7 @@ function uiFixture(initial){
  await reject(adapterFixture({state:{user_id:"other"}}).api.getRegistrationStatus(),/身分已變更/);
  await reject(adapterFixture({switchUser:true}).api.getRegistrationStatus(),/身分已變更/);
  check(await adapterFixture({loggedOut:true}).api.getRegistrationStatus()===null);
- const ready={google_verified:true,name_ready:true,phone_verified:true,masked_phone:"09•••••001",registration_enabled:true,legal_ready:true,can_complete:true,registered:false,legal:{version:"fixture-v1",terms_text:"<img onerror=fixture> TEST TERMS",privacy_text:"TEST PRIVACY"}};
+ const ready={adult_ready:true,google_verified:true,name_ready:true,phone_verified:true,masked_phone:"09•••••001",registration_enabled:true,legal_ready:true,can_complete:true,registered:false,legal:{version:"fixture-v1",terms_text:"<img onerror=fixture> TEST TERMS",privacy_text:"TEST PRIVACY"}};
  f=adapterFixture({state:ready,error:"REG_LEGAL_VERSION_CHANGED"});
  await reject(f.api.completeRegistration("fixture-v1",true,true),/版本已更新/);check(f.completeCalls()===1);
  f=adapterFixture({state:ready});check((await f.api.completeRegistration("fixture-v1",true,true)).registered);check(f.completeCalls()===1);
@@ -76,6 +77,7 @@ function uiFixture(initial){
  check(ui.card().textContent.includes("會員註冊已完成"));check(ui.root.textContent.includes("註冊狀態：已完成"));
  await ui.doc.ids.lxCompleteRegistration.fire("click");check(ui.calls()===1);
  ui.setState(null);await ui.win.fire("lx-member-state-changed");check(ui.card().hidden);check(!dialog.open);
+ check(ui.doc.ids.lxRegBirthDate!==undefined);check(ui.doc.ids.lxRegAdultDeclare!==undefined);
  check(!uiSource.includes("signInWithOtp")&&!uiSource.includes("updateUser")&&!uiSource.includes("innerHTML"));
  console.log(JSON.stringify({result:"PASS",assertions,realNetworkRequests:0,realConsentWrites:0,realSms:0}));
 })().catch(e=>{console.error(e);process.exit(1)});
