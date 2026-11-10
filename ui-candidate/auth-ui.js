@@ -36,39 +36,72 @@
  "桃園市":"桃園區 中壢區 平鎮區 八德區 楊梅區 蘆竹區 大溪區 龜山區 大園區 觀音區 新屋區 龍潭區 復興區".split(" ")
  };
  function setOptions(select,values,placeholder){
-  select.replaceChildren();const blank=document.createElement("option");blank.value="";blank.textContent=placeholder;select.append(blank);
-  for(const value of values){const option=document.createElement("option");option.value=value;option.textContent=value;select.append(option);}
+  select.dataset.values=JSON.stringify(values);
+  select.dataset.placeholder=placeholder;
+  if(!values.includes(select.value))select.value="";
+  select.textContent=select.value||placeholder;
+  select.setAttribute("aria-label",select.value||placeholder);
+ }
+ function chooseOption(select,value){
+  select.value=value;select.textContent=value||select.dataset.placeholder||"請選擇";
+  select.dispatchEvent(new Event("change",{bubbles:true}));
+ }
+ function closeMenus(except){
+  for(const el of Object.values(inputs))if(el.dataset?.picker==="true"&&el!==except){el.nextElementSibling.hidden=true;el.setAttribute("aria-expanded","false");}
+ }
+ function makePicker(key,labelText){
+  const btn=document.createElement("button");btn.type="button";btn.dataset.picker="true";btn.value="";
+  btn.setAttribute("aria-haspopup","listbox");btn.setAttribute("aria-expanded","false");btn.setAttribute("aria-label",labelText);
+  btn.style.cssText="display:block;box-sizing:border-box;width:100%;max-width:420px;padding:12px;text-align:left;background:#f4f5f4;color:#222;border:1px solid #aeb9af;border-radius:8px;font-size:16px";
+  const menu=document.createElement("div");menu.hidden=true;menu.setAttribute("role","listbox");
+  menu.style.cssText="box-sizing:border-box;width:100%;max-width:420px;max-height:260px;overflow-y:auto;border:1px solid #b9c8bc;border-radius:10px;background:white;box-shadow:0 5px 16px #0002;margin:-3px 0 12px";
+  btn.addEventListener("click",()=>{
+   if(btn.disabled)return;
+   const opening=menu.hidden;closeMenus(btn);menu.hidden=!opening;btn.setAttribute("aria-expanded",String(opening));
+   if(!opening)return;
+   menu.replaceChildren();
+   for(const value of JSON.parse(btn.dataset.values||"[]")){
+    const option=document.createElement("button");option.type="button";option.textContent=value;option.setAttribute("role","option");
+    option.setAttribute("aria-selected",String(btn.value===value));
+    option.style.cssText="display:block;width:100%;padding:13px 16px;text-align:left;border:0;border-bottom:1px solid #eee;background:white;color:#222;font-size:16px";
+    option.addEventListener("click",()=>{chooseOption(btn,value);menu.hidden=true;btn.setAttribute("aria-expanded","false");btn.focus();});
+    menu.append(option);
+   }
+  });
+  btn.addEventListener("keydown",e=>{if(e.key==="Escape"){menu.hidden=true;btn.setAttribute("aria-expanded","false");}});
+  return {btn,menu};
  }
  const inputs={};
  for(const [key,title,placeholder,max] of fields){
   const label=document.createElement("label");label.textContent=title;label.htmlFor="lx-"+key;
-  const el=key==="address_city"||key==="address_district"?document.createElement("select"):key==="home_placement_note"?document.createElement("textarea"):document.createElement("input");
-  el.id="lx-"+key;if(el.tagName!=="SELECT"){el.placeholder=placeholder;el.maxLength=max;}el.disabled=true;
-  el.style.cssText="display:block;box-sizing:border-box;width:100%;max-width:420px;padding:10px;margin:6px 0 12px;border:1px solid #aeb9af;border-radius:8px;font-size:16px";
-  inputs[key]=el;contact.append(label,el);
+  const picker=key==="address_city"||key==="address_district"?makePicker(key,title):null;
+  const el=picker?picker.btn:key==="home_placement_note"?document.createElement("textarea"):document.createElement("input");
+  el.id="lx-"+key;if(!picker){el.placeholder=placeholder;el.maxLength=max;}el.disabled=true;
+  if(!picker)el.style.cssText="display:block;box-sizing:border-box;width:100%;max-width:420px;padding:10px;margin:6px 0 12px;border:1px solid #aeb9af;border-radius:8px;font-size:16px";
+  inputs[key]=el;contact.append(label,el);if(picker)contact.append(picker.menu);
  }
  setOptions(inputs.address_city,Object.keys(districts),"請選擇縣市");
  setOptions(inputs.address_district,[],"請先選擇縣市");
  inputs.address_city.addEventListener("change",()=>{
   setOptions(inputs.address_district,districts[inputs.address_city.value]||[],"請選擇行政區");
-  inputs.address_district.value="";
+  inputs.address_district.value="";inputs.address_district.textContent="請選擇行政區";
  });
  const addressSave=document.createElement("button");addressSave.type="button";addressSave.textContent="儲存取件地址";addressSave.disabled=true;addressSave.style.cssText="background:#12834c;color:white;border:0;border-radius:8px;padding:11px 18px;font-size:16px";
  const addressFeedback=document.createElement("p");addressFeedback.setAttribute("role","status");addressFeedback.style.cssText="font-size:14px;color:#366b4b";
  const phoneBox=document.createElement("div");phoneBox.style.cssText="display:grid;gap:8px;margin-bottom:20px";
  for(const e of [phoneLabel,phoneInput,phoneState,otpButton,otpInput,otpVerify,smsNotice])phoneBox.append(e);
  contact.prepend(h,phoneBox);contact.append(addressSave,addressFeedback);panel.insertAdjacentElement("afterend",contact);
- function clearContact(){contact.hidden=true;phoneState.textContent="";phoneInput.value="";addressFeedback.textContent="";for(const el of Object.values(inputs)){el.value="";el.disabled=true;}addressSave.disabled=true;}
+ function clearContact(){closeMenus();contact.hidden=true;phoneState.textContent="";phoneInput.value="";addressFeedback.textContent="";for(const el of Object.values(inputs)){el.value="";el.disabled=true;}addressSave.disabled=true;}
  function paintContact(session,profile){
   contact.hidden=false;phoneInput.value=session.user.phone||"";
   phoneState.textContent=session.user.phoneVerified&&session.user.phone?"手機已驗證："+session.user.phone:"手機尚未驗證";
   if(profile){
    const city=profile.address_city||"",district=profile.address_district||"";
    if(city&&!districts[city]){districts[city]=[district].filter(Boolean);setOptions(inputs.address_city,Object.keys(districts),"請選擇縣市");}
-   inputs.address_city.value=city;
+   inputs.address_city.value=city;inputs.address_city.textContent=city||"請選擇縣市";
    setOptions(inputs.address_district,districts[city]||[],"請選擇行政區");
-   if(district&&!districts[city]?.includes(district)){const option=document.createElement("option");option.value=district;option.textContent=district;inputs.address_district.append(option);}
-   inputs.address_district.value=district;
+   if(district&&!districts[city]?.includes(district)){setOptions(inputs.address_district,[...(districts[city]||[]),district],"請選擇行政區");}
+   inputs.address_district.value=district;inputs.address_district.textContent=district||"請選擇行政區";
    for(const key of Object.keys(inputs))if(key!=="address_city"&&key!=="address_district")inputs[key].value=profile[key]||"";
    for(const el of Object.values(inputs))el.disabled=false;addressSave.disabled=false;
   }
