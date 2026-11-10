@@ -51,7 +51,7 @@
  }
  async function inspect(raw){
   const u=await checkedUser();
-  if(raw)await checkPhone(raw);
+  if(raw!==undefined)await checkPhone(raw);
   return {id:u.id,email:u.email||"",google:true,phoneVerified:!!u.phone_confirmed_at,
    hasPhone:!!u.phone,sendEnabled:SEND_AUTHORIZED,attempted:!!localStorage.getItem(attemptKey)};
  }
