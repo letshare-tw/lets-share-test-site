@@ -129,8 +129,17 @@
   return data;
  }
  function registrationError(error){
-  const reasons={REG_LOGIN_REQUIRED:"請先使用 Google 登入。",REG_PROFILE_REQUIRED:"尚未建立會員資料。",REG_LOCKED:"註冊尚未開放，請等待條款確認。",REG_EXPLICIT_CONSENT_REQUIRED:"請由本人確認會員條款與隱私權政策。",REG_LEGAL_VERSION_CHANGED:"文件版本已更新，請重新閱讀並確認。",REG_LEGAL_NOT_PUBLISHED:"文件尚未發布、已到期或已撤回。",REG_GOOGLE_REQUIRED:"請使用原 Google 會員帳號。",REG_PHONE_VERIFICATION_REQUIRED:"請先完成手機驗證。",REG_NAME_REQUIRED:"會員名稱須為 2～30 個字元。"};
+  const reasons={REG_LOGIN_REQUIRED:"請先使用 Google 登入。",REG_PROFILE_REQUIRED:"尚未建立會員資料。",REG_LOCKED:"註冊尚未開放，請等待條款確認。",REG_EXPLICIT_CONSENT_REQUIRED:"請由本人確認會員條款與隱私權政策。",REG_LEGAL_VERSION_CHANGED:"文件版本已更新，請重新閱讀並確認。",REG_LEGAL_NOT_PUBLISHED:"文件尚未發布、已到期或已撤回。",REG_GOOGLE_REQUIRED:"請使用原 Google 會員帳號。",REG_PHONE_VERIFICATION_REQUIRED:"請先完成手機驗證。",REG_NAME_REQUIRED:"會員名稱須為 2～30 個字元。",REG_ADULT_VERIFICATION_REQUIRED:"請先完成出生日期及成年聲明。",REG_UNDERAGE_OR_INVALID_BIRTH:"出生日期不符合年滿18歲的資格。",REG_ADULT_DECLARATION_REQUIRED:"請確認成年聲明。",REG_ALREADY_COMPLETED:"此會員已完成註冊。"};
   return Error(reasons[error?.message]||"註冊操作未完成，請重新確認狀態後再試。");
+ }
+ async function saveAdultVerification(birthDate,declared){
+  if(typeof birthDate!=="string"||!/^\\d{4}-\\d{2}-\\d{2}$/.test(birthDate)||declared!==true)throw Error("請填寫有效生日並確認成年聲明。");
+  const before=await verifiedSession();if(!before)throw Error("請先使用 Google 登入。");
+  const {data,error}=await getClient().rpc("lx_save_member_adult_verification",{p_birth_date:birthDate,p_adult_declared:true});
+  if(error)throw registrationError(error);
+  const after=await verifiedSession();
+  if(!data?.adult_ready||!after||before.user.id!==after.user.id)throw Error("成年資格確認失敗，請重新登入。");
+  return data;
  }
  async function getRegistrationStatus(){
   const session=await verifiedSession();if(!session)return null;
@@ -150,6 +159,6 @@
   if(!data?.registered||data.user_id!==before.user_id||!latest||latest.user.id!==before.user_id)throw Error("註冊結果與原會員不一致，請重新確認。");
   return data;
  }
- Object.defineProperty(window,"LX_TEST_AUTH_ADAPTER",{value:Object.freeze({mode:"test-auth-only",contract,signInWithGoogle,handleCallback,getSession:verifiedSession,restoreSession:verifiedSession,signOut,getProfile,saveDisplayName,phoneOtp,normalizeTaiwanPhone,validatePhoneToken,requestPhoneOtp,verifyPhoneOtp,saveAddress,getRegistrationStatus,completeRegistration}),writable:false,configurable:false});
+ Object.defineProperty(window,"LX_TEST_AUTH_ADAPTER",{value:Object.freeze({mode:"test-auth-only",contract,signInWithGoogle,handleCallback,getSession:verifiedSession,restoreSession:verifiedSession,signOut,getProfile,saveDisplayName,phoneOtp,normalizeTaiwanPhone,validatePhoneToken,requestPhoneOtp,verifyPhoneOtp,saveAddress,saveAdultVerification,getRegistrationStatus,completeRegistration}),writable:false,configurable:false});
 })();
 
