@@ -87,6 +87,11 @@ function uiFixture(initial){
  check(uiSource.includes("daysInMonth()"));
  ui=uiFixture({...ready,registration_enabled:false,legal_ready:false,can_complete:false,legal:null});await tick();
  check(ui.doc.ids.lxBirthWheelMarker!==undefined);
+ check(ui.card().style.cssText.includes("background:#ffffff"));
+ check(ui.card().style.cssText.includes("border:1px solid #e5e7eb"));
+ check(ui.root.querySelectorAll("h2")[0].style.cssText.includes("color:#222222"));
+ check(ui.root.querySelectorAll("button").find(e=>e.textContent==="確認成年資格").style.cssText.includes("background:#12834c"));
+ check(ui.doc.ids.lxCompleteRegistration.disabled);
  check(ui.doc.ids.lxBirthWheelMarker.style.cssText.includes("#bfc2c5"));
  check(ui.doc.ids["lxBirthWheel-year"].style.cssText.includes("height:132px"));
  check(ui.doc.ids["lxBirthWheel-year"].style.cssText.includes("padding:44px 0"));
