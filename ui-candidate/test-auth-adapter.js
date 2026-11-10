@@ -5,7 +5,7 @@
  const projectRef="rfwqcrvxyjhtmafnbuyy",url="https://"+projectRef+".supabase.co";
  const key="sb_publishable_0TIzPc-ys9IDUz44Ci3a4w_rGwpqPoa";
  const storageKey="lx-test-"+projectRef+"-auth",pendingKey=storageKey+"-pending";
- const contract=Object.freeze({version:"B-01C-07C-02",enabled:true,allowOAuth:true,allowSession:true,allowProfile:true,projectRef,allowedPageOrigin:origin,callbackPath:base+"auth-callback.html"});
+ const contract=Object.freeze({version:"B-01D-02B",enabled:true,allowOAuth:true,allowSession:true,allowProfile:true,projectRef,allowedPageOrigin:origin,callbackPath:base+"auth-callback.html"});
  let client;
  function environment(){
   if(location.origin!==origin||![base,base+"index.html",contract.callbackPath].includes(location.pathname))throw Error("登入僅供指定獨立測試站使用");
@@ -21,7 +21,11 @@
   if(!data.session)return null;
   const check=await c.auth.getUser();
   if(check.error||!check.data.user){await c.auth.signOut({scope:"local"});throw Error("登入狀態已失效，請重新登入");}
-  return {user:{id:check.data.user.id,email:check.data.user.email||""}};
+  const meta=check.data.user.user_metadata||{};
+  const rawAvatar=meta.avatar_url||meta.picture||"";
+  let avatarUrl="";
+  try{const u=new URL(rawAvatar);if(u.protocol==="https:"&&(u.hostname==="googleusercontent.com"||u.hostname.endsWith(".googleusercontent.com")))avatarUrl=u.href;}catch(_){}
+  return {user:{id:check.data.user.id,email:check.data.user.email||"",avatarUrl}};
  }
  async function signInWithGoogle(){
   const c=getClient();
@@ -55,5 +59,15 @@
   if(error)throw Error("會員資料暫時無法讀取，請稍後重試");
   return data;
  }
- Object.defineProperty(window,"LX_TEST_AUTH_ADAPTER",{value:Object.freeze({mode:"test-auth-only",contract,signInWithGoogle,handleCallback,getSession:verifiedSession,restoreSession:verifiedSession,signOut,getProfile}),writable:false,configurable:false});
+ async function saveDisplayName(value){
+  const session=await verifiedSession();if(!session)throw Error("請先登入");
+  if(typeof value!=="string")throw Error("會員名稱格式不正確");
+  const cleaned=value.trim(),length=Array.from(cleaned).length;
+  if(length<2||length>30)throw Error("會員名稱須為 2～30 個字元");
+  const {data,error}=await getClient().from("profiles").update({display_name:cleaned}).eq("id",session.user.id).select("id,display_name").maybeSingle();
+  if(error)throw Error("會員名稱儲存失敗，請稍後重試");
+  if(!data||data.id!==session.user.id||data.display_name!==cleaned)throw Error("找不到可更新的本人會員資料");
+  return data;
+ }
+ Object.defineProperty(window,"LX_TEST_AUTH_ADAPTER",{value:Object.freeze({mode:"test-auth-only",contract,signInWithGoogle,handleCallback,getSession:verifiedSession,restoreSession:verifiedSession,signOut,getProfile,saveDisplayName}),writable:false,configurable:false});
 })();
