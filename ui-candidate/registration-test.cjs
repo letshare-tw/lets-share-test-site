@@ -78,6 +78,15 @@ function uiFixture(initial){
  await ui.doc.ids.lxCompleteRegistration.fire("click");check(ui.calls()===1);
  ui.setState(null);await ui.win.fire("lx-member-state-changed");check(ui.card().hidden);check(!dialog.open);
  check(ui.doc.ids.lxRegBirthDate!==undefined);check(ui.doc.ids.lxRegAdultDeclare!==undefined);
+ check(ui.doc.ids.lxRegBirthDate.type==="hidden");
+ for(const kind of ["year","month","day"])check(ui.doc.ids["lxBirthWheel-"+kind]!==undefined);
+ check(uiSource.includes("scroll-snap-type:y mandatory"));
+ check(uiSource.includes("setWheelDisabled(!!data.registered||!open)"));
+ check(uiSource.includes("const open=data.registration_enabled&&data.legal_ready"));
+ check(uiSource.includes("dob.value=year&&month&&day?"));
+ check(uiSource.includes("daysInMonth()"));
+ check(ui.doc.ids.lxRegSaveAdult.disabled);
+
  check(!uiSource.includes("signInWithOtp")&&!uiSource.includes("updateUser")&&!uiSource.includes("innerHTML"));
  console.log(JSON.stringify({result:"PASS",assertions,realNetworkRequests:0,realConsentWrites:0,realSms:0}));
 })().catch(e=>{console.error(e);process.exit(1)});
