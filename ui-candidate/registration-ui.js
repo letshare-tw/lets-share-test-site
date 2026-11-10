@@ -30,7 +30,7 @@
  function chooseWheel(kind,value,scroll){
   if(dob.disabled)return;
   wheelSelections[kind]=value;
-  if(kind!=="day"&&wheelSelections.day>daysInMonth()){wheelSelections.day=daysInMonth();populateWheel("day");}
+  if(kind!=="day"){if(wheelSelections.day>daysInMonth())wheelSelections.day=daysInMonth();populateWheel("day");}
   syncBirth();const column=wheelColumns.find(c=>c.kind===kind);
   if(scroll&&column){const index=column.values.indexOf(value);if(index>=0)column.track.scrollTop=index*wheelHeight;}
   for(const c of wheelColumns){const selected=wheelSelections[c.kind];for(const child of c.track.children)child.setAttribute("aria-pressed",String(Number(child.textContent)===selected));}
