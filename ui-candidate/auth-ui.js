@@ -28,8 +28,8 @@
   try{
    const profile=await auth.getProfile();if(token!==version||activeUserId!==session.user.id)return;
    profileExists=!!profile;
-   if(!profile){name.textContent="會員名稱：尚未設定";registration.textContent="註冊狀態：尚未建立會員資料";feedback.textContent="尚未建立會員資料，暫時無法儲存名稱。";return;}
-   name.textContent="會員名稱："+(profile.display_name||profile.full_name||"尚未設定");
+   if(!profile){name.textContent="會員名稱："+(session.user.googleName||"尚未設定");registration.textContent="註冊狀態：尚未建立會員資料";feedback.textContent="尚未建立會員資料，暫時無法儲存名稱。";return;}
+   name.textContent="會員名稱："+(profile.display_name?.trim()||session.user.googleName||"尚未設定");
    input.value=profile.display_name||"";input.disabled=save.disabled=false;
    registration.textContent="註冊狀態："+(profile.registration_completed_at?"已完成":"尚未完成");
   }catch(_){if(token!==version)return;name.textContent="會員名稱：暫無法取得";registration.textContent="註冊狀態：暫無法確認";feedback.textContent="會員資料讀取失敗，請稍後重新整理。";}
