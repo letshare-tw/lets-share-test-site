@@ -16,16 +16,39 @@
  const save=document.createElement("button");save.type="button";save.textContent="儲存名稱";save.style.cssText="background:#12834c;color:white;border:0;border-radius:8px;padding:10px 18px;font-size:16px";
  edit.append(label,input,save);panel.append(heading,registration,edit,feedback);status.insertAdjacentElement("afterend",panel);
 
- // Member contact/address panel. OTP intentionally disabled until SMS provider approval.
+ // C06: phone change controls staged, SMS hard-disabled pending separate authorization.
  const contact=document.createElement("section");contact.id="lxMemberContact";contact.hidden=true;contact.style.cssText="margin:16px 0;padding:16px;border:1px solid #e1e9e3;border-radius:14px";
  const h=document.createElement("h2");h.textContent="手機與取件地址";h.style.cssText="font-size:19px;margin:0 0 12px";
  const phoneState=document.createElement("p");phoneState.setAttribute("aria-live","polite");
  const phoneLabel=document.createElement("label");phoneLabel.textContent="手機號碼（台灣）";phoneLabel.htmlFor="lxPhone";
  const phoneInput=document.createElement("input");phoneInput.id="lxPhone";phoneInput.type="tel";phoneInput.autocomplete="tel";phoneInput.inputMode="tel";phoneInput.placeholder="09xxxxxxxx";phoneInput.maxLength=13;phoneInput.disabled=true;
  const otpButton=document.createElement("button");otpButton.type="button";otpButton.textContent="發送驗證碼（尚未啟用）";otpButton.disabled=true;
- const otpInput=document.createElement("input");otpInput.type="text";otpInput.inputMode="numeric";otpInput.placeholder="六位數驗證碼";otpInput.maxLength=6;otpInput.disabled=true;
+ const otpInput=document.createElement("input");otpInput.type="text";otpInput.inputMode="numeric";otpInput.placeholder="六位數驗證碼";otpInput.maxLength=6;otpInput.autocomplete="one-time-code";otpInput.disabled=true;
  const otpVerify=document.createElement("button");otpVerify.type="button";otpVerify.textContent="驗證手機（尚未啟用）";otpVerify.disabled=true;
- const smsNotice=document.createElement("p");smsNotice.textContent="安全鎖定：測試專案 SMS 提供者尚未確認，不能寄送或驗證簡訊。";smsNotice.style.cssText="font-size:13px;color:#9b501b";
+ const smsNotice=document.createElement("p");smsNotice.textContent="安全鎖定：Twilio Verify 尚未授權啟用；可檢查手機格式，但不會發送簡訊。";smsNotice.style.cssText="font-size:13px;color:#9b501b";
+ const phoneFeedback=document.createElement("p");phoneFeedback.setAttribute("role","status");phoneFeedback.style.cssText="font-size:14px;color:#366b4b";
+ phoneInput.addEventListener("input",()=>{
+  const value=phoneInput.value.trim();
+  if(!value){phoneFeedback.textContent="請輸入 09 開頭的十碼手機號碼";return;}
+  try{const normalized=auth.normalizeTaiwanPhone(value);phoneFeedback.textContent="手機格式正確："+normalized+"；SMS 發送尚未啟用。";}
+  catch(e){phoneFeedback.textContent=e.message;}
+ });
+ otpButton.addEventListener("click",async()=>{
+  if(!auth.phoneOtp.enabled){phoneFeedback.textContent=auth.phoneOtp.reason;return;}
+  if(busy||!activeUserId)return;
+  const token=version,userId=activeUserId;busy=true;otpButton.disabled=true;
+  try{await auth.requestPhoneOtp(phoneInput.value);if(token===version&&userId===activeUserId){phoneFeedback.textContent="驗證碼已發送，請輸入六位數驗證碼";otpInput.disabled=false;otpVerify.disabled=false;}}
+  catch(e){if(token===version)phoneFeedback.textContent=e.message;}
+  finally{busy=false;if(token===version)otpButton.disabled=!auth.phoneOtp.enabled;}
+ });
+ otpVerify.addEventListener("click",async()=>{
+  if(!auth.phoneOtp.enabled){phoneFeedback.textContent=auth.phoneOtp.reason;return;}
+  if(busy||!activeUserId)return;
+  const token=version,userId=activeUserId;busy=true;otpVerify.disabled=true;
+  try{const result=await auth.verifyPhoneOtp(phoneInput.value,otpInput.value);if(token!==version||userId!==activeUserId||result.userId!==userId)return;otpInput.value="";otpInput.disabled=true;phoneState.textContent="手機已驗證："+result.phone;phoneFeedback.textContent="手機驗證成功，會員 ID 保持不變";}
+  catch(e){if(token===version)phoneFeedback.textContent=e.message;}
+  finally{busy=false;if(token===version)otpVerify.disabled=!auth.phoneOtp.enabled;}
+ });
  const fields=[["address_city","縣市","例如：臺南市",20],["address_district","鄉鎮市區","例如：安南區",20],["address_street","街道門牌","路名、巷弄及門牌",120],["address_detail","樓層／補充地址","例如：3樓之2",120],["home_placement_note","衣物放置位置","例如：管理室旁指定置物架",200]];
  const districts={
  "臺南市":"中西區 東區 南區 北區 安平區 安南區 永康區 歸仁區 新化區 左鎮區 玉井區 楠西區 南化區 仁德區 關廟區 龍崎區 官田區 麻豆區 佳里區 西港區 七股區 將軍區 學甲區 北門區 新營區 後壁區 白河區 東山區 六甲區 下營區 柳營區 鹽水區 善化區 大內區 山上區 新市區 安定區".split(" "),
@@ -89,11 +112,11 @@
  const addressSave=document.createElement("button");addressSave.type="button";addressSave.textContent="儲存取件地址";addressSave.disabled=true;addressSave.style.cssText="background:#12834c;color:white;border:0;border-radius:8px;padding:11px 18px;font-size:16px";
  const addressFeedback=document.createElement("p");addressFeedback.setAttribute("role","status");addressFeedback.style.cssText="font-size:14px;color:#366b4b";
  const phoneBox=document.createElement("div");phoneBox.style.cssText="display:grid;gap:8px;margin-bottom:20px";
- for(const e of [phoneLabel,phoneInput,phoneState,otpButton,otpInput,otpVerify,smsNotice])phoneBox.append(e);
+ for(const e of [phoneLabel,phoneInput,phoneState,phoneFeedback,otpButton,otpInput,otpVerify,smsNotice])phoneBox.append(e);
  contact.prepend(h,phoneBox);contact.append(addressSave,addressFeedback);panel.insertAdjacentElement("afterend",contact);
- function clearContact(){closeMenus();contact.hidden=true;phoneState.textContent="";phoneInput.value="";addressFeedback.textContent="";for(const el of Object.values(inputs)){el.value="";el.disabled=true;}addressSave.disabled=true;}
+ function clearContact(){closeMenus();contact.hidden=true;phoneState.textContent="";phoneFeedback.textContent="";phoneInput.value="";otpInput.value="";addressFeedback.textContent="";for(const el of Object.values(inputs)){el.value="";el.disabled=true;}addressSave.disabled=true;}
  function paintContact(session,profile){
-  contact.hidden=false;phoneInput.value=session.user.phone||"";
+  contact.hidden=false;phoneInput.value=session.user.phone||"";phoneInput.disabled=false;otpInput.disabled=true;otpButton.disabled=true;otpVerify.disabled=true;
   phoneState.textContent=session.user.phoneVerified&&session.user.phone?"手機已驗證："+session.user.phone:"手機尚未驗證";
   if(profile){
    const city=profile.address_city||"",district=profile.address_district||"";
