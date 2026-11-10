@@ -5,7 +5,7 @@
  const projectRef="rfwqcrvxyjhtmafnbuyy",url="https://"+projectRef+".supabase.co";
  const key="sb_publishable_0TIzPc-ys9IDUz44Ci3a4w_rGwpqPoa";
  const storageKey="lx-test-"+projectRef+"-auth",pendingKey=storageKey+"-pending";
- const contract=Object.freeze({version:"B-01D-03-C02",enabled:true,allowOAuth:true,allowSession:true,allowProfile:true,projectRef,allowedPageOrigin:origin,callbackPath:base+"auth-callback.html"});
+ const contract=Object.freeze({version:"B-01D-03-C06",enabled:true,allowOAuth:true,allowSession:true,allowProfile:true,projectRef,allowedPageOrigin:origin,callbackPath:base+"auth-callback.html"});
  let client;
  function environment(){
   if(location.origin!==origin||![base,base+"index.html",contract.callbackPath].includes(location.pathname))throw Error("登入僅供指定獨立測試站使用");
@@ -51,6 +51,7 @@
   return session;
  }
  async function signOut(){
+  pendingPhone=null;
   const c=getClient();const {error}=await c.auth.signOut({scope:"local"});if(error)throw error;
   localStorage.removeItem(pendingKey);
  }
@@ -71,10 +72,46 @@
   return data;
  }
 
- // SMS provider status is unverified: no request is ever sent from this build.
- const phoneOtp=Object.freeze({enabled:false,reason:"測試專案 SMS 提供者尚未確認，為避免發送簡訊已安全停用。"});
- async function requestPhoneOtp(){throw Error(phoneOtp.reason);}
- async function verifyPhoneOtp(){throw Error(phoneOtp.reason);}
+ // C06: fully staged Auth phone-change flow; hard-disabled until separate provider approval.
+ const phoneOtp=Object.freeze({enabled:false,reason:"安全停用：測試專案 Twilio Verify 尚未授權啟用，未發送任何簡訊。",flow:"phone_change",country:"+886"});
+ let pendingPhone=null;
+ function normalizeTaiwanPhone(raw){
+  if(typeof raw!=="string")throw Error("請輸入台灣手機號碼");
+  const value=raw.trim().replace(/[ -]/g,"");
+  if(/^09[0-9]{8}$/.test(value))return "+886"+value.slice(1);
+  if(/^\\+8869[0-9]{8}$/.test(value))return value;
+  throw Error("手機格式不正確，請輸入 09 開頭的十碼手機號碼");
+ }
+ function validatePhoneToken(raw){
+  if(typeof raw!=="string"||!/^\\d{6}$/.test(raw.trim()))throw Error("請輸入六位數驗證碼");
+  return raw.trim();
+ }
+ async function requestPhoneOtp(raw){
+  if(!phoneOtp.enabled)throw Error(phoneOtp.reason);
+  const session=await verifiedSession();if(!session)throw Error("請先使用 Google 登入");
+  const phone=normalizeTaiwanPhone(raw),userId=session.user.id;
+  if(session.user.phoneVerified&&session.user.phone===phone)throw Error("此手機已完成驗證");
+  pendingPhone=null;
+  const {error}=await getClient().auth.updateUser({phone});
+  if(error)throw Error("發送驗證碼失敗，請稍後再試");
+  const latest=await verifiedSession();
+  if(!latest||latest.user.id!==userId)throw Error("會員身分發生變化，請重新登入");
+  pendingPhone={phone,userId,createdAt:Date.now()};
+  return {pending:true,phone};
+ }
+ async function verifyPhoneOtp(raw,token){
+  if(!phoneOtp.enabled)throw Error(phoneOtp.reason);
+  const session=await verifiedSession();if(!session)throw Error("請先使用 Google 登入");
+  const phone=normalizeTaiwanPhone(raw),code=validatePhoneToken(token);
+  if(!pendingPhone||pendingPhone.phone!==phone||pendingPhone.userId!==session.user.id||Date.now()-pendingPhone.createdAt>600000)throw Error("驗證要求不存在或已逾時，請重新發送");
+  const originalId=session.user.id;
+  const {error}=await getClient().auth.verifyOtp({phone,token:code,type:"phone_change"});
+  if(error)throw Error("驗證碼錯誤或已過期");
+  const latest=await verifiedSession();
+  if(!latest||latest.user.id!==originalId||!latest.user.phoneVerified||latest.user.phone!==phone)throw Error("手機驗證結果與原會員不一致");
+  pendingPhone=null;
+  return {verified:true,phone,userId:originalId};
+ }
  function cleanAddress(value,max){if(typeof value!=="string")throw Error("地址欄位格式不正確");const v=value.trim();if(Array.from(v).length>max||Array.from(v).some(ch=>{const n=ch.codePointAt(0);return n<32||n===127;}))throw Error("地址欄位含無效字元或過長");return v;}
  async function saveAddress(fields){
   const session=await verifiedSession();if(!session)throw Error("請先登入");
@@ -91,5 +128,5 @@
   if(!data||data.id!==session.user.id||Object.keys(payload).some(k=>data[k]!==payload[k]))throw Error("地址儲存驗證失敗");
   return data;
  }
- Object.defineProperty(window,"LX_TEST_AUTH_ADAPTER",{value:Object.freeze({mode:"test-auth-only",contract,signInWithGoogle,handleCallback,getSession:verifiedSession,restoreSession:verifiedSession,signOut,getProfile,saveDisplayName,phoneOtp,requestPhoneOtp,verifyPhoneOtp,saveAddress}),writable:false,configurable:false});
+ Object.defineProperty(window,"LX_TEST_AUTH_ADAPTER",{value:Object.freeze({mode:"test-auth-only",contract,signInWithGoogle,handleCallback,getSession:verifiedSession,restoreSession:verifiedSession,signOut,getProfile,saveDisplayName,phoneOtp,normalizeTaiwanPhone,validatePhoneToken,requestPhoneOtp,verifyPhoneOtp,saveAddress}),writable:false,configurable:false});
 })();
