@@ -16,7 +16,7 @@
  const dobLabel=document.createElement("label");dobLabel.textContent="出生年月日（年滿18歲）";dobLabel.htmlFor="lxRegBirthDate";
  const dob=document.createElement("input");dob.id="lxRegBirthDate";dob.type="hidden";dob.value="";
  const wheel=document.createElement("div");wheel.id="lxBirthWheel";wheel.setAttribute("role","group");wheel.setAttribute("aria-label","出生年月日三欄滾輪");wheel.style.cssText="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;max-width:360px;margin:12px 0;position:relative";
- const wheelColumns=[],wheelSelections={year:null,month:null,day:null},wheelHeight=44;
+ const wheelColumns=[],wheelSelections={year:2000,month:1,day:1},wheelHeight=44;
  const wheelData={year:Array.from({length:new Date().getFullYear()-1899},(_,i)=>new Date().getFullYear()-i),month:Array.from({length:12},(_,i)=>i+1),day:[]};
  function daysInMonth(){return new Date(wheelSelections.year||2000,wheelSelections.month||1,0).getDate();}
  function syncBirth(){const {year,month,day}=wheelSelections;dob.value=year&&month&&day?String(year).padStart(4,"0")+"-"+String(month).padStart(2,"0")+"-"+String(day).padStart(2,"0"):"";}
@@ -42,9 +42,11 @@
   const entry={kind,track,values:[]};wheelColumns.push(entry);column.append(heading,track);wheel.append(column);
   track.addEventListener("scroll",()=>{if(dob.disabled)return;const index=Math.max(0,Math.min(entry.values.length-1,Math.round(track.scrollTop/wheelHeight)));const value=entry.values[index];if(value!==undefined&&wheelSelections[kind]!==value)chooseWheel(kind,value,false);});
  }
+ const wheelMarker=document.createElement("div");wheelMarker.id="lxBirthWheelMarker";wheelMarker.setAttribute("aria-hidden","true");wheelMarker.style.cssText="position:absolute;left:0;right:0;top:calc(50% - 17px);height:44px;border:2px solid #12834c;border-radius:10px;background:rgba(18,131,76,.07);pointer-events:none;box-sizing:border-box";wheel.append(wheelMarker);
  const wheelHint=document.createElement("p");wheelHint.textContent="上下滑動年、月、日，中央位置為選取值";wheelHint.style.cssText="font-size:13px;color:#526457;margin:4px 0";
  for(const kind of ["year","month","day"])populateWheel(kind);
- function resetWheel(){for(const kind of ["year","month","day"])wheelSelections[kind]=null;dob.value="";for(const c of wheelColumns)c.track.scrollTop=0;}
+ syncBirth();
+ function resetWheel(){wheelSelections.year=2000;wheelSelections.month=1;wheelSelections.day=1;for(const c of wheelColumns){const index=c.values.indexOf(wheelSelections[c.kind]);c.track.scrollTop=Math.max(0,index)*wheelHeight;}syncBirth();}
  function setWheelDisabled(disabled){dob.disabled=disabled;wheel.style.opacity=disabled?".55":"1";for(const c of wheelColumns){c.track.style.pointerEvents=disabled?"none":"auto";for(const option of c.track.children)option.disabled=disabled;}}
 
  const adultLabel=document.createElement("label");adultLabel.style.cssText="display:flex;gap:10px;align-items:center";
@@ -91,7 +93,7 @@
   row("Google 帳號",data.google_verified);row("會員名稱（2～30 字）",data.name_ready);row(data.phone_verified&&data.masked_phone?"手機驗證（"+data.masked_phone+"）":"手機驗證",data.phone_verified);
   row("出生日期與年滿18歲聲明",!!data.adult_ready);row("會員條款與隱私權政策發布",data.legal_ready);
   const open=data.registration_enabled&&data.legal_ready;
-  termsButton.disabled=privacyButton.disabled=!data.legal_ready;adultSave.disabled=busy||!!data.registered||!open;setWheelDisabled(!!data.registered||!open);adultCheck.disabled=!!data.registered||!open;
+  termsButton.disabled=privacyButton.disabled=!data.legal_ready;adultSave.disabled=busy||!!data.registered||!open;setWheelDisabled(!!data.registered);adultCheck.disabled=!!data.registered||!open;
   terms.input.disabled=privacy.input.disabled=!open||data.registered;
   if(data.registered){summary.textContent="會員註冊已完成。";submit.textContent="註冊已完成";terms.input.checked=privacy.input.checked=false;}
   else if(!open){summary.textContent="帳號資料已讀取。會員條款與隱私權政策確認中，暫時無法完成註冊。";submit.textContent="完成註冊（尚未開放）";}
