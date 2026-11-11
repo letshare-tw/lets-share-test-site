@@ -1,5 +1,5 @@
 "use strict";
-/* Test project Auth only. Business API adapter remains locked. */
+/* Shared test Auth client; SHARE-TEST-02-04 scoped bridge, submission locked. */
 (()=>{
  const origin="https://letshare-tw.github.io",base="/lets-share-test-site/ui-candidate/";
  const projectRef="rfwqcrvxyjhtmafnbuyy",url="https://"+projectRef+".supabase.co";
@@ -13,7 +13,10 @@
  function getClient(){
   environment();
   if(!window.supabase?.createClient)throw Error("登入元件未載入，請重新整理或稍後再試");
-  if(!client)client=window.supabase.createClient(url,key,{auth:{storageKey,flowType:"pkce",detectSessionInUrl:false,persistSession:true,autoRefreshToken:true}});
+  if(!client){
+   client=window.supabase.createClient(url,key,{auth:{storageKey,flowType:"pkce",detectSessionInUrl:false,persistSession:true,autoRefreshToken:true}});
+   client.auth.onAuthStateChange((event)=>{if(event!=="TOKEN_REFRESHED")setTimeout(()=>window.dispatchEvent(new Event("lx-share-session-changed")),0);});
+  }
   return client;
  }
  async function verifiedSession(){
@@ -159,6 +162,57 @@
   if(!data?.registered||data.user_id!==before.user_id||!latest||latest.user.id!==before.user_id)throw Error("註冊結果與原會員不一致，請重新確認。");
   return data;
  }
- Object.defineProperty(window,"LX_TEST_AUTH_ADAPTER",{value:Object.freeze({mode:"test-auth-only",contract,signInWithGoogle,handleCallback,getSession:verifiedSession,restoreSession:verifiedSession,signOut,getProfile,saveDisplayName,phoneOtp,normalizeTaiwanPhone,validatePhoneToken,requestPhoneOtp,verifyPhoneOtp,saveAddress,saveAdultVerification,getRegistrationStatus,completeRegistration}),writable:false,configurable:false});
+ const shareErrors={SHARE_SUBMISSION_LOCKED:"分享協議尚待確認，正式提交維持鎖定。",SHARE_MEMBER_DENIED:"此帳號尚未開放分享測試，請使用指定且已註冊的測試會員。",SHARE_ADDRESS_REQUIRED:"請先在會員中心儲存完整取件地址。",SHARE_PHOTO_INVALID:"照片尚未完成上傳或格式不符，請重新拍攝並儲存。",SHARE_DRAFT_DENIED:"找不到可編輯的本人草稿，請重新讀取。",SHARE_INVALID_NOTE:"放置說明限 200 字，請移除特殊控制字元。",SHARE_INVALID_COUNT:"衣物件數須為 2～1000 件整數。",SHARE_POINT_UNAVAILABLE:"集貨點目前無法使用，請改選取件地點。"};
+ async function shareIdentity(expected){
+  const session=await verifiedSession();
+  if(!session||expected&&session.user.id!==expected)throw Error("登入身分已變更，請重新讀取分享資料。");
+  return session.user.id;
+ }
+ async function shareRequest(action,payload={},expected){
+  if(["submit","activate"].includes(action))throw Error(shareErrors.SHARE_SUBMISSION_LOCKED);
+  if(!["bootstrap","create","save","preflight"].includes(action))throw Error("分享操作未開放。");
+  const id=await shareIdentity(expected);
+  const {data,error}=await getClient().functions.invoke("share-test-api",{body:{action,payload}});
+  await shareIdentity(id);
+  if(error||data?.error){let code=data?.error;try{if(!code&&error?.context)code=(await error.context.json()).error;}catch(_){}
+   throw Error(shareErrors[code]||"分享服務暫時無法使用，請重新讀取後再試。");}
+  if(!data||!("data" in data))throw Error("分享服務回傳不完整。");
+  return data.data;
+ }
+ function validSharePath(path,id){return typeof path==="string"&&new RegExp("^"+id+"/[0-9a-f-]{36}/[0-9]+-[a-z0-9]{1,8}\\.(jpg|png|webp)$").test(path);}
+ async function shareUpload(path,blob,expected){
+  const id=await shareIdentity(expected);
+  if(!validSharePath(path,id)||!blob||blob.size<1||blob.size>300000||!["image/jpeg","image/png","image/webp"].includes(blob.type))throw Error("照片格式或大小不符。");
+  const r=await getClient().storage.from("share-placement-photos").upload(path,blob,{contentType:blob.type,upsert:false,cacheControl:"0"});
+  await shareIdentity(id);if(r.error)throw Error("照片上傳失敗，草稿未送出，請稍後重試。");return path;
+ }
+ async function shareDownload(path,expected){
+  const id=await shareIdentity(expected);if(!validSharePath(path,id))throw Error("照片不屬於目前會員。");
+  const r=await getClient().storage.from("share-placement-photos").download(path);
+  await shareIdentity(id);if(r.error||!r.data)throw Error("照片讀取失敗，請重新讀取或重新拍攝。");return r.data;
+ }
+ async function shareRemove(path,expected){
+  const id=await shareIdentity(expected);if(!validSharePath(path,id))throw Error("照片不屬於目前會員。");
+  const r=await getClient().storage.from("share-placement-photos").remove([path]);
+  await shareIdentity(id);if(r.error)throw Error("未使用照片清理未完成。");
+ }
+ async function shareIsolationProbe(requestId,path){
+  const id=await shareIdentity();if(!/^[0-9a-f-]{36}$/.test(requestId))throw Error("請輸入測試草稿識別碼。");
+  const results=[];
+  for(const table of ["lx_share_requests","lx_share_draft_details","lx_share_draft_placements"]){
+   const col=table==="lx_share_requests"?"id":"request_id";
+   const r=await getClient().from(table).select(col).eq(col,requestId);
+   results.push({target:table,status:r.error?"ERROR":r.data?.length===0?"DENIED":"VISIBLE"});
+  }
+  const gateway=await getClient().rpc("lx_share_test_gateway",{p_actor:id,p_action:"bootstrap",p_payload:{}});
+  results.push({target:"service-only RPC",status:gateway.error?.code==="42501"?"DENIED":"FAIL"});
+  if(path){
+   if(path.length>200||!new RegExp("^[0-9a-f-]{36}/"+requestId+"/[0-9]+-[a-z0-9]{1,8}\\.(jpg|png|webp)$").test(path))throw Error("測試照片路徑格式不正確。");
+   const r=await getClient().storage.from("share-placement-photos").download(path);
+   results.push({target:"private photo",status:r.data?"VISIBLE":r.error?.name==="StorageApiError"&&["400","403","404"].includes(String(r.error.status??r.error.statusCode))?"DENIED":"ERROR"});
+  }
+  await shareIdentity(id);return results;
+ }
+ Object.defineProperty(window,"LX_TEST_AUTH_ADAPTER",{value:Object.freeze({mode:"test-auth-only",contract,signInWithGoogle,handleCallback,getSession:verifiedSession,restoreSession:verifiedSession,signOut,getProfile,saveDisplayName,phoneOtp,normalizeTaiwanPhone,validatePhoneToken,requestPhoneOtp,verifyPhoneOtp,saveAddress,saveAdultVerification,getRegistrationStatus,completeRegistration,shareRequest,shareUpload,shareDownload,shareRemove,shareIsolationProbe}),writable:false,configurable:false});
 })();
 

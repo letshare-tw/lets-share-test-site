@@ -1,0 +1,11 @@
+{
+ "batch":"SHARE-TEST-02-04",
+ "date":"2026-11-11",
+ "project":"rfwqcrvxyjhtmafnbuyy",
+ "migration":"share_test_02_04_controlled_drafts_locked_submission",
+ "edge":{"name":"share-test-api","version":1,"verify_jwt":true,"unauthenticated_http_status":401,"allowed_origin_options_status":204,"foreign_origin_options_status":403},
+ "database":{"controlled_gateway_checks":"PASS","sql_authenticated_role_own_and_foreign_rows":"PASS","two_drafts_created":true,"one_detail_saved":true,"profiles_changed":false,"submission_enabled":false,"published_agreements":0,"bags":0,"photos":0},
+ "frontend":{"syntax":"PASS","jsdom_dom_checks":10,"mocked_sdk_bridge_checks":6,"local_chromium":"BLOCKED: process socket unavailable"},
+ "pending":["real phone camera and canvas compression","Google Session draft save/readback","private Storage upload/download","cross-account Google Session and Storage isolation","published agreement and explicit consent","actual submission and receipt"],
+ "interpretation":"SQL role checks and mocked DOM tests do not establish real phone or Google Session PASS. Final publication and submission remain locked."
+}

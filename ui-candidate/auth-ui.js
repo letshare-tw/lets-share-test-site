@@ -157,6 +157,7 @@
    if(!latest||Object.keys(values).some(k=>latest[k]!==values[k].trim()))throw Error("重新讀取驗證失敗");
    for(const k of Object.keys(inputs))inputs[k].value=latest[k]||"";
    addressFeedback.textContent="取件地址已儲存，重新讀取驗證成功。";
+   window.dispatchEvent(new Event("lx-member-state-changed"));
   }catch(_){if(token===version)addressFeedback.textContent="地址儲存未完成："+String(_?.message||"未知錯誤");}
   finally{busy=false;if(token===version){addressSave.disabled=false;logout.disabled=false;}}
  });

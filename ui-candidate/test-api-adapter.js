@@ -1,25 +1,18 @@
 "use strict";
-/* B-01C-06B: C09 V5 contract only. Inert on all hosts; NO requests, auth, uploads or submissions. */
+/* SHARE-TEST-02-04: allowlisted test backend only. Consent/submission hard-locked. */
 (()=>{
- const CONTRACT=Object.freeze({
-  version:"C09-V5-contract-06B",
-  target:"lets-share-test",
-  status:"LOCKED",
-  environment:Object.freeze({allowedProjectRef:"rfwqcrvxyjhtmafnbuyy",allowedProjectName:"lets-share-test",allowedOrigin:"https://rfwqcrvxyjhtmafnbuyy.supabase.co",enabled:false,requiresSeparateAuthorization:true}),
-  identity:Object.freeze({memberId:"auth.users.id (uuid)",profileId:"profiles.id (uuid)",name:"profiles.display_name",registration:"profiles.registration_completed_at"}),
-  address:Object.freeze({source:"profiles",address:"home_address",placementNote:"home_placement_note"}),
-  collectionPoint:Object.freeze({source:"lx_approved_collection_points",id:"id (uuid)",label:"name",detail:"address_text",required:"enabled=true AND approved_at IS NOT NULL"}),
-  draft:Object.freeze({create:"lx_create_share_draft()",requestId:"lx_share_requests.id (uuid)",detailsTable:"lx_share_draft_details",fields:Object.freeze(["request_id","user_id","clothing_count","pickup_kind","pickup_address_snapshot","collection_point_id","placement_note","placement_photo_path"])}),
-  photo:Object.freeze({bucket:"share-placement-photos",visibility:"private",path:"{user_uuid}/{draft_uuid}/{timestamp}-{random}.webp",maxCompressedBytes:300000,formats:Object.freeze(["image/jpeg","image/png","image/webp"])}),
-  agreement:Object.freeze({preflight:"lx_share_submission_preflight(p_request_id)",settings:"lx_share_submission_settings",versions:"lx_share_agreement_versions",consents:"lx_share_service_consents"}),
-  submit:Object.freeze({rpc:"lx_submit_share_request",trustedEdgeRequired:true,fields:Object.freeze(["p_request_id","p_agreement_version","p_transfer_agreed","p_no_return_agreed","p_recycling_agreed"]),result:"lx_share_bags.bag_code; pickup_deadline_at"}),
-  safeguards:Object.freeze({defaultOffline:true,allowNetwork:false,allowAuth:false,allowUpload:false,allowSubmit:false,allowRealData:false})
- });
- const blocked=async()=>{throw Error("B-01C-06B 安全鎖定：僅資料契約，未授權任何後端操作");};
- const adapter=Object.freeze({mode:"contract-locked",contract:CONTRACT,
-  checkEnvironment:blocked,connect:blocked,signIn:blocked,
-  getMember:blocked,getAddress:blocked,listCollectionPoints:blocked,
-  saveDraft:blocked,preflight:blocked,uploadPhoto:blocked,submit:blocked
+ const environment=Object.freeze({allowedProjectRef:"rfwqcrvxyjhtmafnbuyy",allowedOrigin:"https://rfwqcrvxyjhtmafnbuyy.supabase.co",enabled:true});
+ const blocked=async()=>{throw Error("安全鎖定：分享協議尚待確認，不能啟用服務或正式提交。");};
+ function auth(){const a=window.LX_TEST_AUTH_ADAPTER;if(!a?.shareRequest)throw Error("分享登入介面未就緒。");return a;}
+ const adapter=Object.freeze({mode:"test-share-drafts",contract:Object.freeze({version:"SHARE-TEST-02-04",environment,safeguards:Object.freeze({allowNetwork:true,allowUpload:true,allowSubmit:false,allowConsent:false})}),
+  async bootstrap(){const s=await auth().getSession();if(!s)throw Error("請先使用 Google 登入並完成會員註冊。");return {userId:s.user.id,...await auth().shareRequest("bootstrap",{},s.user.id)};},
+  createDraft:(id)=>auth().shareRequest("create",{},id),
+  saveDraft:(requestId,details,id)=>auth().shareRequest("save",{request_id:requestId,details},id),
+  preflight:(requestId,id)=>auth().shareRequest("preflight",{request_id:requestId},id),
+  uploadPhoto:(path,blob,id)=>auth().shareUpload(path,blob,id),
+  downloadPhoto:(path,id)=>auth().shareDownload(path,id),
+  removePhoto:(path,id)=>auth().shareRemove(path,id),
+  submit:blocked,activate:blocked
  });
  Object.defineProperty(window,"LX_TEST_API_ADAPTER",{value:adapter,writable:false,configurable:false});
 })();
