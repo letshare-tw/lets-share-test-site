@@ -76,7 +76,9 @@
  const dialogTitle=document.createElement("h2"),dialogText=document.createElement("div"),close=document.createElement("button");
  dialogText.style.cssText="white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.8";close.type="button";close.textContent="關閉文件";close.style.cssText="padding:12px 18px;margin-top:16px;font-size:16px";close.addEventListener("click",()=>dialog.close());
  dialog.append(dialogTitle,dialogText,close);
- card.append(title,summary,checklist,editName,adultBox,documents,terms.label,privacy.label,submit,note,refreshButton,dialog);
+ card.append(title,summary,checklist,editName,adultBox,documents,terms.label,privacy.label,submit,note,refreshButton);
+ // Legal modal must live outside the hidden registration card and step dialogs.
+ document.body.append(dialog);
  anchor.insertAdjacentElement("beforebegin",card);
  const start=document.createElement("button");start.type="button";start.textContent="開始註冊會員";start.id="lxStartRegistration";start.style.cssText="width:100%;padding:15px;background:#12834c;color:white;border:0;border-radius:12px;font-size:18px;margin:12px 0";
  card.insertAdjacentElement("beforebegin",start);
