@@ -226,6 +226,46 @@
  });
  login.addEventListener("click",()=>action(()=>auth.signInWithGoogle()));
  logout.addEventListener("click",()=>action(async()=>{reset();await auth.signOut();paint(null);}));
+
+ // REG-TEST-EXEMPT-04: read-only authenticated registration diagnostics.
+ const diag=document.createElement("section");
+ diag.id="lxRegExemptReadOnly";diag.hidden=true;diag.setAttribute("aria-label","測試帳號唯讀驗收");
+ diag.style.cssText="margin:16px 0;padding:16px;border:1px solid #b9d9c6;border-radius:14px;background:#f6fbf7;overflow-wrap:anywhere";
+ const diagTitle=document.createElement("strong");diagTitle.textContent="REG-TEST-EXEMPT-04｜登入唯讀驗收";
+ const diagHelp=document.createElement("p");diagHelp.textContent="僅讀取目前登入者的後端註冊狀態，不會提交註冊、發送簡訊或更動資料。";diagHelp.style.cssText="font-size:13px;color:#46594e";
+ const diagBtn=document.createElement("button");diagBtn.type="button";diagBtn.textContent="重新讀取本人驗收結果";diagBtn.style.cssText="background:#12834c;color:white;border:0;border-radius:8px;padding:10px 14px;font-size:15px";
+ const diagOutput=document.createElement("pre");diagOutput.style.cssText="white-space:pre-wrap;overflow-wrap:anywhere;font:13px/1.7 system-ui,sans-serif;margin:12px 0 0";
+ diag.append(diagTitle,diagHelp,diagBtn,diagOutput);panel.insertAdjacentElement("afterend",diag);
+ let diagSequence=0;
+ async function refreshReadOnlyDiagnostics(){
+  const seq=++diagSequence;
+  diag.hidden=false;diagOutput.textContent="讀取中…";diagBtn.disabled=true;
+  try{
+   const before=await auth.getSession();
+   if(seq!==diagSequence)return;
+   if(!before?.user?.id){diagOutput.textContent="未登入：請先使用 Google 登入。";return;}
+   const result=await auth.getRegistrationStatus();
+   const after=await auth.getSession();
+   if(seq!==diagSequence)return;
+   if(!after?.user?.id||after.user.id!==before.user.id||result?.user_id!==before.user.id)throw Error("登入者與後端資料不一致，拒絕顯示。");
+   const fields=[
+    ["目前登入帳號",before.user.email||"未提供"],
+    ["user_id 一致",String(result.user_id===before.user.id)],
+    ["phone_verified",String(result.phone_verified===true)],
+    ["phone_test_exempt",String(result.phone_test_exempt===true)],
+    ["can_complete",String(result.can_complete===true)],
+    ["registered",String(result.registered===true)],
+    ["registration_enabled",String(result.registration_enabled===true)]
+   ];
+   diagOutput.textContent=fields.map(([k,v])=>k+"："+v).join("\n")+"\n\n結果來源：登入 Session ＋本人註冊狀態 RPC";
+  }catch(err){if(seq===diagSequence)diagOutput.textContent="驗收讀取失敗："+(err?.message||"請重新登入後重試");}
+  finally{if(seq===diagSequence)diagBtn.disabled=false;}
+ }
+ diagBtn.addEventListener("click",refreshReadOnlyDiagnostics);
+ window.addEventListener("lx-member-state-changed",()=>{diag.hidden=false;refreshReadOnlyDiagnostics();});
+ login.addEventListener("click",()=>{diag.hidden=false;diagOutput.textContent="登入完成後請按「重新讀取本人驗收結果」。";});
+ logout.addEventListener("click",()=>{++diagSequence;diag.hidden=true;diagOutput.textContent="";});
+ diag.hidden=false;diagOutput.textContent="請先 Google 登入，再按「重新讀取本人驗收結果」。";
  action(async()=>paint(await auth.restoreSession()));
 })();
 
