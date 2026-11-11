@@ -118,7 +118,11 @@
  const details=document.createElement("section");details.id="lxMemberDetails";details.hidden=true;details.style.cssText="margin:16px 0;padding:16px;border:1px solid #e1e9e3;border-radius:14px;background:white";
  const back=document.createElement("button");back.type="button";back.textContent="‹ 返回會員中心";back.style.cssText="padding:12px;color:#087d43;background:white;border:1px solid #ddd;border-radius:10px";
  const detailsTitle=document.createElement("h2");detailsTitle.textContent="會員資料與地址";
- details.append(back,detailsTitle,edit,feedback,contact);panel.insertAdjacentElement("afterend",details);
+ const verification=document.createElement("section");verification.style.cssText="padding:12px;margin:12px 0;border:1px solid #e1e9e3;border-radius:10px";
+ const verificationTitle=document.createElement("h3");verificationTitle.textContent="註冊驗證資料（唯讀）";
+ const verificationStatus=document.createElement("p");verificationStatus.textContent="驗證資料讀取中…";
+ verification.append(verificationTitle,verificationStatus);
+ details.append(back,detailsTitle,verification,edit,feedback,contact);panel.insertAdjacentElement("afterend",details);
  const detailsEntry=Array.from(document.querySelectorAll("#view-member .member-item")).find(el=>el.textContent.includes("會員資料與地址"));
  function closeDetails(){details.hidden=true;panel.hidden=!activeUserId;}
  if(detailsEntry){detailsEntry.style.cursor="pointer";detailsEntry.setAttribute("role","button");detailsEntry.tabIndex=0;const open=()=>{if(!activeUserId)return;details.hidden=false;panel.hidden=true;details.scrollIntoView({behavior:"smooth",block:"start"});};detailsEntry.addEventListener("click",open);detailsEntry.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();open();}});}
@@ -180,6 +184,8 @@
     try{await auth.saveDisplayName(googleDefault);if(token!==version||activeUserId!==session.user.id)return;name.textContent="會員名稱："+googleDefault;window.dispatchEvent(new Event("lx-registration-name-updated"));}catch(_){feedback.textContent="Google 名稱已預填；請至會員資料與地址確認儲存。";}
    }
    registration.textContent="註冊狀態："+(profile.registration_completed_at?"已完成":"尚未完成");
+   verificationStatus.textContent="會員註冊："+(profile.registration_completed_at?"已完成":"尚未完成")+"；完成時間："+(profile.registration_completed_at?new Date(profile.registration_completed_at).toLocaleString("zh-TW",{timeZone:"Asia/Taipei"}):"尚無")+"。";
+   try{const rs=await auth.getRegistrationStatus();if(token!==version||activeUserId!==session.user.id)return;verificationStatus.textContent+=" 成年資格："+(rs?.adult_ready?"已確認":"尚未確認")+"；手機："+(rs?.phone_verified?"已驗證"+(rs.masked_phone?"（"+rs.masked_phone+"）":""):"尚未驗證")+"；法律文件："+(rs?.legal?.version||"未取得")+"（版本資訊，非同意紀錄）。";}catch(_){verificationStatus.textContent+=" 驗證詳情暫時無法讀取。";}
   }catch(_){if(token!==version)return;name.textContent="會員名稱：暫無法取得";registration.textContent="註冊狀態：暫無法確認";feedback.textContent="會員資料讀取失敗，請稍後重新整理。";}
  }
  async function action(task){if(busy)return;busy=true;login.disabled=logout.disabled=true;try{await task();}catch(_){status.textContent="登入操作未完成，請檢查網路後重試。";}finally{busy=false;login.disabled=logout.disabled=false;}}
