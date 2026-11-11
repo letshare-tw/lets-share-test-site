@@ -144,15 +144,18 @@
   note.hidden=true;note.style.display="none";
   refreshButton.hidden=step!==3;refreshButton.style.display="none";
   phoneMessage.textContent=state?.phone_verified?"手機已驗證，無須重新發送簡訊。":"請輸入手機號碼。本測試站簡訊發送仍鎖定，尚無法取得驗證碼。";
+  phoneMessage.style.color=state?.phone_verified?"#087d43":"#795317";
   phoneInput.hidden=!!state?.phone_verified;phoneLabel.hidden=!!state?.phone_verified;phoneHelp.hidden=!!state?.phone_verified;
   otpInput.hidden=otpSend.hidden=otpConfirm.hidden=!!state?.phone_verified;
+  otpInput.style.display=otpSend.style.display=otpConfirm.style.display="none";
+  phoneHelp.textContent=state?.phone_verified?"":"簡訊尚未開放；此頁不會發送驗證碼。";
   termsButton.textContent=read.terms?"✓ 會員條款已確認":"閱讀會員條款";
   privacyButton.textContent=read.privacy?"✓ 隱私權政策已確認":"閱讀隱私權政策";
  }
  start.addEventListener("click",()=>{started=true;step=1;showStep();openDocument("terms");});
  nextLegal.addEventListener("click",()=>{if(read.terms&&read.privacy){step=2;showStep();}});
  nextAdult.addEventListener("click",()=>{if(state?.adult_ready){step=3;showStep();switchDialog("phone");}});
- phoneRefresh.addEventListener("click",()=>refresh());
+ phoneRefresh.addEventListener("click",async()=>{if(busy)return;phoneRefresh.disabled=true;phoneMessage.textContent="正在重新確認手機驗證狀態…";try{const data=await auth.getRegistrationStatus();if(!data)throw Error("無法取得驗證狀態");paint(data);if(!data.registered&&phoneDialog.open){step=3;showStep();}else if(data.registered&&phoneDialog.open)switchDialog(null);}catch(e){phoneMessage.textContent=e?.message||"驗證狀態暫時無法讀取，請稍後再試。";}finally{phoneRefresh.disabled=false;}});
  
  let state=null,revision=0,busy=false;
  function lock(){
