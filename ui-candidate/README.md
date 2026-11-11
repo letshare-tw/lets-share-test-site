@@ -77,3 +77,21 @@ Node test `share-engineering/camera-session-regression.cjs` (no extra dependenci
 Existing 10 DOM and 6 transport mock checks also passed. Physical Android camera
 return, thumbnail display, private upload and reload still require phone acceptance;
 this regression does not prove the exact phone event sequence.
+
+## SHARE-AGREEMENT-UI-01 — unpublished reading rehearsal
+
+The existing registration legal-document pattern is reused for the share candidate:
+a native modal outside the page, independent document scrolling, fixed background,
+and a green track with a white round slider. The candidate's full current text is
+embedded as text, with its version and unpublished status displayed.
+
+The slider stays disabled until the visible document reaches the bottom. Partial
+swipes reset, scrolling away from the bottom disables it again, closing does not
+complete reading, reopening starts at the top, and account changes close/reset it.
+A successful slide only reports a local reading-operation rehearsal. No session/local
+storage reading flag, consent RPC, activation call, agreement publication, or share
+submission is performed. The main submission slider remains locked.
+
+Syntax checks, dedicated jsdom scroll/slider regression and existing mocked DOM/Auth
+bridge/camera-session tests passed. Mocked layout does not establish physical mobile
+scroll/gesture PASS; deployed browser and phone acceptance are tracked separately.
