@@ -62,3 +62,18 @@ pending until performed on the deployed page. Never report these as PASS from SQ
    member; run the explicit foreign-fixture probe using identifiers supplied privately.
 6. Confirm the submit slider stays disabled, no consent is captured, no bag code is
    fabricated, and no actual pickup is arranged.
+
+## SHARE-PHOTO-FIX-01
+
+Phone report: draft count/note survived reload, but the camera area still showed
+“尚未選擇照片”; no placement photo existed for that test account at investigation.
+The Auth bridge previously invalidated share state on every SIGNED_IN event. A
+same-user SIGNED_IN after returning to a focused tab can therefore clear a pending
+camera selection. The bridge now emits the invalidation event only when the user ID
+changes, including sign-out. It does not change credentials, RLS or submission locks.
+
+The regression test failed before the fix and passed after it. Run the standalone
+Node test `share-engineering/camera-session-regression.cjs` (no extra dependencies).
+Existing 10 DOM and 6 transport mock checks also passed. Physical Android camera
+return, thumbnail display, private upload and reload still require phone acceptance;
+this regression does not prove the exact phone event sequence.

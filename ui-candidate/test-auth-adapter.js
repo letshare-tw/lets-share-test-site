@@ -15,7 +15,15 @@
   if(!window.supabase?.createClient)throw Error("登入元件未載入，請重新整理或稍後再試");
   if(!client){
    client=window.supabase.createClient(url,key,{auth:{storageKey,flowType:"pkce",detectSessionInUrl:false,persistSession:true,autoRefreshToken:true}});
-   client.auth.onAuthStateChange((event)=>{if(event!=="TOKEN_REFRESHED")setTimeout(()=>window.dispatchEvent(new Event("lx-share-session-changed")),0);});
+   // SIGNED_IN can repeat when the native camera returns or the tab regains focus.
+   // Only a changed account (including sign-out) invalidates private share state.
+   let observedUserId;
+   client.auth.onAuthStateChange((_event,session)=>{
+    const nextUserId=session?.user?.id||null;
+    if(nextUserId===observedUserId)return;
+    observedUserId=nextUserId;
+    setTimeout(()=>window.dispatchEvent(new Event("lx-share-session-changed")),0);
+   });
   }
   return client;
  }
