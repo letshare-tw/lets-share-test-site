@@ -27,7 +27,7 @@
   point.disabled=blocked||kind()!=="collection_point"||!state?.points?.length;
   const ready=readyToSubmit()&&!busy;handle.disabled=!ready;track.classList.toggle("ready",ready);
   const legal=state?.service;
-  $("shareConsentStatus").textContent=consentReady()?"已同意分享測試協議："+legal.version+"。尚未提交本次申請。":legal?.published?"請先閱讀並滑動同意分享測試協議："+legal.version:"分享測試協議尚未載入或未發布。";
+  $("shareConsentStatus").textContent=consentReady()?"已同意分享測試協議："+legal.version+"。":legal?.published?"請先閱讀並滑動同意分享測試協議："+legal.version:"分享測試協議尚未載入或未發布。";
   if(submitState==="submitted"){$("swipeText").textContent="測試申請已提交 ✓";track.classList.add("completed");$("formFeedback").textContent="測試提交成功，不安排實際騎手取件。";}
   else if(submitState==="uncertain"){$("swipeText").textContent="請重新讀取確認提交結果";$("formFeedback").textContent="提交結果尚未確認，請按「重新讀取草稿」核對本人分享紀錄。暫不建立新申請。";}
   else{$("swipeText").textContent=ready?"向右滑動提交測試申請 →":"請完成資料、協議及情境確認";$("formFeedback").textContent=!state?.submission_enabled?"測試提交目前未開放。":dirty?"有尚未儲存的變更，請先儲存分享草稿。":ready?"資料已齊全，滑動後會建立測試申請與袋號；不安排實際取件。":"請儲存照片與草稿、同意協議，並勾選測試情境確認。";}

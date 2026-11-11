@@ -1,0 +1,15 @@
+{
+ "batch":"SHARE-TEST-V1",
+ "date":"2026-11-12",
+ "project":"rfwqcrvxyjhtmafnbuyy",
+ "published_at":"2026-11-11T16:38:18.579148+00:00",
+ "approved_document_sha256":"5ebfa73c7e5d53032901ecc2fdaa69e6da3ff355ffcff9ccc1284626dcd39f07",
+ "approved_content_exact_match":true,
+ "edge":{"name":"share-test-api","version":2,"verify_jwt":true},
+ "database":{"submission_enabled":true,"published_version":"SHARE-TEST-V1","user_consents":0,"bags":0,"placements":0,"legacy_rpc_authenticated_execute_count":0,"gateway_authenticated_execute":false},
+ "negative_sql_checks":{"false_explicit_agreement":"PASS","stale_version":"PASS","placement_confirmation_required":"PASS","consent_required":"PASS","foreign_submission":"DENIED","foreign_receipt":"DENIED","unsubmitted_receipt":"DENIED","missing_photo":"DENIED (fixture mutation rolled back)","published_content_immutable":"PASS"},
+ "mocked_ui_checks":"PASS: scroll-gated consent, failure does not mark agreed, placement gate, explicit submission, lost-response reconciliation, no duplicate UI submission, reloaded history",
+ "pending":["user personally confirms SHARE-TEST-V1 in real Google Session","user personally submits the first test request","database success-path atomicity and 48-hour receipt verification","real duplicate/concurrent submit validation","submitted-record cross-account Session isolation"],
+ "scope":"test only, no physical clothing handover, dispatch, payments or rewards",
+ "note":"No user agreement or first submission was performed by engineering. Mocked UI and SQL admin tests do not constitute phone/Google Session success PASS."
+}
