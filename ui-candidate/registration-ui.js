@@ -123,9 +123,17 @@
  for(const b of [nextLegal,nextAdult,phoneRefresh])b.style.cssText="width:100%;padding:13px;background:#12834c;color:white;border:0;border-radius:10px;margin:8px 0";
  const stepTitle=document.createElement("h3");card.insertBefore(stepTitle,summary);
  let started=false,step=1,read={terms:false,privacy:false},consentIdentity="",submitting=false;
+ const consentStorageKey="lx-reg-test-02b-consent-v1";
+ function saveConsent(){try{if(consentIdentity)sessionStorage.setItem(consentStorageKey,JSON.stringify({key:consentIdentity,terms:read.terms===true,privacy:read.privacy===true}));}catch(_){/* Storage unavailable: keep in-memory checks. */}}
+ function clearConsent(){try{sessionStorage.removeItem(consentStorageKey);}catch(_){}}
+ function restoreConsent(key){try{const item=JSON.parse(sessionStorage.getItem(consentStorageKey)||"null");if(item?.key===key)return {terms:item.terms===true,privacy:item.privacy===true};if(item)clearConsent();}catch(_){clearConsent();}return {terms:false,privacy:false};}
+ let lockedScrollY=0,legalScrollLocked=false,previousBodyStyle=null,previousHtmlOverscroll="";
+ function lockLegalBackground(){if(legalScrollLocked)return;legalScrollLocked=true;lockedScrollY=window.scrollY;previousBodyStyle={position:document.body.style.position,top:document.body.style.top,left:document.body.style.left,right:document.body.style.right,width:document.body.style.width,overflow:document.body.style.overflow};previousHtmlOverscroll=document.documentElement.style.overscrollBehavior;document.documentElement.style.overscrollBehavior="none";Object.assign(document.body.style,{position:"fixed",top:"-"+lockedScrollY+"px",left:"0",right:"0",width:"100%",overflow:"hidden"});}
+ function unlockLegalBackground(){if(!legalScrollLocked)return;legalScrollLocked=false;Object.assign(document.body.style,previousBodyStyle);document.documentElement.style.overscrollBehavior=previousHtmlOverscroll;window.scrollTo(0,lockedScrollY);}
+ dialog.addEventListener("close",unlockLegalBackground);
  function syncConsentIdentity(data){
   const key=data?.user_id&&data?.legal?.version&&data?.legal_ready?String(data.user_id)+"|"+String(data.legal.version):"";
-  if(key!==consentIdentity){consentIdentity=key;read={terms:false,privacy:false};started=false;step=1;}
+  if(key!==consentIdentity){consentIdentity=key;read=key&&!data?.registered?restoreConsent(key):{terms:false,privacy:false};if(!key||data?.registered)clearConsent();started=false;step=1;}if(data?.registered){read={terms:false,privacy:false};clearConsent();}
  }
  function showStep(){
   const ready=!!state?.registration_enabled&&!!state?.legal_ready,done=!!state?.registered;
@@ -193,7 +201,7 @@
   const open=data.registration_enabled&&data.legal_ready;
   termsButton.disabled=privacyButton.disabled=!data.legal_ready;adultSave.disabled=true;setWheelDisabled(false);adultCheck.disabled=true;
   terms.input.disabled=privacy.input.disabled=true;terms.input.checked=read.terms;privacy.input.checked=read.privacy;
-  if(data.registered){started=false;summary.textContent="會員註冊已完成。";submit.textContent="註冊已完成";terms.input.checked=privacy.input.checked=false;}
+  if(data.registered){clearConsent();started=false;summary.textContent="會員註冊已完成。";submit.textContent="註冊已完成";terms.input.checked=privacy.input.checked=false;}
   else if(!open){summary.textContent="帳號資料已讀取。會員條款與隱私權政策確認中，暫時無法完成註冊。";submit.textContent="完成註冊（尚未開放）";}
   else{summary.textContent="請本人閱讀並確認兩份法律文件；確認完成後才能提交測試註冊。";submit.textContent="完成註冊（尚未符合條件）";}
   updateButton();showStep();
@@ -212,7 +220,7 @@
   if(!state?.legal_ready||!state.legal)return;
   dialogTitle.textContent=(kind==="terms"?"會員條款":"隱私權政策")+"｜"+state.legal.version;
   dialogText.textContent=kind==="terms"?state.legal.terms_text:state.legal.privacy_text;
-  dialogText.style.cssText="white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.8;max-height:48vh;overflow-y:auto;padding:12px;border:1px solid #ddd";
+  dialogText.style.cssText="white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.8;max-height:48vh;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;-webkit-overflow-scrolling:touch;padding:12px;border:1px solid #ddd";
   close.hidden=true;
   const old=dialog.querySelector(".lx-legal-slider");if(old)old.remove();
   const area=document.createElement("div");area.className="lx-legal-slider";
@@ -234,7 +242,7 @@
     return;
    }
    settled=true;slider.value="100";knob.style.transition="left .15s ease-out";knob.style.left="calc(100% - 65px)";
-   read[kind]=true;terms.input.checked=read.terms;privacy.input.checked=read.privacy;
+   read[kind]=true;saveConsent();terms.input.checked=read.terms;privacy.input.checked=read.privacy;
    setTimeout(()=>{if(dialog.open)dialog.close();if(kind==="terms"){if(!read.privacy)openDocument("privacy");else{step=state?.adult_ready?3:2;showStep();switchDialog(state?.adult_ready?"phone":"adult");}}else{step=state?.adult_ready?3:2;showStep();switchDialog(state?.adult_ready?"phone":"adult");}updateButton();},180);
   }
   slider.addEventListener("pointerdown",()=>{knob.style.transition="none";});
@@ -242,7 +250,7 @@
   slider.addEventListener("pointercancel",()=>{slider.value="0";knob.style.transition="left .25s ease-out";knob.style.left="5px";});
   slider.addEventListener("change",finishSwipe);
   slider.addEventListener("keyup",e=>{if(e.key==="Enter"||e.key===" "||e.key.startsWith("Arrow"))finishSwipe();});
-  dialog.showModal();dialogText.scrollTop=0;requestAnimationFrame(()=>{if(atBottom())slider.disabled=false;});
+  lockLegalBackground();try{dialog.showModal();}catch(e){unlockLegalBackground();throw e;}dialogText.scrollTop=0;requestAnimationFrame(()=>{if(atBottom())slider.disabled=false;});
  }
  termsButton.addEventListener("click",()=>openDocument("terms"));privacyButton.addEventListener("click",()=>openDocument("privacy"));
  terms.input.addEventListener("change",updateButton);privacy.input.addEventListener("change",updateButton);
