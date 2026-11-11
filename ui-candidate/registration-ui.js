@@ -122,7 +122,11 @@
  const nextAdult=document.createElement("button");nextAdult.type="button";nextAdult.textContent="下一步：手機驗證";card.insertBefore(nextAdult,phoneStep);phoneDialog.append(phoneStep,submit);
  for(const b of [nextLegal,nextAdult,phoneRefresh])b.style.cssText="width:100%;padding:13px;background:#12834c;color:white;border:0;border-radius:10px;margin:8px 0";
  const stepTitle=document.createElement("h3");card.insertBefore(stepTitle,summary);
- let started=false,step=1,read={terms:false,privacy:false};
+ let started=false,step=1,read={terms:false,privacy:false},consentIdentity="",submitting=false;
+ function syncConsentIdentity(data){
+  const key=data?.user_id&&data?.legal?.version&&data?.legal_ready?String(data.user_id)+"|"+String(data.legal.version):"";
+  if(key!==consentIdentity){consentIdentity=key;read={terms:false,privacy:false};started=false;step=1;}
+ }
  function showStep(){
   const ready=!!state?.registration_enabled&&!!state?.legal_ready,done=!!state?.registered;
   start.hidden=!ready||done||started;card.hidden=!ready||done||!started;
@@ -147,7 +151,7 @@
   refreshButton.hidden=step!==3;refreshButton.style.display="none";
   phoneError.textContent="";
   const exempt=testPhoneExempt(state);
-  phoneMessage.textContent=state?.phone_verified?"手機已驗證，無須重新發送簡訊。":exempt?"測試豁免，非真實手機驗證。僅限指定測試帳號；本階段不會完成註冊。":"手機尚未驗證。本測試站簡訊發送仍鎖定。";
+  phoneMessage.textContent=state?.phone_verified?"手機已驗證，無須重新發送簡訊。":exempt?"測試豁免，非真實手機驗證。僅限指定測試帳號，完成註冊須本人確認兩份法律文件。":"手機尚未驗證。本測試站簡訊發送仍鎖定。";
   phoneMessage.style.color=state?.phone_verified||exempt?"#087d43":"#795317";
   phoneInput.hidden=!!state?.phone_verified||exempt;phoneLabel.hidden=!!state?.phone_verified||exempt;phoneHelp.hidden=!!state?.phone_verified||exempt;
   otpInput.hidden=otpSend.hidden=otpConfirm.hidden=!!state?.phone_verified||exempt;
@@ -156,7 +160,7 @@
   termsButton.textContent=read.terms?"✓ 會員條款已確認":"閱讀會員條款";
   privacyButton.textContent=read.privacy?"✓ 隱私權政策已確認":"閱讀隱私權政策";
  }
- start.addEventListener("click",()=>{started=true;step=1;showStep();openDocument("terms");});
+ start.addEventListener("click",()=>{if(!state?.user_id||!state?.legal_ready||submitting)return;started=true;step=read.terms&&read.privacy?(state?.adult_ready?3:2):1;showStep();if(step===1)openDocument(read.terms?"privacy":"terms");else switchDialog(step===3?"phone":"adult");});
  nextLegal.addEventListener("click",()=>{if(read.terms&&read.privacy){step=state?.adult_ready?3:2;showStep();if(step===3)switchDialog("phone");}});
  nextAdult.addEventListener("click",()=>{if(state?.adult_ready){step=3;showStep();switchDialog("phone");}});
  phoneRefresh.addEventListener("click",async()=>{if(busy)return;phoneRefresh.disabled=true;phoneMessage.textContent="正在重新確認手機驗證狀態…";try{const data=await auth.getRegistrationStatus();if(!data)throw Error("無法取得驗證狀態");paint(data);if(!data.registered&&phoneDialog.open){step=3;showStep();}else if(data.registered&&phoneDialog.open)switchDialog(null);}catch(e){phoneMessage.textContent=e?.message||"驗證狀態暫時無法讀取，請稍後再試。";}finally{phoneRefresh.disabled=false;}});
@@ -175,13 +179,14 @@
  function testPhoneExempt(data){return !!data?.phone_test_exempt&&!data?.phone_verified&&data?.phone_verification_method==="test_exemption";}
  function updateButton(){
   const phoneReady=!!state?.phone_verified||testPhoneExempt(state);
-  const eligible=!busy&&step===3&&phoneReady&&!!state?.adult_ready&&!!state?.can_complete&&!state?.registered&&read.terms&&read.privacy;
+  const eligible=!busy&&!submitting&&step===3&&phoneReady&&!!state?.adult_ready&&!!state?.can_complete&&!state?.registered&&read.terms&&read.privacy&&!!consentIdentity&&consentIdentity===String(state?.user_id)+"|"+String(state?.legal?.version);
   submit.disabled=reg06ReadOnly||!eligible;
   submit.textContent=eligible?"確認同意並完成測試註冊":"完成註冊（尚未開放）";
   submit.style.opacity=submit.disabled?".55":"1";
  }
  function row(text,ready){const li=document.createElement("li");li.textContent=(ready?"✓ ":"待完成：")+text;checklist.append(li);}
  function paint(data){
+  syncConsentIdentity(data);
   state=data;checklist.replaceChildren();
   row("Google 帳號",data.google_verified);row("會員名稱（2～30 字）",data.name_ready);row(testPhoneExempt(data)?"手機驗證替代條件（測試豁免，非真實手機驗證）":data.phone_verified&&data.masked_phone?"手機驗證（"+data.masked_phone+"）":"手機驗證",!!data.phone_verified||testPhoneExempt(data));
   row("出生日期與年滿18歲聲明",!!data.adult_ready);row("會員條款與隱私權政策發布",data.legal_ready);
@@ -190,7 +195,7 @@
   terms.input.disabled=privacy.input.disabled=true;terms.input.checked=read.terms;privacy.input.checked=read.privacy;
   if(data.registered){started=false;summary.textContent="會員註冊已完成。";submit.textContent="註冊已完成";terms.input.checked=privacy.input.checked=false;}
   else if(!open){summary.textContent="帳號資料已讀取。會員條款與隱私權政策確認中，暫時無法完成註冊。";submit.textContent="完成註冊（尚未開放）";}
-  else{summary.textContent="唯讀驗收：可檢查測試豁免與註冊條件，但不得提交註冊或儲存成年驗證。";submit.textContent="完成註冊（唯讀驗收鎖定）";}
+  else{summary.textContent="請本人閱讀並確認兩份法律文件；確認完成後才能提交測試註冊。";submit.textContent="完成註冊（尚未符合條件）";}
   updateButton();showStep();
  }
  async function refresh(){
@@ -199,9 +204,9 @@
   if(!started)lock();
   try{
    const data=await auth.getRegistrationStatus();if(current!==revision)return;
-   if(!data){started=false;switchDialog(null);card.hidden=true;start.hidden=true;hint.style.display="none";return;}
+   if(!data){syncConsentIdentity(null);started=false;switchDialog(null);card.hidden=true;start.hidden=true;hint.style.display="none";return;}
    paint(data);
-  }catch(_){if(current!==revision)return;state=null;submit.disabled=true;submit.style.opacity=".55";const msg="暫時無法確認註冊狀態，請稍後重新確認。";if(phoneDialog.open){phoneError.textContent=msg;}else if(stepDialog.open){adultFeedback.hidden=false;adultFeedback.textContent=msg;}else{summary.textContent=msg;start.hidden=false;} }
+  }catch(_){if(current!==revision)return;syncConsentIdentity(null);state=null;submit.disabled=true;submit.style.opacity=".55";const msg="暫時無法確認註冊狀態，請稍後重新確認。";if(phoneDialog.open){phoneError.textContent=msg;}else if(stepDialog.open){adultFeedback.hidden=false;adultFeedback.textContent=msg;}else{summary.textContent=msg;start.hidden=false;} }
  }
  function openDocument(kind){
   if(!state?.legal_ready||!state.legal)return;
@@ -230,7 +235,7 @@
    }
    settled=true;slider.value="100";knob.style.transition="left .15s ease-out";knob.style.left="calc(100% - 65px)";
    read[kind]=true;terms.input.checked=read.terms;privacy.input.checked=read.privacy;
-   setTimeout(()=>{if(dialog.open)dialog.close();if(kind==="terms"){openDocument("privacy");}else{step=state?.adult_ready?3:2;showStep();switchDialog(state?.adult_ready?"phone":"adult");}updateButton();},180);
+   setTimeout(()=>{if(dialog.open)dialog.close();if(kind==="terms"){if(!read.privacy)openDocument("privacy");else{step=state?.adult_ready?3:2;showStep();switchDialog(state?.adult_ready?"phone":"adult");}}else{step=state?.adult_ready?3:2;showStep();switchDialog(state?.adult_ready?"phone":"adult");}updateButton();},180);
   }
   slider.addEventListener("pointerdown",()=>{knob.style.transition="none";});
   slider.addEventListener("pointerup",finishSwipe);
@@ -254,11 +259,11 @@
   finally{busy=false;adultSave.disabled=true;updateButton();}
  });
  refreshButton.addEventListener("click",()=>{if(!busy)refresh();});
- window.addEventListener("lx-member-state-changed",()=>{busy=false;refresh();});
+ window.addEventListener("lx-member-state-changed",()=>{if(!submitting)busy=false;refresh();});
  submit.addEventListener("click",async()=>{
   if(reg06ReadOnly){phoneError.textContent="REG-UI-EXEMPT-06 唯讀鎖定：不得完成註冊。";return;}
-  if(submit.disabled||busy||!state?.legal)return;
-  busy=true;const current=revision,version=state.legal.version;updateButton();refreshButton.disabled=true;
+  if(submit.disabled||busy||submitting||!state?.legal||!read.terms||!read.privacy)return;
+  submitting=true;busy=true;const current=revision,version=state.legal.version;updateButton();refreshButton.disabled=true;
   phoneError.textContent="正在確認註冊資料…";
   try{
    await auth.completeRegistration(version,read.terms,read.privacy);
@@ -270,8 +275,10 @@
    window.dispatchEvent(new Event("lx-member-state-changed"));
   }catch(error){
    if(current!==revision)return;
-   phoneError.textContent=error.message||"註冊未完成，請重新確認狀態後再試。";
-  }finally{busy=false;refreshButton.disabled=false;updateButton();}
+   const message=error?.message||"註冊未完成，請重新確認狀態後再試。";
+   try{const status=await auth.getRegistrationStatus();if(current!==revision)return;paint(status);if(status?.registered){started=false;showStep();window.dispatchEvent(new Event("lx-member-state-changed"));return;}}catch(_){/* Retain original error; do not retry a possibly completed write. */}
+   phoneError.textContent=message+"；已停止自動重試，請重新確認註冊狀態。";
+  }finally{submitting=false;busy=false;refreshButton.disabled=false;updateButton();}
  });
  refresh();
 })();
