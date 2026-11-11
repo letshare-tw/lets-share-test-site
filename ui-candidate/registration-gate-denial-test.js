@@ -5,7 +5,7 @@
  const allowed=new Set(["3cdabed1-9517-412c-9b3e-6b2adf072a59","a8d732b5-886e-4d56-865d-0ae251d31384","fde806fd-659d-4456-940b-0dc46fdf398e"]);
  const project="rfwqcrvxyjhtmafnbuyy";
  const client=window.supabase.createClient("https://"+project+".supabase.co","sb_publishable_0TIzPc-ys9IDUz44Ci3a4w_rGwpqPoa",{auth:{storageKey:"lx-test-"+project+"-auth",flowType:"pkce",detectSessionInUrl:false,persistSession:true,autoRefreshToken:true}});
- const panel=document.createElement("section");panel.id="lxRegistrationGateDenialTest";panel.style.cssText="margin:16px 0;padding:16px;border:1px solid #c4dccb;border-radius:14px;background:#f7fbf8";
+ // REG-TEST-ACCOUNTS-01: one-time gate denial test retired; do not call registration RPC.\n return;\n const panel=document.createElement("section");panel.id="lxRegistrationGateDenialTest";panel.style.cssText="margin:16px 0;padding:16px;border:1px solid #c4dccb;border-radius:14px;background:#f7fbf8";
  const heading=document.createElement("h2");heading.textContent="REG-COMPLETE-09-E-06A｜註冊安全鎖拒絕驗收";heading.style.cssText="font-size:17px;margin:0 0 8px";
  const note=document.createElement("p");note.textContent="僅限三個指定 Google 測試帳號。先向測試資料庫確認安全鎖關閉，再以「不同意條款」參數呼叫註冊 RPC；即使鎖狀態改變，也不會完成註冊。不顯示 JWT 或會員個資。";note.style.cssText="font-size:13px";
  const btn=document.createElement("button");btn.type="button";btn.textContent="驗證安全鎖拒絕（不會完成註冊）";btn.style.cssText="background:#12834c;color:#fff;border:0;border-radius:8px;padding:12px 15px;font-size:15px";
