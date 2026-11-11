@@ -189,7 +189,7 @@
  function validSharePath(path,id){return typeof path==="string"&&new RegExp("^"+id+"/[0-9a-f-]{36}/[0-9]+-[a-z0-9]{1,8}\\.(jpg|png|webp)$").test(path);}
  async function shareUpload(path,blob,expected){
   const id=await shareIdentity(expected);
-  if(!validSharePath(path,id)||!blob||blob.size<1||blob.size>300000||!["image/jpeg","image/png","image/webp"].includes(blob.type))throw Error("照片格式或大小不符。");
+  if(!validSharePath(path,id)||!blob||blob.size<1||blob.size>100000||!["image/jpeg","image/png","image/webp"].includes(blob.type))throw Error("照片須為 100KB 以下的 JPG、PNG 或 WebP，請重新拍攝。");
   const r=await getClient().storage.from("share-placement-photos").upload(path,blob,{contentType:blob.type,upsert:false,cacheControl:"0"});
   await shareIdentity(id);if(r.error)throw Error("照片上傳失敗，草稿未送出，請稍後重試。");return path;
  }

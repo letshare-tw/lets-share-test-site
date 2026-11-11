@@ -10,6 +10,7 @@
  document.querySelector("#view-share .share-steps").insertAdjacentElement("afterend",panel);
  const count=$("count"),notes=$("notes"),photo=$("photo"),preview=$("preview"),placed=$("placed"),point=$("sharePoint");
  const save=$("shareSave"),reload=$("shareReload"),operation=$("shareOperation"),track=$("swipeTrack"),handle=$("swipeHandle");
+ const photoLimitHint=document.createElement("p");photoLimitHint.className="help";photoLimitHint.textContent="新照片會先在本機壓縮至 100KB 以下，再於儲存草稿時上傳。";photo.insertAdjacentElement("afterend",photoLimitHint);
  let state=null,userId=null,requestId=null,path=null,savedPath=null,blob=null,photoUrl=null,seq=0,busy=false,dirty=false,submitState="idle",dragging=false,dragStart=0,dragX=0;
  function releasePhoto(){if(photoUrl)URL.revokeObjectURL(photoUrl);photoUrl=null;preview.removeAttribute("src");preview.hidden=true;blob=null;}
  function clear(){resetSwipe();submitState="idle";releasePhoto();state=null;userId=null;requestId=null;path=null;savedPath=null;dirty=false;count.value="2";notes.value="";photo.value="";placed.checked=false;point.replaceChildren(new Option("暫無可用集貨點",""));point.disabled=true;$("shareHistory").replaceChildren();$("shareConsentStatus").textContent="尚未確認分享測試協議。";$("shareDraftInfo").textContent="尚未讀取草稿。";$("photoFeedback").textContent="尚未選擇照片。";$("placeInfo").textContent="登入並完成會員註冊後，才能讀取本人取件地址。";check();}
@@ -30,7 +31,18 @@
   $("shareConsentStatus").textContent=consentReady()?"已同意分享測試協議："+legal.version+"。":legal?.published?"請先閱讀並滑動同意分享測試協議："+legal.version:"分享測試協議尚未載入或未發布。";
   if(submitState==="submitted"){$("swipeText").textContent="測試申請已提交 ✓";track.classList.add("completed");$("formFeedback").textContent="測試提交成功，不安排實際騎手取件。";}
   else if(submitState==="uncertain"){$("swipeText").textContent="請重新讀取確認提交結果";$("formFeedback").textContent="提交結果尚未確認，請按「重新讀取草稿」核對本人分享紀錄。暫不建立新申請。";}
-  else{$("swipeText").textContent=ready?"向右滑動提交測試申請 →":"請完成資料、協議及情境確認";$("formFeedback").textContent=!state?.submission_enabled?"測試提交目前未開放。":dirty?"有尚未儲存的變更，請先儲存分享草稿。":ready?"資料已齊全，滑動後會建立測試申請與袋號；不安排實際取件。":"請儲存照片與草稿、同意協議，並勾選測試情境確認。";}
+  else{
+   const missing=[];
+   if(!userId)missing.push("登入指定測試會員");
+   if(!valid)missing.push("填寫 2～1000 件衣物");
+   if(!validPlace())missing.push("補齊取件地址或選擇核准集貨點");
+   if(!requestId||!path||savedPath!==path||blob||dirty)missing.push("儲存照片與草稿");
+   if(!consentReady())missing.push("到頁面上方開啟「閱讀並確認分享測試協議」，讀到底後滑動同意");
+   if(!placed.checked)missing.push("勾選上方的測試情境確認");
+   if(Array.from(notes.value).length>200)missing.push("將放置說明縮短至 200 字內");
+   $("swipeText").textContent=ready?"向右滑動提交測試申請 →":!consentReady()?"請先完成分享測試協議確認":"請完成下列待辦後再滑動";
+   $("formFeedback").textContent=!state?.submission_enabled?"測試提交目前未開放。":ready?"資料已齊全，滑動後會建立測試申請與袋號；不安排實際取件。":"尚需完成："+missing.join("；")+"。";
+  }
  }
  function placeInfo(){const selected=state?.points?.find(p=>p.id===point.value);$("placeInfo").textContent=kind()==="home"?(state?.address?.home_address||"尚未填寫取件地址，請到會員中心補填並儲存，再重新讀取草稿。"):(selected?selected.name+"："+selected.address_text:"目前沒有可選用的核准集貨點，請使用會員住址。");check();}
  function paintHistory(bags){const host=$("shareHistory");host.replaceChildren();if(!bags?.length){host.textContent="目前沒有已提交測試分享紀錄。草稿不會產生袋號。";return;}for(const bag of bags){const row=document.createElement("p");const date=new Date(bag.pickup_deadline_at);row.textContent=bag.bag_code+"｜"+bag.bag_status+"｜測試取件期限："+(Number.isNaN(date.getTime())?"待確認":date.toLocaleString("zh-TW",{timeZone:"Asia/Taipei"}));host.append(row);}}
@@ -58,7 +70,7 @@
  count.addEventListener("input",changed);notes.addEventListener("input",changed);placed.addEventListener("change",()=>{resetSwipe();check();});
  point.addEventListener("change",()=>{changed();placeInfo();});document.querySelectorAll('input[name="place"]').forEach(el=>el.addEventListener("change",()=>{changed();placeInfo();}));
  async function compress(file){
-  if(!["image/jpeg","image/png","image/webp"].includes(file.type)||file.size===0||file.size>20*1024*1024)throw Error("請選擇 20MB 以下的 JPG、PNG 或 WebP；系統會壓縮為 300KB 以下。");
+  if(!["image/jpeg","image/png","image/webp"].includes(file.type)||file.size===0||file.size>20*1024*1024)throw Error("請選擇 20MB 以下的 JPG、PNG 或 WebP；系統會壓縮為 100KB 以下。");
   const image=new Image(),url=URL.createObjectURL(file);
   try{image.src=url;await image.decode();if(image.naturalWidth*image.naturalHeight>48000000)throw Error("照片尺寸過大，請降低相機解析度後重拍。");
    const canvas=document.createElement("canvas");let edge=1600;
@@ -66,9 +78,9 @@
     const scale=Math.min(1,edge/Math.max(image.naturalWidth,image.naturalHeight));canvas.width=Math.max(1,Math.round(image.naturalWidth*scale));canvas.height=Math.max(1,Math.round(image.naturalHeight*scale));
     const ctx=canvas.getContext("2d");if(!ctx)throw Error("此瀏覽器無法處理照片。");ctx.fillStyle="#fff";ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(image,0,0,canvas.width,canvas.height);
     const result=await new Promise(resolve=>canvas.toBlob(resolve,"image/webp",Math.max(.5,.86-step*.06)));
-    if(result&&["image/webp","image/png","image/jpeg"].includes(result.type)&&result.size>0&&result.size<=300000)return result;
+    if(result&&["image/webp","image/png","image/jpeg"].includes(result.type)&&result.size>0&&result.size<=100000)return result;
     edge=Math.round(edge*.78);
-   }throw Error("照片無法壓縮至 300KB，請重新拍攝。");
+   }throw Error("照片無法壓縮至 100KB，請重新拍攝；此照片不會上傳。");
   }finally{URL.revokeObjectURL(url);}
  }
  photo.addEventListener("change",async()=>{

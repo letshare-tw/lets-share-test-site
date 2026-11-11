@@ -1,0 +1,25 @@
+{
+  "release": "SHARE-PHOTO-100KB",
+  "scope": "lets-share-test / ui-candidate only",
+  "new_photo_max_bytes": 100000,
+  "historical_submitted_photo": "Preserved unchanged (108680 bytes). Existing receipts remain readable.",
+  "checks": {
+    "first_submit_user_phone": "PASS (user operated)",
+    "receipt_history_reload_real_google_session": "PASS (cloud browser, account A)",
+    "draft_and_photo_reload_real_google_sessions": "PASS (cloud browser, both accounts, before this size-limit release)",
+    "draft_photo_cross_account_real_google_sessions": "PASS (both directions, before this size-limit release)",
+    "submitted_placement_rls_role_simulation": "PASS (existing populated A placement invisible to B; not a B Google Session test)",
+    "existing_submit_replay_same_bag": "PASS (database gateway replay, rolled back; no new consent or submission)",
+    "photo_boundary_mock": "PASS (100000 accepted; 100001, empty, wrong MIME blocked before upload)",
+    "compression_mock": "PASS (retry, encoder fallback, exhausted attempts, resource cleanup)",
+    "native_phone_camera_after_limit_change": "PENDING",
+    "storage_oversize_http_upload": "PENDING",
+    "submitted_placement_cross_account_real_google_session": "PENDING"
+  },
+  "notes": [
+    "No new legal consent was recorded by engineering.",
+    "No real pickup, rider dispatch, SMS, payments or production changes.",
+    "The existing sys draft photo is 43348 bytes and remains compatible.",
+    "100KB uses decimal bytes, not 102400 bytes."
+  ]
+}
