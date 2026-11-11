@@ -114,6 +114,16 @@
  const phoneBox=document.createElement("div");phoneBox.style.cssText="display:grid;gap:8px;margin-bottom:20px";
  for(const e of [phoneLabel,phoneInput,phoneState,phoneFeedback,otpButton,otpInput,otpVerify,smsNotice])phoneBox.append(e);
  contact.prepend(h,phoneBox);contact.append(addressSave,addressFeedback);panel.insertAdjacentElement("afterend",contact);
+ // Keep profile maintenance separate from the member-center summary.
+ const details=document.createElement("section");details.id="lxMemberDetails";details.hidden=true;details.style.cssText="margin:16px 0;padding:16px;border:1px solid #e1e9e3;border-radius:14px;background:white";
+ const back=document.createElement("button");back.type="button";back.textContent="‹ 返回會員中心";back.style.cssText="padding:12px;color:#087d43;background:white;border:1px solid #ddd;border-radius:10px";
+ const detailsTitle=document.createElement("h2");detailsTitle.textContent="會員資料與地址";
+ details.append(back,detailsTitle,edit,feedback,contact);panel.insertAdjacentElement("afterend",details);
+ const detailsEntry=Array.from(document.querySelectorAll("#view-member .member-item")).find(el=>el.textContent.includes("會員資料與地址"));
+ function closeDetails(){details.hidden=true;panel.hidden=!activeUserId;}
+ if(detailsEntry){detailsEntry.style.cursor="pointer";detailsEntry.setAttribute("role","button");detailsEntry.tabIndex=0;const open=()=>{if(!activeUserId)return;details.hidden=false;panel.hidden=true;details.scrollIntoView({behavior:"smooth",block:"start"});};detailsEntry.addEventListener("click",open);detailsEntry.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();open();}});}
+ back.addEventListener("click",closeDetails);
+ 
  function clearContact(){closeMenus();contact.hidden=true;phoneState.textContent="";phoneFeedback.textContent="";phoneInput.value="";otpInput.value="";addressFeedback.textContent="";for(const el of Object.values(inputs)){el.value="";el.disabled=true;}addressSave.disabled=true;}
  function paintContact(session,profile){
   contact.hidden=false;phoneInput.value=session.user.phone||"";phoneInput.disabled=false;otpInput.disabled=true;otpButton.disabled=true;otpVerify.disabled=true;
@@ -148,7 +158,7 @@
  });
 
  let busy=false,version=0,activeUserId="",profileExists=false;
- function reset(){clearContact();version++;activeUserId="";profileExists=false;panel.hidden=true;avatar.removeAttribute("src");avatar.style.display="none";fallback.style.display="flex";name.textContent=email.textContent=registration.textContent=feedback.textContent="";input.value="";input.disabled=save.disabled=true;}
+ function reset(){details.hidden=true;clearContact();version++;activeUserId="";profileExists=false;panel.hidden=true;avatar.removeAttribute("src");avatar.style.display="none";fallback.style.display="flex";name.textContent=email.textContent=registration.textContent=feedback.textContent="";input.value="";input.disabled=save.disabled=true;}
  function showAvatar(url){avatar.removeAttribute("src");avatar.style.display="none";fallback.style.display="flex";if(!url)return;avatar.onload=()=>{avatar.style.display="block";fallback.style.display="none";};avatar.onerror=()=>{avatar.style.display="none";fallback.style.display="flex";};avatar.src=url;}
  function paint(session){
   status.textContent=session?"已登入測試帳號："+session.user.email:"尚未登入測試帳號";
@@ -164,7 +174,11 @@
    if(!profile){paintContact(session,null);name.textContent="會員名稱："+(session.user.googleName||"尚未設定");registration.textContent="註冊狀態：尚未建立會員資料";feedback.textContent="尚未建立會員資料，暫時無法儲存名稱。";return;}
    paintContact(session,profile);
    name.textContent="會員名稱："+(profile.display_name?.trim()||session.user.googleName||"尚未設定");
-   input.value=profile.display_name||"";input.disabled=save.disabled=false;
+   const googleDefault=(session.user.googleName||"").trim();
+   input.value=profile.display_name||googleDefault;input.disabled=save.disabled=false;
+   if(!profile.display_name&&Array.from(googleDefault).length>=2&&Array.from(googleDefault).length<=30){
+    try{await auth.saveDisplayName(googleDefault);if(token!==version||activeUserId!==session.user.id)return;name.textContent="會員名稱："+googleDefault;window.dispatchEvent(new Event("lx-registration-name-updated"));}catch(_){feedback.textContent="Google 名稱已預填；請至會員資料與地址確認儲存。";}
+   }
    registration.textContent="註冊狀態："+(profile.registration_completed_at?"已完成":"尚未完成");
   }catch(_){if(token!==version)return;name.textContent="會員名稱：暫無法取得";registration.textContent="註冊狀態：暫無法確認";feedback.textContent="會員資料讀取失敗，請稍後重新整理。";}
  }
