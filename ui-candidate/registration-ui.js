@@ -78,16 +78,50 @@
  dialog.append(dialogTitle,dialogText,close);
  card.append(title,summary,checklist,editName,adultBox,documents,terms.label,privacy.label,submit,note,refreshButton,dialog);
  anchor.insertAdjacentElement("beforebegin",card);
+ const start=document.createElement("button");start.type="button";start.textContent="開始註冊會員";start.id="lxStartRegistration";start.style.cssText="width:100%;padding:15px;background:#12834c;color:white;border:0;border-radius:12px;font-size:18px;margin:12px 0";
+ card.insertAdjacentElement("beforebegin",start);
+ const home=document.getElementById("view-market")||document.getElementById("view-shop")||document.querySelector("main.view");
+ const hint=document.createElement("button");hint.type="button";hint.textContent="完成會員註冊 ›";hint.id="lxRegistrationHomeHint";hint.style.cssText="display:none;width:calc(100% - 24px);margin:12px;padding:14px;border:1px solid #12834c;border-radius:12px;background:#e9f8ee;color:#086b3d;font-size:17px;font-weight:bold;text-align:left";
+ if(home)home.prepend(hint);
+ hint.addEventListener("click",()=>{const tab=Array.from(document.querySelectorAll("button,a,[role=tab]")).find(x=>/會員中心/.test(x.textContent||"")&&x.offsetParent!==null);if(tab)tab.click();start.scrollIntoView({behavior:"smooth",block:"center"});});
+ const phoneStep=document.createElement("section");phoneStep.id="lxRegPhoneStep";
+ const phoneMessage=document.createElement("p");phoneStep.append(phoneMessage);
+ const phoneRefresh=document.createElement("button");phoneRefresh.type="button";phoneRefresh.textContent="重新檢查手機驗證";phoneStep.append(phoneRefresh);
+ card.insertBefore(phoneStep,submit);
+ const nextLegal=document.createElement("button");nextLegal.type="button";nextLegal.textContent="下一步：出生年月日";card.insertBefore(nextLegal,adultBox);
+ const nextAdult=document.createElement("button");nextAdult.type="button";nextAdult.textContent="下一步：手機驗證";card.insertBefore(nextAdult,phoneStep);
+ for(const b of [nextLegal,nextAdult,phoneRefresh])b.style.cssText="width:100%;padding:13px;background:#12834c;color:white;border:0;border-radius:10px;margin:8px 0";
+ const stepTitle=document.createElement("h3");card.insertBefore(stepTitle,summary);
+ let started=false,step=1,read={terms:false,privacy:false};
+ function showStep(){
+  const ready=!!state?.registration_enabled&&!!state?.legal_ready,done=!!state?.registered;
+  start.hidden=!ready||done||started;card.hidden=!ready||done||!started;
+  hint.style.display=ready&&!done?"block":"none";
+  stepTitle.textContent=step===1?"1／3 閱讀法律文件":step===2?"2／3 出生年月日確認":"3／3 手機驗證確認";
+  documents.hidden=step!==1;terms.label.hidden=true;privacy.label.hidden=true;
+  nextLegal.hidden=step!==1;nextLegal.disabled=!(read.terms&&read.privacy);
+  adultBox.hidden=step!==2;nextAdult.hidden=step!==2;nextAdult.disabled=!state?.adult_ready;
+  phoneStep.hidden=step!==3;submit.hidden=step!==3;
+  checklist.hidden=step!==3;editName.hidden=step!==3;note.hidden=step!==3;refreshButton.hidden=step!==3;
+  phoneMessage.textContent=state?.phone_verified?"手機已驗證，確認後可完成註冊。":"尚未完成手機驗證。本測試站簡訊發送維持鎖定，請勿跳過驗證。";
+  termsButton.textContent=read.terms?"✓ 會員條款已確認":"閱讀會員條款";
+  privacyButton.textContent=read.privacy?"✓ 隱私權政策已確認":"閱讀隱私權政策";
+ }
+ start.addEventListener("click",()=>{started=true;step=1;showStep();card.scrollIntoView({behavior:"smooth",block:"start"});});
+ nextLegal.addEventListener("click",()=>{if(read.terms&&read.privacy){step=2;showStep();}});
+ nextAdult.addEventListener("click",()=>{if(state?.adult_ready){step=3;showStep();}});
+ phoneRefresh.addEventListener("click",()=>refresh());
+ 
  let state=null,revision=0,busy=false;
  function lock(){
   if(dialog.open)dialog.close();
-  terms.input.checked=privacy.input.checked=false;adultCheck.checked=false;resetWheel();adultFeedback.textContent="";
+  adultCheck.checked=false;resetWheel();adultFeedback.textContent="";
   terms.input.disabled=privacy.input.disabled=submit.disabled=termsButton.disabled=privacyButton.disabled=true;
   adultSave.disabled=true;adultCheck.disabled=true;setWheelDisabled(false); // Local-only selection; no verification submission.
   submit.style.opacity=".55";
  }
  function updateButton(){
-  submit.disabled=busy||!state?.adult_ready||!state?.can_complete||state.registered||!terms.input.checked||!privacy.input.checked;
+  submit.disabled=busy||step!==3||!state?.phone_verified||!state?.adult_ready||!state?.can_complete||state.registered||!read.terms||!read.privacy;
   submit.style.opacity=submit.disabled?".55":"1";
  }
  function row(text,ready){const li=document.createElement("li");li.textContent=(ready?"✓ ":"待完成：")+text;checklist.append(li);}
@@ -97,25 +131,35 @@
   row("出生日期與年滿18歲聲明",!!data.adult_ready);row("會員條款與隱私權政策發布",data.legal_ready);
   const open=data.registration_enabled&&data.legal_ready;
   termsButton.disabled=privacyButton.disabled=!data.legal_ready;adultSave.disabled=busy||!!data.registered||!open;setWheelDisabled(false);adultCheck.disabled=!!data.registered||!open;
-  terms.input.disabled=privacy.input.disabled=!open||data.registered;
+  terms.input.disabled=privacy.input.disabled=true;terms.input.checked=read.terms;privacy.input.checked=read.privacy;
   if(data.registered){summary.textContent="會員註冊已完成。";submit.textContent="註冊已完成";terms.input.checked=privacy.input.checked=false;}
   else if(!open){summary.textContent="帳號資料已讀取。會員條款與隱私權政策確認中，暫時無法完成註冊。";submit.textContent="完成註冊（尚未開放）";}
   else{summary.textContent="請確認必要資料，閱讀文件後由本人勾選。";submit.textContent="完成註冊";}
-  updateButton();
+  updateButton();showStep();
  }
  async function refresh(){
   const current=++revision;lock();state=null;
   try{
    const data=await auth.getRegistrationStatus();if(current!==revision)return;
    if(!data){card.hidden=true;return;}
-   card.hidden=false;paint(data);
+   paint(data);
   }catch(_){if(current!==revision)return;card.hidden=false;checklist.replaceChildren();summary.textContent="暫時無法確認註冊狀態，請稍後重新確認。";submit.textContent="完成註冊（暫不可用）";}
  }
  function openDocument(kind){
   if(!state?.legal_ready||!state.legal)return;
   dialogTitle.textContent=(kind==="terms"?"會員條款":"隱私權政策")+"｜"+state.legal.version;
   dialogText.textContent=kind==="terms"?state.legal.terms_text:state.legal.privacy_text;
-  dialog.showModal();
+  dialogText.style.cssText="white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.8;max-height:48vh;overflow-y:auto;padding:12px;border:1px solid #ddd";
+  close.hidden=true;
+  const old=dialog.querySelector(".lx-legal-slider");if(old)old.remove();
+  const area=document.createElement("div");area.className="lx-legal-slider";
+  const message=document.createElement("p");message.textContent="請閱讀至最底部，再將滑桿滑至右端確認。";
+  const slider=document.createElement("input");slider.type="range";slider.min="0";slider.max="100";slider.value="0";slider.disabled=true;slider.style.cssText="width:100%;touch-action:pan-x";
+  area.append(message,slider);dialog.append(area);
+  const atBottom=()=>dialogText.scrollTop+dialogText.clientHeight>=dialogText.scrollHeight-4;
+  dialogText.onscroll=()=>{if(atBottom())slider.disabled=false;};
+  slider.oninput=()=>{if(Number(slider.value)<99)return;if(!atBottom()){slider.value="0";return;}read[kind]=true;terms.input.checked=read.terms;privacy.input.checked=read.privacy;dialog.close();showStep();updateButton();};
+  dialog.showModal();dialogText.scrollTop=0;requestAnimationFrame(()=>{if(atBottom())slider.disabled=false;});
  }
  termsButton.addEventListener("click",()=>openDocument("terms"));privacyButton.addEventListener("click",()=>openDocument("privacy"));
  terms.input.addEventListener("change",updateButton);privacy.input.addEventListener("change",updateButton);
@@ -137,9 +181,9 @@
   busy=true;const current=revision,version=state.legal.version;updateButton();refreshButton.disabled=true;
   summary.textContent="正在確認註冊資料…";
   try{
-   await auth.completeRegistration(version,terms.input.checked,privacy.input.checked);
+   await auth.completeRegistration(version,read.terms,read.privacy);
    if(current!==revision)return;
-   await refresh();
+   await refresh();started=false;showStep();
    const profile=await auth.getProfile();
    if(current+1!==revision||!state?.registered)return;
    // Reflect the server-confirmed timestamp in the existing member section.
