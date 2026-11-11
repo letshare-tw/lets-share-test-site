@@ -80,10 +80,10 @@
  anchor.insertAdjacentElement("beforebegin",card);
  const start=document.createElement("button");start.type="button";start.textContent="開始註冊會員";start.id="lxStartRegistration";start.style.cssText="width:100%;padding:15px;background:#12834c;color:white;border:0;border-radius:12px;font-size:18px;margin:12px 0";
  card.insertAdjacentElement("beforebegin",start);
- const home=document.getElementById("view-market")||document.getElementById("view-shop")||document.querySelector("main.view");
+ const home=document.getElementById("view-home");
  const hint=document.createElement("button");hint.type="button";hint.textContent="完成會員註冊 ›";hint.id="lxRegistrationHomeHint";hint.style.cssText="display:none;width:calc(100% - 24px);margin:12px;padding:14px;border:1px solid #12834c;border-radius:12px;background:#e9f8ee;color:#086b3d;font-size:17px;font-weight:bold;text-align:left";
  if(home)home.prepend(hint);
- hint.addEventListener("click",()=>{const tab=Array.from(document.querySelectorAll("button,a,[role=tab]")).find(x=>/會員中心/.test(x.textContent||"")&&x.offsetParent!==null);if(tab)tab.click();start.scrollIntoView({behavior:"smooth",block:"center"});});
+ hint.addEventListener("click",()=>{const tab=document.querySelector('[data-go="member"]');if(tab)tab.click();start.scrollIntoView({behavior:"smooth",block:"center"});});
  const phoneStep=document.createElement("section");phoneStep.id="lxRegPhoneStep";
  const phoneMessage=document.createElement("p");phoneStep.append(phoneMessage);
  const phoneRefresh=document.createElement("button");phoneRefresh.type="button";phoneRefresh.textContent="重新檢查手機驗證";phoneStep.append(phoneRefresh);
@@ -141,7 +141,7 @@
   const current=++revision;lock();state=null;
   try{
    const data=await auth.getRegistrationStatus();if(current!==revision)return;
-   if(!data){card.hidden=true;return;}
+   if(!data){card.hidden=true;start.hidden=true;hint.style.display="none";return;}
    paint(data);
   }catch(_){if(current!==revision)return;card.hidden=false;checklist.replaceChildren();summary.textContent="暫時無法確認註冊狀態，請稍後重新確認。";submit.textContent="完成註冊（暫不可用）";}
  }
