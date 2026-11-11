@@ -106,6 +106,7 @@
  hint.addEventListener("click",()=>{const tab=document.querySelector('[data-go="member"]');if(tab)tab.click();start.scrollIntoView({behavior:"smooth",block:"center"});});
  const phoneStep=document.createElement("section");phoneStep.id="lxRegPhoneStep";
  const phoneMessage=document.createElement("p");phoneStep.append(phoneMessage);
+ const phoneError=document.createElement("p");phoneError.setAttribute("role","alert");phoneError.style.cssText="color:#a32626;font-size:15px;line-height:1.5";phoneStep.append(phoneError);
  const phoneLabel=document.createElement("label");phoneLabel.textContent="手機號碼（台灣）";
  const phoneInput=document.createElement("input");phoneInput.type="tel";phoneInput.inputMode="tel";phoneInput.autocomplete="tel";phoneInput.placeholder="09xxxxxxxx";phoneInput.maxLength=13;phoneInput.style.cssText="width:100%;box-sizing:border-box;padding:14px;border:1px solid #aaa;border-radius:10px;font-size:18px;margin:10px 0";
  const phoneHelp=document.createElement("p");phoneHelp.setAttribute("role","status");phoneHelp.style.cssText="color:#7c531b;font-size:14px";
@@ -143,6 +144,7 @@
   editName.hidden=true;editName.style.display="none";
   note.hidden=true;note.style.display="none";
   refreshButton.hidden=step!==3;refreshButton.style.display="none";
+  phoneError.textContent="";
   phoneMessage.textContent=state?.phone_verified?"手機已驗證，無須重新發送簡訊。":"請輸入手機號碼。本測試站簡訊發送仍鎖定，尚無法取得驗證碼。";
   phoneMessage.style.color=state?.phone_verified?"#087d43":"#795317";
   phoneInput.hidden=!!state?.phone_verified;phoneLabel.hidden=!!state?.phone_verified;phoneHelp.hidden=!!state?.phone_verified;
@@ -183,12 +185,14 @@
   updateButton();showStep();
  }
  async function refresh(){
-  const current=++revision;lock();state=null;
+  const current=++revision;
+  // Preserve the active wizard and birthday wheel during read-only status refresh.
+  if(!started)lock();
   try{
    const data=await auth.getRegistrationStatus();if(current!==revision)return;
-   if(!data){card.hidden=true;start.hidden=true;hint.style.display="none";if(stepDialog.open)stepDialog.close();return;}
+   if(!data){started=false;switchDialog(null);card.hidden=true;start.hidden=true;hint.style.display="none";return;}
    paint(data);
-  }catch(_){if(current!==revision)return;card.hidden=false;checklist.replaceChildren();summary.textContent="暫時無法確認註冊狀態，請稍後重新確認。";submit.textContent="完成註冊（暫不可用）";}
+  }catch(_){if(current!==revision)return;state=null;submit.disabled=true;submit.style.opacity=".55";const msg="暫時無法確認註冊狀態，請稍後重新確認。";if(phoneDialog.open){phoneError.textContent=msg;}else if(stepDialog.open){adultFeedback.hidden=false;adultFeedback.textContent=msg;}else{summary.textContent=msg;start.hidden=false;} }
  }
  function openDocument(kind){
   if(!state?.legal_ready||!state.legal)return;
@@ -244,19 +248,18 @@
  submit.addEventListener("click",async()=>{
   if(submit.disabled||busy||!state?.legal)return;
   busy=true;const current=revision,version=state.legal.version;updateButton();refreshButton.disabled=true;
-  summary.textContent="正在確認註冊資料…";
+  phoneError.textContent="正在確認註冊資料…";
   try{
    await auth.completeRegistration(version,read.terms,read.privacy);
    if(current!==revision)return;
-   await refresh();started=false;showStep();
-   const profile=await auth.getProfile();
+   await refresh();
    if(current+1!==revision||!state?.registered)return;
-   // Reflect the server-confirmed timestamp in the existing member section.
-   const profilePanel=document.getElementById("lxMemberProfile");
-   for(const p of profilePanel.querySelectorAll("p"))if(p.textContent.startsWith("註冊狀態："))p.textContent="註冊狀態："+(profile?.registration_completed_at?"已完成":"尚未完成");
+   started=false;showStep();
+   // Let the member center re-read the authoritative server registered status.
+   window.dispatchEvent(new Event("lx-member-state-changed"));
   }catch(error){
    if(current!==revision)return;
-   lock();state=null;summary.textContent=error.message||"註冊未完成，請重新確認狀態後再試。";
+   phoneError.textContent=error.message||"註冊未完成，請重新確認狀態後再試。";
   }finally{busy=false;refreshButton.disabled=false;updateButton();}
  });
  refresh();
