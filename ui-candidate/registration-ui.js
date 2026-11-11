@@ -145,12 +145,13 @@
   note.hidden=true;note.style.display="none";
   refreshButton.hidden=step!==3;refreshButton.style.display="none";
   phoneError.textContent="";
-  phoneMessage.textContent=state?.phone_verified?"手機已驗證，無須重新發送簡訊。":"請輸入手機號碼。本測試站簡訊發送仍鎖定，尚無法取得驗證碼。";
-  phoneMessage.style.color=state?.phone_verified?"#087d43":"#795317";
-  phoneInput.hidden=!!state?.phone_verified;phoneLabel.hidden=!!state?.phone_verified;phoneHelp.hidden=!!state?.phone_verified;
-  otpInput.hidden=otpSend.hidden=otpConfirm.hidden=!!state?.phone_verified;
+  const exempt=testPhoneExempt(state);
+  phoneMessage.textContent=state?.phone_verified?"手機已驗證，無須重新發送簡訊。":exempt?"測試豁免，非真實手機驗證。僅限指定測試帳號；本階段不會完成註冊。":"手機尚未驗證。本測試站簡訊發送仍鎖定。";
+  phoneMessage.style.color=state?.phone_verified||exempt?"#087d43":"#795317";
+  phoneInput.hidden=!!state?.phone_verified||exempt;phoneLabel.hidden=!!state?.phone_verified||exempt;phoneHelp.hidden=!!state?.phone_verified||exempt;
+  otpInput.hidden=otpSend.hidden=otpConfirm.hidden=!!state?.phone_verified||exempt;
   otpInput.style.display=otpSend.style.display=otpConfirm.style.display="none";
-  phoneHelp.textContent=state?.phone_verified?"":"簡訊尚未開放；此頁不會發送驗證碼。";
+  phoneHelp.textContent=state?.phone_verified||exempt?"":"簡訊尚未開放；此頁不會發送驗證碼。";
   termsButton.textContent=read.terms?"✓ 會員條款已確認":"閱讀會員條款";
   privacyButton.textContent=read.privacy?"✓ 隱私權政策已確認":"閱讀隱私權政策";
  }
@@ -167,21 +168,27 @@
   adultSave.disabled=true;adultCheck.disabled=true;setWheelDisabled(false); // Local-only selection; no verification submission.
   submit.style.opacity=".55";
  }
+ // REG-UI-EXEMPT-06: inspection only. No registration or adult-verification writes.
+ const reg06ReadOnly=true;
+ function testPhoneExempt(data){return !!data?.phone_test_exempt&&!data?.phone_verified&&data?.phone_verification_method==="test_exemption";}
  function updateButton(){
-  submit.disabled=busy||step!==3||!state?.phone_verified||!state?.adult_ready||!state?.can_complete||state.registered||!read.terms||!read.privacy;
+  const phoneReady=!!state?.phone_verified||testPhoneExempt(state);
+  const eligible=!busy&&step===3&&phoneReady&&!!state?.adult_ready&&!!state?.can_complete&&!state?.registered&&read.terms&&read.privacy;
+  submit.disabled=reg06ReadOnly||!eligible;
+  submit.textContent=eligible?"完成註冊（唯讀驗收鎖定）":"完成註冊（尚未開放）";
   submit.style.opacity=submit.disabled?".55":"1";
  }
  function row(text,ready){const li=document.createElement("li");li.textContent=(ready?"✓ ":"待完成：")+text;checklist.append(li);}
  function paint(data){
   state=data;checklist.replaceChildren();
-  row("Google 帳號",data.google_verified);row("會員名稱（2～30 字）",data.name_ready);row(data.phone_verified&&data.masked_phone?"手機驗證（"+data.masked_phone+"）":"手機驗證",data.phone_verified);
+  row("Google 帳號",data.google_verified);row("會員名稱（2～30 字）",data.name_ready);row(testPhoneExempt(data)?"手機驗證替代條件（測試豁免，非真實手機驗證）":data.phone_verified&&data.masked_phone?"手機驗證（"+data.masked_phone+"）":"手機驗證",!!data.phone_verified||testPhoneExempt(data));
   row("出生日期與年滿18歲聲明",!!data.adult_ready);row("會員條款與隱私權政策發布",data.legal_ready);
   const open=data.registration_enabled&&data.legal_ready;
-  termsButton.disabled=privacyButton.disabled=!data.legal_ready;adultSave.disabled=busy||!!data.registered||!open;setWheelDisabled(false);adultCheck.disabled=!!data.registered||!open;
+  termsButton.disabled=privacyButton.disabled=!data.legal_ready;adultSave.disabled=true;setWheelDisabled(false);adultCheck.disabled=true;
   terms.input.disabled=privacy.input.disabled=true;terms.input.checked=read.terms;privacy.input.checked=read.privacy;
   if(data.registered){started=false;summary.textContent="會員註冊已完成。";submit.textContent="註冊已完成";terms.input.checked=privacy.input.checked=false;}
   else if(!open){summary.textContent="帳號資料已讀取。會員條款與隱私權政策確認中，暫時無法完成註冊。";submit.textContent="完成註冊（尚未開放）";}
-  else{summary.textContent="請確認必要資料，閱讀文件後由本人勾選。";submit.textContent="完成註冊";}
+  else{summary.textContent="唯讀驗收：可檢查測試豁免與註冊條件，但不得提交註冊或儲存成年驗證。";submit.textContent="完成註冊（唯讀驗收鎖定）";}
   updateButton();showStep();
  }
  async function refresh(){
@@ -233,6 +240,7 @@
  termsButton.addEventListener("click",()=>openDocument("terms"));privacyButton.addEventListener("click",()=>openDocument("privacy"));
  terms.input.addEventListener("change",updateButton);privacy.input.addEventListener("change",updateButton);
  adultSave.addEventListener("click",async()=>{
+  if(reg06ReadOnly){adultFeedback.textContent="REG-UI-EXEMPT-06 唯讀鎖定：不得儲存成年驗證。";return;}
   if(busy||!state||state.registered||!state.registration_enabled||!state.legal_ready)return;
   if(!/^\d{4}-\d{2}-\d{2}$/.test(dob.value)||!adultCheck.checked){adultFeedback.textContent="請填寫生日並勾選成年聲明。";return;}
   const [y,m,d]=dob.value.split("-").map(Number),date=new Date(Date.UTC(y,m-1,d));
@@ -241,11 +249,12 @@
   const current=revision;
   try{await auth.saveAdultVerification(dob.value,true);if(current!==revision)return;await refresh();if(state?.adult_ready){step=3;showStep();switchDialog("phone");}else{step=2;showStep();if(!stepDialog.open)switchDialog("adult");adultFeedback.textContent="請重新檢查成年資格。";}}
   catch(e){if(current===revision)adultFeedback.textContent=e?.message||"成年資格確認失敗。";}
-  finally{busy=false;adultSave.disabled=!!state?.registered||!state?.registration_enabled||!state?.legal_ready;updateButton();}
+  finally{busy=false;adultSave.disabled=true;updateButton();}
  });
  refreshButton.addEventListener("click",()=>{if(!busy)refresh();});
  window.addEventListener("lx-member-state-changed",()=>{busy=false;refresh();});
  submit.addEventListener("click",async()=>{
+  if(reg06ReadOnly){phoneError.textContent="REG-UI-EXEMPT-06 唯讀鎖定：不得完成註冊。";return;}
   if(submit.disabled||busy||!state?.legal)return;
   busy=true;const current=revision,version=state.legal.version;updateButton();refreshButton.disabled=true;
   phoneError.textContent="正在確認註冊資料…";
