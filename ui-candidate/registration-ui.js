@@ -98,8 +98,8 @@
   start.hidden=!ready||done||started;card.hidden=!ready||done||!started;
   hint.style.display=ready&&!done?"block":"none";
   stepTitle.textContent=step===1?"1／3 閱讀法律文件":step===2?"2／3 出生年月日確認":"3／3 手機驗證確認";
-  documents.hidden=step!==1;terms.label.hidden=true;privacy.label.hidden=true;
-  nextLegal.hidden=step!==1;nextLegal.disabled=!(read.terms&&read.privacy);
+  documents.hidden=true;terms.label.hidden=true;privacy.label.hidden=true;summary.hidden=true;
+  nextLegal.hidden=true;nextLegal.disabled=true;
   adultBox.hidden=step!==2;nextAdult.hidden=step!==2;nextAdult.disabled=!state?.adult_ready;
   phoneStep.hidden=step!==3;submit.hidden=step!==3;
   checklist.hidden=step!==3;editName.hidden=step!==3;note.hidden=step!==3;refreshButton.hidden=step!==3;
@@ -107,7 +107,7 @@
   termsButton.textContent=read.terms?"✓ 會員條款已確認":"閱讀會員條款";
   privacyButton.textContent=read.privacy?"✓ 隱私權政策已確認":"閱讀隱私權政策";
  }
- start.addEventListener("click",()=>{started=true;step=1;showStep();card.scrollIntoView({behavior:"smooth",block:"start"});});
+ start.addEventListener("click",()=>{started=true;step=1;showStep();openDocument("terms");});
  nextLegal.addEventListener("click",()=>{if(read.terms&&read.privacy){step=2;showStep();}});
  nextAdult.addEventListener("click",()=>{if(state?.adult_ready){step=3;showStep();}});
  phoneRefresh.addEventListener("click",()=>refresh());
@@ -154,11 +154,16 @@
   const old=dialog.querySelector(".lx-legal-slider");if(old)old.remove();
   const area=document.createElement("div");area.className="lx-legal-slider";
   const message=document.createElement("p");message.textContent="請閱讀至最底部，再將滑桿滑至右端確認。";
-  const slider=document.createElement("input");slider.type="range";slider.min="0";slider.max="100";slider.value="0";slider.disabled=true;slider.style.cssText="width:100%;touch-action:pan-x";
-  area.append(message,slider);dialog.append(area);
+  const track=document.createElement("div");track.style.cssText="position:relative;width:100%;height:70px;border-radius:40px;background:#12834c;overflow:hidden";
+  const text=document.createElement("span");text.textContent="向右滑動確認  »";text.style.cssText="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:white;font-size:19px;font-weight:700;pointer-events:none;padding-left:55px";
+  const slider=document.createElement("input");slider.type="range";slider.min="0";slider.max="100";slider.value="0";slider.disabled=true;slider.setAttribute("aria-label","向右滑動確認法律文件");slider.style.cssText="position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;touch-action:pan-x;cursor:grab";
+  const knob=document.createElement("div");knob.textContent="›";knob.style.cssText="position:absolute;top:5px;left:5px;width:60px;height:60px;border-radius:50%;background:white;color:#12834c;font-size:45px;line-height:54px;text-align:center;pointer-events:none;transition:left .06s";
+  track.append(text,knob,slider);
+  slider.addEventListener("input",()=>{knob.style.left="calc(5px + (100% - 70px) * "+(Number(slider.value)/100)+")";});
+  area.append(message,track);dialog.append(area);
   const atBottom=()=>dialogText.scrollTop+dialogText.clientHeight>=dialogText.scrollHeight-4;
   dialogText.onscroll=()=>{if(atBottom())slider.disabled=false;};
-  slider.oninput=()=>{if(Number(slider.value)<99)return;if(!atBottom()){slider.value="0";return;}read[kind]=true;terms.input.checked=read.terms;privacy.input.checked=read.privacy;dialog.close();showStep();updateButton();};
+  slider.oninput=()=>{if(Number(slider.value)<99)return;if(!atBottom()){slider.value="0";return;}read[kind]=true;terms.input.checked=read.terms;privacy.input.checked=read.privacy;dialog.close();if(kind==="terms"){openDocument("privacy");}else{step=2;showStep();}updateButton();};
   dialog.showModal();dialogText.scrollTop=0;requestAnimationFrame(()=>{if(atBottom())slider.disabled=false;});
  }
  termsButton.addEventListener("click",()=>openDocument("terms"));privacyButton.addEventListener("click",()=>openDocument("privacy"));
