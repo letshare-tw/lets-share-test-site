@@ -86,6 +86,15 @@
  hint.addEventListener("click",()=>{const tab=document.querySelector('[data-go="member"]');if(tab)tab.click();start.scrollIntoView({behavior:"smooth",block:"center"});});
  const phoneStep=document.createElement("section");phoneStep.id="lxRegPhoneStep";
  const phoneMessage=document.createElement("p");phoneStep.append(phoneMessage);
+ const phoneLabel=document.createElement("label");phoneLabel.textContent="手機號碼（台灣）";
+ const phoneInput=document.createElement("input");phoneInput.type="tel";phoneInput.inputMode="tel";phoneInput.autocomplete="tel";phoneInput.placeholder="09xxxxxxxx";phoneInput.maxLength=13;phoneInput.style.cssText="width:100%;box-sizing:border-box;padding:14px;border:1px solid #aaa;border-radius:10px;font-size:18px;margin:10px 0";
+ const phoneHelp=document.createElement("p");phoneHelp.setAttribute("role","status");phoneHelp.style.cssText="color:#7c531b;font-size:14px";
+ phoneInput.addEventListener("input",()=>{try{const v=auth.normalizeTaiwanPhone(phoneInput.value);phoneHelp.textContent="手機格式正確："+v+"。簡訊發送尚未開放。";}catch(e){phoneHelp.textContent=e.message;}});
+ const otpInput=document.createElement("input");otpInput.type="text";otpInput.inputMode="numeric";otpInput.placeholder="六位數驗證碼";otpInput.maxLength=6;otpInput.disabled=true;
+ const otpSend=document.createElement("button");otpSend.type="button";otpSend.textContent="發送驗證碼（測試鎖定）";otpSend.disabled=true;
+ const otpConfirm=document.createElement("button");otpConfirm.type="button";otpConfirm.textContent="確認驗證碼（測試鎖定）";otpConfirm.disabled=true;
+ phoneStep.append(phoneLabel,phoneInput,phoneHelp,otpSend,otpInput,otpConfirm);
+ 
  const phoneRefresh=document.createElement("button");phoneRefresh.type="button";phoneRefresh.textContent="重新檢查手機驗證";phoneStep.append(phoneRefresh);
  card.insertBefore(phoneStep,submit);
  const nextLegal=document.createElement("button");nextLegal.type="button";nextLegal.textContent="下一步：出生年月日";card.insertBefore(nextLegal,adultBox);
@@ -103,7 +112,9 @@
   adultBox.hidden=step!==2;nextAdult.hidden=step!==2;nextAdult.disabled=!state?.adult_ready;
   phoneStep.hidden=step!==3;submit.hidden=step!==3;
   checklist.hidden=step!==3;editName.hidden=step!==3;note.hidden=step!==3;refreshButton.hidden=step!==3;
-  phoneMessage.textContent=state?.phone_verified?"手機已驗證，確認後可完成註冊。":"尚未完成手機驗證。本測試站簡訊發送維持鎖定，請勿跳過驗證。";
+  phoneMessage.textContent=state?.phone_verified?"手機已驗證，無須重新發送簡訊。":"請輸入手機號碼。本測試站簡訊發送仍鎖定，尚無法取得驗證碼。";
+  phoneInput.hidden=!!state?.phone_verified;phoneLabel.hidden=!!state?.phone_verified;phoneHelp.hidden=!!state?.phone_verified;
+  otpInput.hidden=otpSend.hidden=otpConfirm.hidden=!!state?.phone_verified;
   termsButton.textContent=read.terms?"✓ 會員條款已確認":"閱讀會員條款";
   privacyButton.textContent=read.privacy?"✓ 隱私權政策已確認":"閱讀隱私權政策";
  }
@@ -163,7 +174,7 @@
   area.append(message,track);dialog.append(area);
   const atBottom=()=>dialogText.scrollTop+dialogText.clientHeight>=dialogText.scrollHeight-4;
   dialogText.onscroll=()=>{if(atBottom())slider.disabled=false;};
-  slider.oninput=()=>{if(Number(slider.value)<99)return;if(!atBottom()){slider.value="0";return;}read[kind]=true;terms.input.checked=read.terms;privacy.input.checked=read.privacy;dialog.close();if(kind==="terms"){openDocument("privacy");}else{step=2;showStep();}updateButton();};
+  slider.oninput=()=>{if(Number(slider.value)>=85&&atBottom()){slider.value="100";knob.style.left="calc(100% - 65px)";}if(Number(slider.value)<99)return;if(!atBottom()){slider.value="0";return;}read[kind]=true;terms.input.checked=read.terms;privacy.input.checked=read.privacy;dialog.close();if(kind==="terms"){openDocument("privacy");}else{step=2;showStep();}updateButton();};
   dialog.showModal();dialogText.scrollTop=0;requestAnimationFrame(()=>{if(atBottom())slider.disabled=false;});
  }
  termsButton.addEventListener("click",()=>openDocument("terms"));privacyButton.addEventListener("click",()=>openDocument("privacy"));
