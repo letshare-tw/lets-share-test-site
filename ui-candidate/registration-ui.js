@@ -16,9 +16,9 @@
  const dobLabel=document.createElement("label");dobLabel.textContent="出生年月日（年滿18歲）";dobLabel.htmlFor="lxRegBirthDate";
  const dob=document.createElement("input");dob.id="lxRegBirthDate";dob.type="hidden";dob.value="";
  const wheel=document.createElement("div");wheel.id="lxBirthWheel";wheel.setAttribute("role","group");wheel.setAttribute("aria-label","出生年月日三欄滾輪");wheel.style.cssText="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;max-width:360px;margin:8px 0 6px;position:relative";
- const wheelColumns=[],wheelSelections={year:2008,month:1,day:1},wheelHeight=44;
+ const wheelColumns=[],wheelSelections={year:2000,month:1,day:1},wheelHeight=44;
  const wheelData={year:Array.from({length:new Date().getFullYear()-1899},(_,i)=>new Date().getFullYear()-i),month:Array.from({length:12},(_,i)=>i+1),day:[]};
- function daysInMonth(){return new Date(wheelSelections.year||2008,wheelSelections.month||1,0).getDate();}
+ function daysInMonth(){return new Date(wheelSelections.year||2000,wheelSelections.month||1,0).getDate();}
  function syncBirth(){const {year,month,day}=wheelSelections;dob.value=year&&month&&day?String(year).padStart(4,"0")+"-"+String(month).padStart(2,"0")+"-"+String(day).padStart(2,"0"):"";}
  function populateWheel(kind){
   const column=wheelColumns.find(c=>c.kind===kind);if(!column)return;
@@ -47,7 +47,7 @@
  const wheelHint=document.createElement("p");wheelHint.textContent="上下滑動年、月、日，中央位置為選取值";wheelHint.style.cssText="font-size:12px;color:#777;margin:2px 0 8px";
  for(const kind of ["year","month","day"])populateWheel(kind);
  syncBirth();
- function resetWheel(){wheelSelections.year=2008;wheelSelections.month=1;wheelSelections.day=1;for(const c of wheelColumns){const index=c.values.indexOf(wheelSelections[c.kind]);c.track.scrollTop=Math.max(0,index)*wheelHeight;}syncBirth();}
+ function resetWheel(){wheelSelections.year=2000;wheelSelections.month=1;wheelSelections.day=1;for(const c of wheelColumns){const index=c.values.indexOf(wheelSelections[c.kind]);c.track.scrollTop=Math.max(0,index)*wheelHeight;}syncBirth();}
  function setWheelDisabled(disabled){dob.disabled=disabled;wheel.style.opacity=disabled?".55":"1";for(const c of wheelColumns){c.track.style.pointerEvents=disabled?"none":"auto";for(const option of c.track.children)option.disabled=disabled;c.track.style.overflowY=disabled?"hidden":"auto";c.track.setAttribute("aria-disabled",String(disabled));}}
 
  setWheelDisabled(false); // Local birthday selection is allowed; server-side adult verification and registration remain locked.
@@ -110,8 +110,8 @@
   documents.hidden=true;terms.label.hidden=true;privacy.label.hidden=true;summary.hidden=true;
   nextLegal.hidden=true;nextLegal.disabled=true;
   adultBox.hidden=step!==2;nextAdult.hidden=step!==2;nextAdult.disabled=!state?.adult_ready;
-  phoneStep.hidden=step!==3;submit.hidden=step!==3;
-  checklist.hidden=step!==3;editName.hidden=step!==3;note.hidden=step!==3;refreshButton.hidden=step!==3;
+  phoneStep.hidden=step!==3;submit.hidden=step!==3;adultFeedback.hidden=step!==2;
+  checklist.hidden=true;editName.hidden=true;note.hidden=true;refreshButton.hidden=step!==3;
   phoneMessage.textContent=state?.phone_verified?"手機已驗證，無須重新發送簡訊。":"請輸入手機號碼。本測試站簡訊發送仍鎖定，尚無法取得驗證碼。";
   phoneInput.hidden=!!state?.phone_verified;phoneLabel.hidden=!!state?.phone_verified;phoneHelp.hidden=!!state?.phone_verified;
   otpInput.hidden=otpSend.hidden=otpConfirm.hidden=!!state?.phone_verified;
@@ -143,7 +143,7 @@
   const open=data.registration_enabled&&data.legal_ready;
   termsButton.disabled=privacyButton.disabled=!data.legal_ready;adultSave.disabled=busy||!!data.registered||!open;setWheelDisabled(false);adultCheck.disabled=!!data.registered||!open;
   terms.input.disabled=privacy.input.disabled=true;terms.input.checked=read.terms;privacy.input.checked=read.privacy;
-  if(data.registered){summary.textContent="會員註冊已完成。";submit.textContent="註冊已完成";terms.input.checked=privacy.input.checked=false;}
+  if(data.registered){started=false;summary.textContent="會員註冊已完成。";submit.textContent="註冊已完成";terms.input.checked=privacy.input.checked=false;}
   else if(!open){summary.textContent="帳號資料已讀取。會員條款與隱私權政策確認中，暫時無法完成註冊。";submit.textContent="完成註冊（尚未開放）";}
   else{summary.textContent="請確認必要資料，閱讀文件後由本人勾選。";submit.textContent="完成註冊";}
   updateButton();showStep();
@@ -201,7 +201,7 @@
   if(date.getUTCFullYear()!==y||date.getUTCMonth()!==m-1||date.getUTCDate()!==d){adultFeedback.textContent="出生日期無效。";return;}
   busy=true;adultSave.disabled=true;adultFeedback.textContent="正在確認成年資格…";
   const current=revision;
-  try{await auth.saveAdultVerification(dob.value,true);if(current!==revision)return;await refresh();adultFeedback.textContent="成年資格已確認。";}
+  try{await auth.saveAdultVerification(dob.value,true);if(current!==revision)return;await refresh();if(state?.adult_ready){step=3;showStep();}else{adultFeedback.textContent="請重新檢查成年資格。";}}
   catch(e){if(current===revision)adultFeedback.textContent=e?.message||"成年資格確認失敗。";}
   finally{busy=false;adultSave.disabled=!!state?.registered||!state?.registration_enabled||!state?.legal_ready;updateButton();}
  });
