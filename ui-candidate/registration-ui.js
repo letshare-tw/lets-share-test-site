@@ -24,7 +24,7 @@
   const column=wheelColumns.find(c=>c.kind===kind);if(!column)return;
   const values=kind==="day"?Array.from({length:daysInMonth()},(_,i)=>i+1):wheelData[kind];
   column.track.replaceChildren();column.values=values;
-  for(const value of values){const option=document.createElement("button");option.type="button";option.textContent=String(value).padStart(kind==="year"?4:2,"0");option.setAttribute("aria-label",kind+" "+value);option.style.cssText="display:block;box-sizing:border-box;width:100%;height:44px;border:0;background:transparent;color:#252525;font-size:20px;font-weight:500;scroll-snap-align:center;flex:none";option.addEventListener("click",()=>chooseWheel(kind,value,true));column.track.append(option);}
+  for(const value of values){const option=document.createElement("button");option.type="button";option.textContent=String(value).padStart(kind==="year"?4:2,"0");option.setAttribute("aria-label",kind+" "+value);option.style.cssText="display:block;box-sizing:border-box;width:100%;height:44px;border:0;background:transparent;color:#252525;font-size:20px;font-weight:500;flex:none";option.addEventListener("click",()=>chooseWheel(kind,value,true));column.track.append(option);}
   if(wheelSelections[kind]!==null){const index=values.indexOf(wheelSelections[kind]);if(index>=0)column.track.scrollTop=index*wheelHeight;}
  }
  function chooseWheel(kind,value,scroll){
@@ -38,9 +38,20 @@
  for(const [kind,label] of [["year","年"],["month","月"],["day","日"]]){
   const column=document.createElement("div");column.style.cssText="min-width:0;text-align:center";
   const heading=document.createElement("div");heading.textContent=label;heading.style.cssText="font-size:14px;color:#6b7280;margin-bottom:5px";
-  const track=document.createElement("div");track.id="lxBirthWheel-"+kind;track.setAttribute("aria-label",label+"，上下滑動選擇");track.style.cssText="height:132px;overflow-y:auto;overscroll-behavior:contain;scroll-snap-type:y mandatory;scrollbar-width:none;padding:44px 0;box-sizing:border-box;border:1px solid #e2e2e2;border-radius:14px;background:linear-gradient(#fafafa,#fff 36%,#fff 64%,#fafafa)";
+  const track=document.createElement("div");track.id="lxBirthWheel-"+kind;track.setAttribute("aria-label",label+"，上下滑動選擇");track.style.cssText="height:132px;overflow-y:auto;overscroll-behavior:contain;touch-action:none;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:44px 0;box-sizing:border-box;border:1px solid #e2e2e2;border-radius:14px;background:linear-gradient(#fafafa,#fff 36%,#fff 64%,#fafafa)";
   const entry={kind,track,values:[]};wheelColumns.push(entry);column.append(heading,track);wheel.append(column);
   track.addEventListener("scroll",()=>{if(dob.disabled)return;const index=Math.max(0,Math.min(entry.values.length-1,Math.round(track.scrollTop/wheelHeight)));const value=entry.values[index];if(value!==undefined&&wheelSelections[kind]!==value)chooseWheel(kind,value,false);});
+  // Explicit touch dragging avoids nested page scrolling swallowing mobile wheel gestures.
+  let lastTouchY=null;
+  track.addEventListener("touchstart",event=>{if(dob.disabled)return;lastTouchY=event.touches?.[0]?.clientY??null;},{passive:true});
+  track.addEventListener("touchmove",event=>{
+   if(dob.disabled||lastTouchY===null)return;
+   const y=event.touches?.[0]?.clientY;if(typeof y!=="number")return;
+   if(event.cancelable)event.preventDefault();
+   track.scrollTop+=lastTouchY-y;lastTouchY=y;
+  },{passive:false});
+  track.addEventListener("touchend",()=>{lastTouchY=null;if(dob.disabled)return;track.scrollTop=Math.round(track.scrollTop/wheelHeight)*wheelHeight;});
+  track.addEventListener("touchcancel",()=>{lastTouchY=null;});
  }
  const wheelMarker=document.createElement("div");wheelMarker.id="lxBirthWheelMarker";wheelMarker.setAttribute("aria-hidden","true");wheelMarker.style.cssText="position:absolute;left:0;right:0;top:calc(50% - 11px);height:44px;border:1px solid #bfc2c5;border-radius:10px;background:rgba(225,227,229,.34);pointer-events:none;box-sizing:border-box";wheel.append(wheelMarker);
  const wheelHint=document.createElement("p");wheelHint.textContent="上下滑動年、月、日，中央位置為選取值";wheelHint.style.cssText="font-size:12px;color:#777;margin:2px 0 8px";
