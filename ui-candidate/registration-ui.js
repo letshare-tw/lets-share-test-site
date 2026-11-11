@@ -89,14 +89,14 @@
  stepDialog.append(stepClose);card.parentNode.insertBefore(stepDialog,card);stepDialog.append(card);
  stepClose.addEventListener("click",()=>stepDialog.close());
  let switching=false;
- stepDialog.addEventListener("close",()=>{if(!switching&&!state?.registered){started=false;showStep();}});
+ stepDialog.addEventListener("close",()=>{if(!switching&&!phoneDialog.open&&!state?.registered){started=false;showStep();}});
  const phoneDialog=document.createElement("dialog");phoneDialog.id="lxRegistrationPhoneDialog";phoneDialog.style.cssText=stepDialog.style.cssText;
  const phoneClose=document.createElement("button");phoneClose.type="button";phoneClose.textContent="×";phoneClose.style.cssText=stepClose.style.cssText;
  const phoneTitle=document.createElement("h2");phoneTitle.textContent="3／3 手機驗證確認";
  phoneDialog.append(phoneClose,phoneTitle);stepDialog.insertAdjacentElement("afterend",phoneDialog);
  phoneClose.addEventListener("click",()=>phoneDialog.close());
- phoneDialog.addEventListener("close",()=>{if(!switching&&!state?.registered){started=false;showStep();}});
- function switchDialog(which){switching=true;if(stepDialog.open)stepDialog.close();if(phoneDialog.open)phoneDialog.close();if(which==="adult")stepDialog.showModal();if(which==="phone")phoneDialog.showModal();queueMicrotask(()=>{switching=false;});}
+ phoneDialog.addEventListener("close",()=>{if(!switching&&!stepDialog.open&&!state?.registered){started=false;showStep();}});
+ function switchDialog(which){switching=true;if(stepDialog.open)stepDialog.close();if(phoneDialog.open)phoneDialog.close();if(which==="adult")stepDialog.showModal();if(which==="phone")phoneDialog.showModal();setTimeout(()=>{switching=false;},50);}
  
  
  const home=document.getElementById("view-home");
@@ -221,7 +221,7 @@
   if(date.getUTCFullYear()!==y||date.getUTCMonth()!==m-1||date.getUTCDate()!==d){adultFeedback.textContent="出生日期無效。";return;}
   busy=true;adultSave.disabled=true;adultFeedback.textContent="正在確認成年資格…";
   const current=revision;
-  try{await auth.saveAdultVerification(dob.value,true);if(current!==revision)return;await refresh();if(state?.adult_ready){step=3;showStep();switchDialog("phone");}else{adultFeedback.textContent="請重新檢查成年資格。";}}
+  try{await auth.saveAdultVerification(dob.value,true);if(current!==revision)return;await refresh();if(state?.adult_ready){step=3;showStep();switchDialog("phone");}else{step=2;showStep();if(!stepDialog.open)switchDialog("adult");adultFeedback.textContent="請重新檢查成年資格。";}}
   catch(e){if(current===revision)adultFeedback.textContent=e?.message||"成年資格確認失敗。";}
   finally{busy=false;adultSave.disabled=!!state?.registered||!state?.registration_enabled||!state?.legal_ready;updateButton();}
  });
