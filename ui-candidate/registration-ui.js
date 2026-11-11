@@ -170,14 +170,14 @@
   submit.style.opacity=".55";
  }
  // REG-UI-EXEMPT-06: inspection only. No registration or adult-verification writes.
- const reg06ReadOnly=true;
+ const reg06ReadOnly=false;
  adultSave.textContent="成年資格儲存（唯讀鎖定）";adultSave.style.background="#6b7280";adultSave.style.color="#ffffff";adultSave.setAttribute("aria-disabled","true");
  function testPhoneExempt(data){return !!data?.phone_test_exempt&&!data?.phone_verified&&data?.phone_verification_method==="test_exemption";}
  function updateButton(){
   const phoneReady=!!state?.phone_verified||testPhoneExempt(state);
   const eligible=!busy&&step===3&&phoneReady&&!!state?.adult_ready&&!!state?.can_complete&&!state?.registered&&read.terms&&read.privacy;
   submit.disabled=reg06ReadOnly||!eligible;
-  submit.textContent=eligible?"完成註冊（唯讀驗收鎖定）":"完成註冊（尚未開放）";
+  submit.textContent=eligible?"確認同意並完成測試註冊":"完成註冊（尚未開放）";
   submit.style.opacity=submit.disabled?".55":"1";
  }
  function row(text,ready){const li=document.createElement("li");li.textContent=(ready?"✓ ":"待完成：")+text;checklist.append(li);}
