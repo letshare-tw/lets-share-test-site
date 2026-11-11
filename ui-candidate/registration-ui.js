@@ -80,6 +80,14 @@
  anchor.insertAdjacentElement("beforebegin",card);
  const start=document.createElement("button");start.type="button";start.textContent="開始註冊會員";start.id="lxStartRegistration";start.style.cssText="width:100%;padding:15px;background:#12834c;color:white;border:0;border-radius:12px;font-size:18px;margin:12px 0";
  card.insertAdjacentElement("beforebegin",start);
+ // Separate registration steps from the member-center page.
+ const stepDialog=document.createElement("dialog");stepDialog.id="lxRegistrationStepDialog";
+ stepDialog.style.cssText="width:min(94vw,480px);max-height:88dvh;overflow-y:auto;box-sizing:border-box;border:0;border-radius:18px;padding:12px;background:#fff;box-shadow:0 16px 50px #0005";
+ const stepClose=document.createElement("button");stepClose.type="button";stepClose.textContent="×";stepClose.setAttribute("aria-label","關閉註冊視窗");stepClose.style.cssText="display:block;margin-left:auto;border:0;background:transparent;font-size:30px;padding:0 10px";
+ stepDialog.append(stepClose);card.parentNode.insertBefore(stepDialog,card);stepDialog.append(card);
+ stepClose.addEventListener("click",()=>stepDialog.close());
+ stepDialog.addEventListener("close",()=>{if(!state?.registered){started=false;showStep();}});
+ 
  const home=document.getElementById("view-home");
  const hint=document.createElement("button");hint.type="button";hint.textContent="完成會員註冊 ›";hint.id="lxRegistrationHomeHint";hint.style.cssText="display:none;width:calc(100% - 24px);margin:12px;padding:14px;border:1px solid #12834c;border-radius:12px;background:#e9f8ee;color:#086b3d;font-size:17px;font-weight:bold;text-align:left";
  if(home)home.prepend(hint);
@@ -105,6 +113,7 @@
  function showStep(){
   const ready=!!state?.registration_enabled&&!!state?.legal_ready,done=!!state?.registered;
   start.hidden=!ready||done||started;card.hidden=!ready||done||!started;
+  if((done||!started)&&stepDialog.open)stepDialog.close();
   hint.style.display=ready&&!done?"block":"none";
   stepTitle.textContent=step===1?"1／3 閱讀法律文件":step===2?"2／3 出生年月日確認":"3／3 手機驗證確認";
   documents.hidden=true;terms.label.hidden=true;privacy.label.hidden=true;summary.hidden=true;
@@ -152,7 +161,7 @@
   const current=++revision;lock();state=null;
   try{
    const data=await auth.getRegistrationStatus();if(current!==revision)return;
-   if(!data){card.hidden=true;start.hidden=true;hint.style.display="none";return;}
+   if(!data){card.hidden=true;start.hidden=true;hint.style.display="none";if(stepDialog.open)stepDialog.close();return;}
    paint(data);
   }catch(_){if(current!==revision)return;card.hidden=false;checklist.replaceChildren();summary.textContent="暫時無法確認註冊狀態，請稍後重新確認。";submit.textContent="完成註冊（暫不可用）";}
  }
@@ -183,7 +192,7 @@
    }
    settled=true;slider.value="100";knob.style.transition="left .15s ease-out";knob.style.left="calc(100% - 65px)";
    read[kind]=true;terms.input.checked=read.terms;privacy.input.checked=read.privacy;
-   setTimeout(()=>{if(dialog.open)dialog.close();if(kind==="terms"){openDocument("privacy");}else{step=2;showStep();}updateButton();},180);
+   setTimeout(()=>{if(dialog.open)dialog.close();if(kind==="terms"){openDocument("privacy");}else{step=2;showStep();if(!stepDialog.open)stepDialog.showModal();}updateButton();},180);
   }
   slider.addEventListener("pointerdown",()=>{knob.style.transition="none";});
   slider.addEventListener("pointerup",finishSwipe);
@@ -201,7 +210,7 @@
   if(date.getUTCFullYear()!==y||date.getUTCMonth()!==m-1||date.getUTCDate()!==d){adultFeedback.textContent="出生日期無效。";return;}
   busy=true;adultSave.disabled=true;adultFeedback.textContent="正在確認成年資格…";
   const current=revision;
-  try{await auth.saveAdultVerification(dob.value,true);if(current!==revision)return;await refresh();if(state?.adult_ready){step=3;showStep();}else{adultFeedback.textContent="請重新檢查成年資格。";}}
+  try{await auth.saveAdultVerification(dob.value,true);if(current!==revision)return;await refresh();if(state?.adult_ready){step=3;showStep();if(!stepDialog.open)stepDialog.showModal();}else{adultFeedback.textContent="請重新檢查成年資格。";}}
   catch(e){if(current===revision)adultFeedback.textContent=e?.message||"成年資格確認失敗。";}
   finally{busy=false;adultSave.disabled=!!state?.registered||!state?.registration_enabled||!state?.legal_ready;updateButton();}
  });
