@@ -180,12 +180,30 @@
    name.textContent="會員名稱："+(profile.display_name?.trim()||session.user.googleName||"尚未設定");
    const googleDefault=(session.user.googleName||"").trim();
    input.value=profile.display_name||googleDefault;input.disabled=save.disabled=false;
-   if(!profile.display_name&&Array.from(googleDefault).length>=2&&Array.from(googleDefault).length<=30){
-    try{await auth.saveDisplayName(googleDefault);if(token!==version||activeUserId!==session.user.id)return;name.textContent="會員名稱："+googleDefault;window.dispatchEvent(new Event("lx-registration-name-updated"));}catch(_){feedback.textContent="Google 名稱已預填；請至會員資料與地址確認儲存。";}
+   // Do not silently write profile data while opening the member center.
+   if(!profile.display_name&&googleDefault)feedback.textContent="Google 名稱已預填；需要修改時請自行儲存。";
+   registration.textContent="註冊狀態：確認中…";
+   verificationStatus.textContent="正在讀取會員專屬驗證狀態…";
+   try{
+    const rs=await auth.getRegistrationStatus();
+    if(token!==version||activeUserId!==session.user.id)return;
+    if(!rs||rs.user_id!==session.user.id)throw Error("會員驗證資料不一致");
+    const registered=rs.registered===true;
+    registration.textContent="註冊狀態："+(registered?"已完成":"尚未完成");
+    const lines=[
+     "會員註冊："+(registered?"已完成":"尚未完成"),
+     "Google 身分："+(rs.google_verified?"已確認":"尚未確認"),
+     "會員名稱："+(rs.name_ready?"符合註冊條件":"尚未符合註冊條件"),
+     "成年資格："+(rs.adult_ready?"已確認年滿18歲":"尚未確認"),
+     "手機："+(rs.phone_verified?"已驗證"+(rs.masked_phone?"（"+rs.masked_phone+"）":""):"尚未驗證"),
+     "法律文件："+(rs.legal_ready?"目前有有效發布版本"+(rs.legal?.version?"（"+rs.legal.version+"）":""):"目前無有效發布版本")+"；此項不是個人同意紀錄",
+     "註冊完成時間："+(registered&&rs.registration_completed_at?new Date(rs.registration_completed_at).toLocaleString("zh-TW",{timeZone:"Asia/Taipei"}):"尚無")
+    ];
+    verificationStatus.replaceChildren(...lines.map((line,i)=>{const p=document.createElement("p");p.textContent=line;p.style.cssText="margin:8px 0;line-height:1.5";return p;}));
+   }catch(_){
+    registration.textContent="註冊狀態：暫時無法確認";
+    verificationStatus.textContent="無法取得後端會員驗證狀態，請稍後重新登入或整理頁面。";
    }
-   registration.textContent="註冊狀態："+(profile.registration_completed_at?"已完成":"尚未完成");
-   verificationStatus.textContent="會員註冊："+(profile.registration_completed_at?"已完成":"尚未完成")+"；完成時間："+(profile.registration_completed_at?new Date(profile.registration_completed_at).toLocaleString("zh-TW",{timeZone:"Asia/Taipei"}):"尚無")+"。";
-   try{const rs=await auth.getRegistrationStatus();if(token!==version||activeUserId!==session.user.id)return;verificationStatus.textContent+=" 成年資格："+(rs?.adult_ready?"已確認":"尚未確認")+"；手機："+(rs?.phone_verified?"已驗證"+(rs.masked_phone?"（"+rs.masked_phone+"）":""):"尚未驗證")+"；法律文件："+(rs?.legal?.version||"未取得")+"（版本資訊，非同意紀錄）。";}catch(_){verificationStatus.textContent+=" 驗證詳情暫時無法讀取。";}
   }catch(_){if(token!==version)return;name.textContent="會員名稱：暫無法取得";registration.textContent="註冊狀態：暫無法確認";feedback.textContent="會員資料讀取失敗，請稍後重新整理。";}
  }
  async function action(task){if(busy)return;busy=true;login.disabled=logout.disabled=true;try{await task();}catch(_){status.textContent="登入操作未完成，請檢查網路後重試。";}finally{busy=false;login.disabled=logout.disabled=false;}}
