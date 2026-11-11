@@ -128,11 +128,21 @@
   if((done||!started)&&(stepDialog.open||phoneDialog.open))switchDialog(null);
   hint.style.display=ready&&!done?"block":"none";
   stepTitle.textContent=step===1?"1／3 閱讀法律文件":step===2?"2／3 出生年月日確認":"3／3 手機驗證確認";
-  documents.hidden=true;terms.label.hidden=true;privacy.label.hidden=true;summary.hidden=true;
-  nextLegal.hidden=true;nextLegal.disabled=true;
-  adultBox.hidden=step!==2;nextAdult.hidden=step!==2;nextAdult.disabled=!state?.adult_ready;
-  phoneStep.hidden=step!==3;submit.hidden=step!==3;adultFeedback.hidden=step!==2;
-  checklist.hidden=true;editName.hidden=true;note.hidden=true;refreshButton.hidden=step!==3;
+  // The site stylesheet may override the HTML hidden attribute on flex elements.
+  documents.hidden=true;documents.style.display="none";
+  terms.label.hidden=true;terms.label.style.display="none";
+  privacy.label.hidden=true;privacy.label.style.display="none";
+  summary.hidden=true;summary.style.display="none";
+  nextLegal.hidden=true;nextLegal.style.display="none";nextLegal.disabled=true;
+  adultBox.hidden=step!==2;adultBox.style.display=step===2?"block":"none";
+  nextAdult.hidden=true;nextAdult.style.display="none";nextAdult.disabled=!state?.adult_ready;
+  phoneStep.hidden=step!==3;phoneStep.style.display=step===3?"block":"none";
+  submit.hidden=step!==3;submit.style.display=step===3?"block":"none";
+  adultFeedback.hidden=step!==2;
+  checklist.hidden=true;checklist.style.display="none";
+  editName.hidden=true;editName.style.display="none";
+  note.hidden=true;note.style.display="none";
+  refreshButton.hidden=step!==3;refreshButton.style.display="none";
   phoneMessage.textContent=state?.phone_verified?"手機已驗證，無須重新發送簡訊。":"請輸入手機號碼。本測試站簡訊發送仍鎖定，尚無法取得驗證碼。";
   phoneInput.hidden=!!state?.phone_verified;phoneLabel.hidden=!!state?.phone_verified;phoneHelp.hidden=!!state?.phone_verified;
   otpInput.hidden=otpSend.hidden=otpConfirm.hidden=!!state?.phone_verified;
