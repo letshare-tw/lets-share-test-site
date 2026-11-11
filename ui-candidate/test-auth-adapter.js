@@ -220,6 +220,24 @@
   }
   await shareIdentity(id);return results;
  }
- Object.defineProperty(window,"LX_TEST_AUTH_ADAPTER",{value:Object.freeze({mode:"test-auth-only",contract,signInWithGoogle,handleCallback,getSession:verifiedSession,restoreSession:verifiedSession,signOut,getProfile,saveDisplayName,phoneOtp,normalizeTaiwanPhone,validatePhoneToken,requestPhoneOtp,verifyPhoneOtp,saveAddress,saveAdultVerification,getRegistrationStatus,completeRegistration,shareRequest,shareUpload,shareDownload,shareRemove,shareIsolationProbe}),writable:false,configurable:false});
+ // Explicit engineering probe: disposable unreferenced files only, never save or submit a request.
+ async function sharePhotoLimitProbe(){
+  const id=await shareIdentity(),data=await shareRequest("bootstrap",{},id),request=data.draft?.id;
+  if(!/^[0-9a-f-]{36}$/.test(request||""))throw Error("請先儲存本人測試草稿，再驗收 Storage 大小限制。");
+  const png=Uint8Array.from(atob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aPioAAAAASUVORK5CYII="),c=>c.charCodeAt(0));
+  const results=[];
+  for(const size of [100000,100001]){
+   await shareIdentity(id);const bytes=new Uint8Array(size);bytes.set(png);
+   const path=id+"/"+request+"/"+Date.now()+"-"+crypto.getRandomValues(new Uint32Array(1))[0].toString(36).slice(0,8)+".png";
+   const bucket=getClient().storage.from("share-placement-photos");
+   const r=await bucket.upload(path,new Blob([bytes],{type:"image/png"}),{contentType:"image/png",upsert:false,cacheControl:"0"});
+   let cleaned=true;
+   if(!r.error){await shareIdentity(id);const removed=await bucket.remove([path]);cleaned=!removed.error&&Array.isArray(removed.data)&&removed.data.some(o=>o.name===path);}
+   const sizeDenied=!!r.error&&(String(r.error.statusCode??r.error.status)==="413"||/exceed|too large|maximum.*size/i.test(r.error.message||""));
+   results.push({bytes:size,status:size===100000?(!r.error?"ACCEPTED":"ERROR"):(sizeDenied?"DENIED":r.error?"ERROR":"FAIL"),cleanup:cleaned?"PASS":"FAIL"});
+  }
+  await shareIdentity(id);return results;
+ }
+ Object.defineProperty(window,"LX_TEST_AUTH_ADAPTER",{value:Object.freeze({mode:"test-auth-only",contract,signInWithGoogle,handleCallback,getSession:verifiedSession,restoreSession:verifiedSession,signOut,getProfile,saveDisplayName,phoneOtp,normalizeTaiwanPhone,validatePhoneToken,requestPhoneOtp,verifyPhoneOtp,saveAddress,saveAdultVerification,getRegistrationStatus,completeRegistration,shareRequest,shareUpload,shareDownload,shareRemove,shareIsolationProbe,sharePhotoLimitProbe}),writable:false,configurable:false});
 })();
 
