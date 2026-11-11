@@ -140,6 +140,7 @@
   phoneStep.hidden=step!==3;phoneStep.style.display=step===3?"block":"none";
   submit.hidden=step!==3;submit.style.display=step===3?"block":"none";
   adultFeedback.hidden=step!==2;
+  if(step===2)adultFeedback.textContent="唯讀測試：成年資格尚未完成，本階段禁止儲存。已完成者會自動跳過此步驟。";
   checklist.hidden=true;checklist.style.display="none";
   editName.hidden=true;editName.style.display="none";
   note.hidden=true;note.style.display="none";
@@ -156,7 +157,7 @@
   privacyButton.textContent=read.privacy?"✓ 隱私權政策已確認":"閱讀隱私權政策";
  }
  start.addEventListener("click",()=>{started=true;step=1;showStep();openDocument("terms");});
- nextLegal.addEventListener("click",()=>{if(read.terms&&read.privacy){step=2;showStep();}});
+ nextLegal.addEventListener("click",()=>{if(read.terms&&read.privacy){step=state?.adult_ready?3:2;showStep();if(step===3)switchDialog("phone");}});
  nextAdult.addEventListener("click",()=>{if(state?.adult_ready){step=3;showStep();switchDialog("phone");}});
  phoneRefresh.addEventListener("click",async()=>{if(busy)return;phoneRefresh.disabled=true;phoneMessage.textContent="正在重新確認手機驗證狀態…";try{const data=await auth.getRegistrationStatus();if(!data)throw Error("無法取得驗證狀態");paint(data);if(!data.registered&&phoneDialog.open){step=3;showStep();}else if(data.registered&&phoneDialog.open)switchDialog(null);}catch(e){phoneMessage.textContent=e?.message||"驗證狀態暫時無法讀取，請稍後再試。";}finally{phoneRefresh.disabled=false;}});
  
@@ -170,6 +171,7 @@
  }
  // REG-UI-EXEMPT-06: inspection only. No registration or adult-verification writes.
  const reg06ReadOnly=true;
+ adultSave.textContent="成年資格儲存（唯讀鎖定）";adultSave.style.background="#6b7280";adultSave.style.color="#ffffff";adultSave.setAttribute("aria-disabled","true");
  function testPhoneExempt(data){return !!data?.phone_test_exempt&&!data?.phone_verified&&data?.phone_verification_method==="test_exemption";}
  function updateButton(){
   const phoneReady=!!state?.phone_verified||testPhoneExempt(state);
@@ -228,7 +230,7 @@
    }
    settled=true;slider.value="100";knob.style.transition="left .15s ease-out";knob.style.left="calc(100% - 65px)";
    read[kind]=true;terms.input.checked=read.terms;privacy.input.checked=read.privacy;
-   setTimeout(()=>{if(dialog.open)dialog.close();if(kind==="terms"){openDocument("privacy");}else{step=2;showStep();switchDialog("adult");}updateButton();},180);
+   setTimeout(()=>{if(dialog.open)dialog.close();if(kind==="terms"){openDocument("privacy");}else{step=state?.adult_ready?3:2;showStep();switchDialog(state?.adult_ready?"phone":"adult");}updateButton();},180);
   }
   slider.addEventListener("pointerdown",()=>{knob.style.transition="none";});
   slider.addEventListener("pointerup",finishSwipe);
