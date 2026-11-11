@@ -47,8 +47,9 @@
  for(const kind of ["year","month","day"])populateWheel(kind);
  syncBirth();
  function resetWheel(){wheelSelections.year=2000;wheelSelections.month=1;wheelSelections.day=1;for(const c of wheelColumns){const index=c.values.indexOf(wheelSelections[c.kind]);c.track.scrollTop=Math.max(0,index)*wheelHeight;}syncBirth();}
- function setWheelDisabled(disabled){dob.disabled=disabled;wheel.style.opacity=disabled?".55":"1";for(const c of wheelColumns){c.track.style.pointerEvents=disabled?"none":"auto";for(const option of c.track.children)option.disabled=disabled;}}
+ function setWheelDisabled(disabled){dob.disabled=disabled;wheel.style.opacity=disabled?".55":"1";for(const c of wheelColumns){c.track.style.pointerEvents=disabled?"none":"auto";for(const option of c.track.children)option.disabled=disabled;c.track.style.overflowY=disabled?"hidden":"auto";c.track.setAttribute("aria-disabled",String(disabled));}}
 
+ setWheelDisabled(true); // Default fail-closed until server confirms registration and legal release.
  const adultLabel=document.createElement("label");adultLabel.style.cssText="display:flex;gap:10px;align-items:center";
  const adultCheck=document.createElement("input");adultCheck.type="checkbox";adultCheck.id="lxRegAdultDeclare";adultCheck.checked=false;
  const adultText=document.createElement("span");adultText.textContent="我確認本人已年滿18歲，且出生日期填寫屬實。";adultLabel.append(adultCheck,adultText);
@@ -81,6 +82,7 @@
   if(dialog.open)dialog.close();
   terms.input.checked=privacy.input.checked=false;adultCheck.checked=false;resetWheel();adultFeedback.textContent="";
   terms.input.disabled=privacy.input.disabled=submit.disabled=termsButton.disabled=privacyButton.disabled=true;
+  adultSave.disabled=true;adultCheck.disabled=true;setWheelDisabled(true);
   submit.style.opacity=".55";
  }
  function updateButton(){
@@ -93,7 +95,7 @@
   row("Google 帳號",data.google_verified);row("會員名稱（2～30 字）",data.name_ready);row(data.phone_verified&&data.masked_phone?"手機驗證（"+data.masked_phone+"）":"手機驗證",data.phone_verified);
   row("出生日期與年滿18歲聲明",!!data.adult_ready);row("會員條款與隱私權政策發布",data.legal_ready);
   const open=data.registration_enabled&&data.legal_ready;
-  termsButton.disabled=privacyButton.disabled=!data.legal_ready;adultSave.disabled=busy||!!data.registered||!open;setWheelDisabled(!!data.registered);adultCheck.disabled=!!data.registered||!open;
+  termsButton.disabled=privacyButton.disabled=!data.legal_ready;adultSave.disabled=busy||!!data.registered||!open;setWheelDisabled(!!data.registered||!open);adultCheck.disabled=!!data.registered||!open;
   terms.input.disabled=privacy.input.disabled=!open||data.registered;
   if(data.registered){summary.textContent="會員註冊已完成。";submit.textContent="註冊已完成";terms.input.checked=privacy.input.checked=false;}
   else if(!open){summary.textContent="帳號資料已讀取。會員條款與隱私權政策確認中，暫時無法完成註冊。";submit.textContent="完成註冊（尚未開放）";}
