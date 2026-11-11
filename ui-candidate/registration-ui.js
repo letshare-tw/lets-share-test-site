@@ -86,7 +86,16 @@
  const stepClose=document.createElement("button");stepClose.type="button";stepClose.textContent="×";stepClose.setAttribute("aria-label","關閉註冊視窗");stepClose.style.cssText="display:block;margin-left:auto;border:0;background:transparent;font-size:30px;padding:0 10px";
  stepDialog.append(stepClose);card.parentNode.insertBefore(stepDialog,card);stepDialog.append(card);
  stepClose.addEventListener("click",()=>stepDialog.close());
- stepDialog.addEventListener("close",()=>{if(!state?.registered){started=false;showStep();}});
+ let switching=false;
+ stepDialog.addEventListener("close",()=>{if(!switching&&!state?.registered){started=false;showStep();}});
+ const phoneDialog=document.createElement("dialog");phoneDialog.id="lxRegistrationPhoneDialog";phoneDialog.style.cssText=stepDialog.style.cssText;
+ const phoneClose=document.createElement("button");phoneClose.type="button";phoneClose.textContent="×";phoneClose.style.cssText=stepClose.style.cssText;
+ const phoneTitle=document.createElement("h2");phoneTitle.textContent="3／3 手機驗證確認";
+ phoneDialog.append(phoneClose,phoneTitle);stepDialog.insertAdjacentElement("afterend",phoneDialog);
+ phoneClose.addEventListener("click",()=>phoneDialog.close());
+ phoneDialog.addEventListener("close",()=>{if(!switching&&!state?.registered){started=false;showStep();}});
+ function switchDialog(which){switching=true;if(stepDialog.open)stepDialog.close();if(phoneDialog.open)phoneDialog.close();if(which==="adult")stepDialog.showModal();if(which==="phone")phoneDialog.showModal();queueMicrotask(()=>{switching=false;});}
+ 
  
  const home=document.getElementById("view-home");
  const hint=document.createElement("button");hint.type="button";hint.textContent="完成會員註冊 ›";hint.id="lxRegistrationHomeHint";hint.style.cssText="display:none;width:calc(100% - 24px);margin:12px;padding:14px;border:1px solid #12834c;border-radius:12px;background:#e9f8ee;color:#086b3d;font-size:17px;font-weight:bold;text-align:left";
@@ -106,14 +115,14 @@
  const phoneRefresh=document.createElement("button");phoneRefresh.type="button";phoneRefresh.textContent="重新檢查手機驗證";phoneStep.append(phoneRefresh);
  card.insertBefore(phoneStep,submit);
  const nextLegal=document.createElement("button");nextLegal.type="button";nextLegal.textContent="下一步：出生年月日";card.insertBefore(nextLegal,adultBox);
- const nextAdult=document.createElement("button");nextAdult.type="button";nextAdult.textContent="下一步：手機驗證";card.insertBefore(nextAdult,phoneStep);
+ const nextAdult=document.createElement("button");nextAdult.type="button";nextAdult.textContent="下一步：手機驗證";card.insertBefore(nextAdult,phoneStep);phoneDialog.append(phoneStep,submit);
  for(const b of [nextLegal,nextAdult,phoneRefresh])b.style.cssText="width:100%;padding:13px;background:#12834c;color:white;border:0;border-radius:10px;margin:8px 0";
  const stepTitle=document.createElement("h3");card.insertBefore(stepTitle,summary);
  let started=false,step=1,read={terms:false,privacy:false};
  function showStep(){
   const ready=!!state?.registration_enabled&&!!state?.legal_ready,done=!!state?.registered;
   start.hidden=!ready||done||started;card.hidden=!ready||done||!started;
-  if((done||!started)&&stepDialog.open)stepDialog.close();
+  if((done||!started)&&(stepDialog.open||phoneDialog.open))switchDialog(null);
   hint.style.display=ready&&!done?"block":"none";
   stepTitle.textContent=step===1?"1／3 閱讀法律文件":step===2?"2／3 出生年月日確認":"3／3 手機驗證確認";
   documents.hidden=true;terms.label.hidden=true;privacy.label.hidden=true;summary.hidden=true;
@@ -129,7 +138,7 @@
  }
  start.addEventListener("click",()=>{started=true;step=1;showStep();openDocument("terms");});
  nextLegal.addEventListener("click",()=>{if(read.terms&&read.privacy){step=2;showStep();}});
- nextAdult.addEventListener("click",()=>{if(state?.adult_ready){step=3;showStep();}});
+ nextAdult.addEventListener("click",()=>{if(state?.adult_ready){step=3;showStep();switchDialog("phone");}});
  phoneRefresh.addEventListener("click",()=>refresh());
  
  let state=null,revision=0,busy=false;
@@ -192,7 +201,7 @@
    }
    settled=true;slider.value="100";knob.style.transition="left .15s ease-out";knob.style.left="calc(100% - 65px)";
    read[kind]=true;terms.input.checked=read.terms;privacy.input.checked=read.privacy;
-   setTimeout(()=>{if(dialog.open)dialog.close();if(kind==="terms"){openDocument("privacy");}else{step=2;showStep();if(!stepDialog.open)stepDialog.showModal();}updateButton();},180);
+   setTimeout(()=>{if(dialog.open)dialog.close();if(kind==="terms"){openDocument("privacy");}else{step=2;showStep();switchDialog("adult");}updateButton();},180);
   }
   slider.addEventListener("pointerdown",()=>{knob.style.transition="none";});
   slider.addEventListener("pointerup",finishSwipe);
@@ -210,7 +219,7 @@
   if(date.getUTCFullYear()!==y||date.getUTCMonth()!==m-1||date.getUTCDate()!==d){adultFeedback.textContent="出生日期無效。";return;}
   busy=true;adultSave.disabled=true;adultFeedback.textContent="正在確認成年資格…";
   const current=revision;
-  try{await auth.saveAdultVerification(dob.value,true);if(current!==revision)return;await refresh();if(state?.adult_ready){step=3;showStep();if(!stepDialog.open)stepDialog.showModal();}else{adultFeedback.textContent="請重新檢查成年資格。";}}
+  try{await auth.saveAdultVerification(dob.value,true);if(current!==revision)return;await refresh();if(state?.adult_ready){step=3;showStep();switchDialog("phone");}else{adultFeedback.textContent="請重新檢查成年資格。";}}
   catch(e){if(current===revision)adultFeedback.textContent=e?.message||"成年資格確認失敗。";}
   finally{busy=false;adultSave.disabled=!!state?.registered||!state?.registration_enabled||!state?.legal_ready;updateButton();}
  });
