@@ -174,7 +174,22 @@
   area.append(message,track);dialog.append(area);
   const atBottom=()=>dialogText.scrollTop+dialogText.clientHeight>=dialogText.scrollHeight-4;
   dialogText.onscroll=()=>{if(atBottom())slider.disabled=false;};
-  slider.oninput=()=>{if(Number(slider.value)>=85&&atBottom()){slider.value="100";knob.style.left="calc(100% - 65px)";}if(Number(slider.value)<99)return;if(!atBottom()){slider.value="0";return;}read[kind]=true;terms.input.checked=read.terms;privacy.input.checked=read.privacy;dialog.close();if(kind==="terms"){openDocument("privacy");}else{step=2;showStep();}updateButton();};
+  let settled=false;
+  function finishSwipe(){
+   if(settled||slider.disabled)return;
+   if(Number(slider.value)<95||!atBottom()){
+    slider.value="0";knob.style.transition="left .25s cubic-bezier(.2,.8,.2,1)";knob.style.left="5px";
+    return;
+   }
+   settled=true;slider.value="100";knob.style.transition="left .15s ease-out";knob.style.left="calc(100% - 65px)";
+   read[kind]=true;terms.input.checked=read.terms;privacy.input.checked=read.privacy;
+   setTimeout(()=>{if(dialog.open)dialog.close();if(kind==="terms"){openDocument("privacy");}else{step=2;showStep();}updateButton();},180);
+  }
+  slider.addEventListener("pointerdown",()=>{knob.style.transition="none";});
+  slider.addEventListener("pointerup",finishSwipe);
+  slider.addEventListener("pointercancel",()=>{slider.value="0";knob.style.transition="left .25s ease-out";knob.style.left="5px";});
+  slider.addEventListener("change",finishSwipe);
+  slider.addEventListener("keyup",e=>{if(e.key==="Enter"||e.key===" "||e.key.startsWith("Arrow"))finishSwipe();});
   dialog.showModal();dialogText.scrollTop=0;requestAnimationFrame(()=>{if(atBottom())slider.disabled=false;});
  }
  termsButton.addEventListener("click",()=>openDocument("terms"));privacyButton.addEventListener("click",()=>openDocument("privacy"));
