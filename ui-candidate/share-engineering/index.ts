@@ -19,12 +19,11 @@ Deno.serve(async (req:Request)=>{
   const raw=await req.text();if(raw.length>8192)return reply(413,{error:"SHARE_PAYLOAD_TOO_LARGE"});
   const body=JSON.parse(raw);
   if(!body||typeof body!=="object"||Array.isArray(body))return reply(400,{error:"SHARE_ACTION_DENIED"});
-  if(["submit","activate"].includes(body.action))return reply(423,{error:"SHARE_SUBMISSION_LOCKED"});
-  if(!["bootstrap","create","save","preflight"].includes(body.action))return reply(400,{error:"SHARE_ACTION_DENIED"});
+  if(!["bootstrap","create","save","preflight","activate","submit","receipt"].includes(body.action))return reply(400,{error:"SHARE_ACTION_DENIED"});
   const admin=createClient(project,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"",{auth:{persistSession:false,autoRefreshToken:false}});
   // p_actor comes only from Auth verification, never from the body. SQL entry is service-role-only.
   const {data,error}=await admin.rpc("lx_share_test_gateway",{p_actor:verified.user.id,p_action:body.action,p_payload:body.payload||{}});
-  if(error){const safe=/^SHARE_[A-Z_]+$/.test(error.message)?error.message:"SHARE_OPERATION_FAILED";return reply(safe==="SHARE_MEMBER_DENIED"?403:400,{error:safe});}
+  if(error){const safe=/^SHARE_[A-Z_]+$/.test(error.message)?error.message:"SHARE_OPERATION_FAILED";return reply(safe==="SHARE_MEMBER_DENIED"?403:safe==="SHARE_SUBMISSION_LOCKED"?423:400,{error:safe});}
   return reply(200,{data});
  }catch(_){return reply(400,{error:"SHARE_REQUEST_FAILED"});}
 });

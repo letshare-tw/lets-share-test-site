@@ -95,3 +95,47 @@ submission is performed. The main submission slider remains locked.
 Syntax checks, dedicated jsdom scroll/slider regression and existing mocked DOM/Auth
 bridge/camera-session tests passed. Mocked layout does not establish physical mobile
 scroll/gesture PASS; deployed browser and phone acceptance are tracked separately.
+
+## SHARE-TEST-V1 controlled release
+
+Authorization: 豪哥 approved the exact SHARE-TEST-V1 text and test-only publication,
+consent/submission implementation and enablement. Only the two approved registered
+Google test accounts are accepted by Edge and SQL. The user personally performs legal
+consent and the first submission. Engineering does not create those records for them.
+
+- Approved document: `share-engineering/SHARE-TEST-V1.txt`.
+- SHA-256 (UTF-8): `5ebfa73c7e5d53032901ecc2fdaa69e6da3ff355ffcff9ccc1284626dcd39f07`.
+- Migration source: `share-engineering/share-test-v1-release.sql`; the final gateway
+  publication-time/address-snapshot checks were applied as a follow-up migration.
+- Edge version 2, JWT verification still enabled; service-role-only gateway stays
+  inaccessible to anon/authenticated. No JWT or secret is returned to the UI.
+- Published text is fetched from the backend when opening the modal. The scroll-gated
+  slider writes explicit consent and only reports success after the backend returns
+  the same published version and an agreed_at timestamp. No auto-consent on page load.
+- Submission checks ownership, registration/allowlist, current published version, saved
+  private photo, current address snapshot, service consent, explicit test acknowledgments
+  and placement confirmation. Placement snapshot and submission/bag creation are in one
+  database transaction. The existing request lock and one-bag-per-request constraint
+  are reused. A replay of an already submitted owned request returns its existing receipt.
+- A lost submit response is reconciled through an owned receipt read. Unresolved outcomes
+  block further editing/submitting until a read-only reload reconciles the old request.
+- Receipts/history explicitly say test-only. The 48-hour deadline does not dispatch riders
+  or promise physical pickup. No real ownership transfer, payments or rewards occur.
+
+### Evidence limits
+
+Controlled SQL negative checks passed before publication (disabled consent/submission,
+foreign receipt denial, no fabricated receipt). DOM/API mock tests passed: no automatic
+consent/submit, scroll gating, failed-consent state, required placement, explicit submit
+slider, lost-response reconciliation and reloaded history. Camera-session regression
+still passed. These tests do not establish a real Google Session success transaction,
+remote concurrent submit PASS or first phone consent/submission PASS. Those remain
+pending until the user performs the actions and the database is checked.
+
+### Rollback
+
+Immediately set submission_enabled=false and deploy the previously locked Edge/UI;
+`share-engineering/share-test-v1-close-and-rollback.sql` restores the prior gateway,
+service-status and submit definitions. Preserve published documents, consent records,
+submitted requests and bags. Published agreement text cannot be edited/deleted: publish
+a new version for later changes. Never clear audit data just to obtain a passing test.

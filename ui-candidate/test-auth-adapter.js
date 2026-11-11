@@ -170,15 +170,14 @@
   if(!data?.registered||data.user_id!==before.user_id||!latest||latest.user.id!==before.user_id)throw Error("註冊結果與原會員不一致，請重新確認。");
   return data;
  }
- const shareErrors={SHARE_SUBMISSION_LOCKED:"分享協議尚待確認，正式提交維持鎖定。",SHARE_MEMBER_DENIED:"此帳號尚未開放分享測試，請使用指定且已註冊的測試會員。",SHARE_ADDRESS_REQUIRED:"請先在會員中心儲存完整取件地址。",SHARE_PHOTO_INVALID:"照片尚未完成上傳或格式不符，請重新拍攝並儲存。",SHARE_DRAFT_DENIED:"找不到可編輯的本人草稿，請重新讀取。",SHARE_INVALID_NOTE:"放置說明限 200 字，請移除特殊控制字元。",SHARE_INVALID_COUNT:"衣物件數須為 2～1000 件整數。",SHARE_POINT_UNAVAILABLE:"集貨點目前無法使用，請改選取件地點。"};
+ const shareErrors={SHARE_SUBMISSION_LOCKED:"分享測試提交暫時關閉，請稍後重新讀取。",SHARE_VERSION_CHANGED:"協議版本已更新，請重新開啟文件閱讀確認。",SHARE_LEGAL_UNPUBLISHED:"分享測試協議尚未發布。",SHARE_EXPLICIT_CONSENT_REQUIRED:"請由本人閱讀並明確同意測試協議。",SHARE_CONSENT_REQUIRED:"請先閱讀並同意目前版本的測試協議。",SHARE_PLACEMENT_REQUIRED:"請先勾選已完成分享袋測試情境確認。",SHARE_DETAILS_REQUIRED:"請先儲存分享草稿。",SHARE_DETAILS_INCOMPLETE:"資料尚未齊全，請檢查照片、地址及衣物件數。",SHARE_RECEIPT_NOT_FOUND:"尚未找到提交回執，請重新讀取本人分享紀錄。",SHARE_MEMBER_DENIED:"此帳號尚未開放分享測試，請使用指定且已註冊的測試會員。",SHARE_ADDRESS_CHANGED:"會員地址已更新，請重新儲存草稿確認取件地址。",SHARE_ADDRESS_REQUIRED:"請先在會員中心儲存完整取件地址。",SHARE_PHOTO_INVALID:"照片尚未完成上傳或格式不符，請重新拍攝並儲存。",SHARE_DRAFT_DENIED:"找不到可編輯的本人草稿，請重新讀取。",SHARE_INVALID_NOTE:"放置說明限 200 字，請移除特殊控制字元。",SHARE_INVALID_COUNT:"衣物件數須為 2～1000 件整數。",SHARE_POINT_UNAVAILABLE:"集貨點目前無法使用，請改選取件地點。"};
  async function shareIdentity(expected){
   const session=await verifiedSession();
   if(!session||expected&&session.user.id!==expected)throw Error("登入身分已變更，請重新讀取分享資料。");
   return session.user.id;
  }
  async function shareRequest(action,payload={},expected){
-  if(["submit","activate"].includes(action))throw Error(shareErrors.SHARE_SUBMISSION_LOCKED);
-  if(!["bootstrap","create","save","preflight"].includes(action))throw Error("分享操作未開放。");
+  if(!["bootstrap","create","save","preflight","activate","submit","receipt"].includes(action))throw Error("分享操作未開放。");
   const id=await shareIdentity(expected);
   const {data,error}=await getClient().functions.invoke("share-test-api",{body:{action,payload}});
   await shareIdentity(id);
