@@ -80,8 +80,8 @@ function uiFixture(initial){
  check(ui.doc.ids.lxRegBirthDate!==undefined);check(ui.doc.ids.lxRegAdultDeclare!==undefined);
  check(ui.doc.ids.lxRegBirthDate.type==="hidden");
  for(const kind of ["year","month","day"])check(ui.doc.ids["lxBirthWheel-"+kind]!==undefined);
- check(uiSource.includes("scroll-snap-type:y mandatory"));
- check(uiSource.includes("setWheelDisabled(!!data.registered)"));
+ check(uiSource.includes("touch-action:none"));check(uiSource.includes("touchmove"));check(uiSource.includes("event.preventDefault()"));
+ check(uiSource.includes("setWheelDisabled(false);"));
  check(uiSource.includes("const open=data.registration_enabled&&data.legal_ready"));
  check(uiSource.includes("dob.value=year&&month&&day?"));
  check(uiSource.includes("daysInMonth()"));
@@ -95,6 +95,7 @@ function uiFixture(initial){
  check(ui.doc.ids.lxBirthWheelMarker.style.cssText.includes("#bfc2c5"));
  check(ui.doc.ids["lxBirthWheel-year"].style.cssText.includes("height:132px"));
  check(ui.doc.ids["lxBirthWheel-year"].style.cssText.includes("padding:44px 0"));
+ check(ui.doc.ids["lxBirthWheel-year"].handlers.touchmove.length===1);
  check(ui.doc.ids["lxBirthWheel-month"].children[0].style.cssText.includes("color:#252525"));
  check(ui.doc.ids.lxRegBirthDate.value==="2000-01-01");
  check(!ui.doc.ids["lxBirthWheel-year"].children[0].disabled);
