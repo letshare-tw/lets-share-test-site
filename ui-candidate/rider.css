@@ -136,3 +136,6 @@ p{line-height:1.7}
 .arrival-swipe.delivery-apricot .arrival-swipe-handle{background:#f4a574}
 .arrival-swipe.delivery-apricot.pending{background:#f4a574;border-color:#f4a574}
 .arrival-swipe.delivery-apricot.pending .arrival-swipe-label{color:#fff;text-shadow:0 1px 2px #60321d66}
+
+/* RIDER-TRIP-STOPS-01: ordered pickup/delivery actions, not one tab per bag. */
+.stop-list{list-style:none;padding:0;margin:16px 0}.stop-item{display:flex;gap:12px;padding:14px 0;border-top:1px solid #e1e1e1;align-items:flex-start}.stop-item:first-child{border-top:0}.stop-item>div{min-width:0;flex:1}.stop-item b,.stop-item .muted,.stop-state{display:block;overflow-wrap:anywhere}.stop-item b{font-size:18px;line-height:1.5}.stop-number{flex:none;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:#09923a;color:#fff;font-size:17px;font-weight:700}.delivery-stop .stop-number{background:#f4a574;color:#482e1d}.stop-state{font-size:16px;margin-top:3px;color:#444}.stop-done .stop-state{color:#087a33}.delivery-button{background:#f4a574;color:#482e1d}.delivery-card .secondary{background:#f4a574;color:#482e1d}.stats strong{overflow-wrap:anywhere}.stop-list .muted{font-size:15px}
