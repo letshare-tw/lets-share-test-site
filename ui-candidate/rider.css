@@ -156,7 +156,7 @@ p{line-height:1.7}
 /* RIDER-TASK-PRIORITY-01: distance, address, quantity before identifiers/deadline. */
 .task-distance{padding:14px 0 18px;border-bottom:1px solid #e2e2e2}
 .task-distance>span,.task-addresses span{display:block;font-size:14px;line-height:1.5;color:#555}
-.task-distance>strong{display:block;font-size:36px;line-height:1.25;letter-spacing:-1px;color:#111;font-weight:850;margin:5px 0 8px;overflow-wrap:anywhere}
+.task-distance>strong{display:block;font-size:36px;line-height:1.25;letter-spacing:-1px;color:#09923a;font-weight:850;margin:5px 0 8px;overflow-wrap:anywhere}
 .task-distance>small{display:block;color:#555;font-size:15px;line-height:1.5}
 .task-addresses{padding:16px 0 8px;display:grid;gap:14px}
 .task-addresses b{display:block;font-size:22px;line-height:1.5;font-weight:750;color:#111;margin-top:3px;overflow-wrap:anywhere}
