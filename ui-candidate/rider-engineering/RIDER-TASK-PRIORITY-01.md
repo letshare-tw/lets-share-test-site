@@ -1,0 +1,13 @@
+# RIDER-TASK-PRIORITY-01
+
+2026-11-13 Asia/Taipei. Task picker cards and details now prioritize current-position-to-pickup kilometres (36px), pickup/delivery locations (22px), then bag/item quantity (25px). Task identifier, deadline and fee status are secondary. Pickup-to-delivery straight-line distance stays visible below the primary distance. Location denial, missing coordinates and preview failure never produce fake kilometres or addresses.
+
+Picker cards request existing one-task previews through the unchanged qualified, owner-workspace-scoped bootstrap API, with at most two concurrent reads. Results are memory-only, scoped by epoch/owner/actor/workspace/revision; no new public or bulk endpoint was introduced. The picker uses one local GPS request for all cards and an explicit retry button, not tracking. Owner/actor changes discard position and preview memory; late callbacks are ignored. Detail keeps its existing fresh preview/GPS read and stale guards. No position coordinates are uploaded or saved.
+
+Each current backend rider task represents one bag. The current rider test schema/API does not carry the sharer's clothing_count and is not linked to real sharing bags. Therefore existing controlled tasks correctly display `1 袋 · 件數待確認`. The UI supports a genuine positive integer clothing_count when supplied with the task; it does not invent a quantity, derive it from bag count, or open a bag to count. Wiring the source count from the share-to-rider dispatch integration remains pending. Actual point labels remain synthetic station/park test locations, not verified street addresses.
+
+Verification: task-priority-regression.cjs PASS for list/detail order, 36px/22px type hierarchy, known/missing item counts, shared GPS, denied location, local-only position and stale-account suppression. Updated task-preview-regression.cjs PASS for known/invalid/missing distances, safe escaped address and stale modal responses. Existing default-vehicle, prototype and trip-stops regressions PASS. These use mock GPS/Auth/backend, not actual mobile acceptance. Node syntax check PASS.
+
+Only ui-candidate frontend/test/docs changed. Database, existing private preview authorization, Edge code, real sharing records, formal operations, fees and production environments remain unchanged. Phone layout and real GPS remain pending user acceptance; screenshots from the previous version establish that the earlier distance/location feature was visible, not that this new hierarchy is accepted.
+
+Rollback: restore rider-app.js, rider.css, rider.html and task-preview-regression.cjs to the parent commit; remove this note and task-priority-regression.cjs. No data rollback required.

@@ -14,11 +14,11 @@ async function boot(){
  assert.ok(Math.abs(math.km(0,0,0,1)-111.19508)<0.001);assert.equal(math.km(1,2,1,2),0);assert.ok(Math.abs(math.km(0,0,0,180)-20015.11444)<0.01);
  for(const v of [null,undefined,'',true,NaN,Infinity,91])assert.equal(math.km(v,0,0,0),null);
  x.block(true);x.click('[data-act=detail]');assert.equal(doc.querySelector('[data-act=accept]').disabled,true);x.resolve();await wait();
- assert.ok(doc.querySelector('#taskPreview').textContent.includes('111.2 公里'));assert.equal(doc.querySelector('#taskPreview img'),null);assert.ok(doc.querySelector('#taskPreview').textContent.includes('<img'));assert.equal(gps.length,1);assert.equal(gps[0].options.timeout,10000);
- gps[0].ok({coords:{latitude:0,longitude:0.5}});assert.ok(doc.querySelector('#pickupDistance').textContent.includes('55.6 公里'));assert.equal(doc.querySelector('[data-act=accept]').disabled,false);
- x.click('#retryPosition');gps[1].err({code:1});assert.ok(doc.querySelector('#pickupDistance').textContent.includes('未允許定位'));assert.equal(doc.querySelector('[data-act=accept]').disabled,false);
+ assert.ok(doc.querySelector('#taskPreview').textContent.includes('111.2 公里'));assert.equal(doc.querySelector('#taskPreview img'),null);assert.ok(doc.querySelector('#taskPreview').textContent.includes('<img'));assert.equal(gps.length,2);assert.equal(gps[1].options.timeout,10000);
+ gps[1].ok({coords:{latitude:0,longitude:0.5}});assert.ok(doc.querySelector('#pickupDistance').textContent.includes('55.6 公里'));assert.equal(doc.querySelector('[data-act=accept]').disabled,false);
+ x.click('#retryPosition');gps[2].err({code:1});assert.ok(doc.querySelector('#pickupDistance').textContent.includes('未允許定位'));assert.equal(doc.querySelector('[data-act=accept]').disabled,false);
  assert.ok(calls.every(c=>!('latitude' in c.payload)&&!('longitude' in c.payload)));assert.ok(!w.localStorage.length);
- x.click('#retryPosition');x.click('[data-act=close]');gps[2].ok({coords:{latitude:0,longitude:0}});assert.equal(doc.querySelector('#pickupDistance'),null);
+ x.click('#retryPosition');x.click('[data-act=close]');gps[3].ok({coords:{latitude:0,longitude:0}});assert.equal(doc.querySelector('#pickupDistance'),null);
  x.click('[data-act=detail]');x.click('[data-act=close]');x.resolve();await wait();assert.equal(doc.querySelector('#taskPreview'),null,'late address read after close ignored');
  x.click('[data-act=detail]');x.switchOwner();x.resolve();await wait();assert.equal(doc.querySelector('#taskPreview'),null,'late address read after account switch ignored');
  x.d.window.close();console.log('PASS known/missing/invalid distance, escaped address, pending gate, GPS success/denial/retry, no position transmission/storage, stale close/account suppression. Mock GPS/Auth/backend, not phone.');
