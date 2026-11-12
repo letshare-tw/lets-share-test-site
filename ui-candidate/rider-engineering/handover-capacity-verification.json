@@ -1,0 +1,58 @@
+{
+  "version": "RIDER-HANDOVER-CAPACITY-01",
+  "database_capacity": {
+    "cases": [
+      "three held bags accepted",
+      "fourth held bag blocked",
+      "in-custody exception still occupies slot",
+      "picked-up bag still occupies slot",
+      "handover pending has no receipt",
+      "claim before recipient signature succeeds",
+      "claim replay stays idempotent",
+      "post-handover exception does not reacquire capacity",
+      "offered accept also ignores pending signatures",
+      "three held plus two pending still blocks fourth held",
+      "recipient confirmation generates receipt",
+      "later signature does not release an extra slot",
+      "service gateway still unavailable to clients",
+      "formal operation stays locked"
+    ],
+    "scope": "Rollback SQL gateway fixtures, not Google Session/phone/real camera",
+    "failed": 0,
+    "passed": 14
+  },
+  "database_integration": {
+    "cases": [
+      "pool summary hides coordinates",
+      "other workspace cannot claim",
+      "receiver cannot claim",
+      "three pool claims succeed",
+      "fourth claim is blocked",
+      "other rider cannot claim taken task",
+      "arrival timestamp persists",
+      "missing proof object rejected when referenced",
+      "pending receiver keeps unsigned handover record",
+      "handover releases slot before receiver signature",
+      "duplicate claim command returns same result",
+      "completed task stays in history",
+      "own accepted task permits proof insert",
+      "other actor path cannot upload proof",
+      "path traversal rejected",
+      "other account cannot read target proof",
+      "other account cannot insert target proof",
+      "expired qualification blocks new pickup proof",
+      "expired rider may upload safety handover proof",
+      "empty photo cannot produce signed link",
+      "existing share bags untouched",
+      "proof bucket enforces private 100000-byte limit",
+      "client still cannot execute service gateway"
+    ],
+    "scope": "Rollback database tests. Fixture qualification and simulated SQL claims, not Google Session, actual Storage requests, native Maps or phone acceptance.",
+    "failed": 0,
+    "passed": 23
+  },
+  "frontend": "PASS mocked media/session/storage/backend; phone PENDING",
+  "migration": "rider_handover_releases_capacity",
+  "formal_operations": "locked",
+  "scope": "lets-share-test only; rollback SQL fixtures, no existing bag edits or signatures"
+}

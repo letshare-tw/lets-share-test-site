@@ -1,0 +1,42 @@
+-- Caller supplies lx_test.owner within this transaction. Synthetic service-gateway tests; not Google Session/phone.
+create temporary table capacity_results(name text,pass boolean);
+create function pg_temp.cap_check(n text,v boolean) returns void language plpgsql as $$begin if not coalesce(v,false) then raise exception 'FAIL: %',n;end if;insert into capacity_results values(n,true);end $$;
+create function pg_temp.cap_cmd(u uuid,a text,op text,p jsonb default '{}') returns jsonb language plpgsql as $$declare r int;begin select revision into r from lx_rider_private.workspaces where owner_id=u;return lx_rider_private.gateway(u,op,p||jsonb_build_object('actor',a,'revision',r,'command_id',gen_random_uuid()));end $$;
+create function pg_temp.cap_denied(u uuid,a text,op text,p jsonb,msg text) returns boolean language plpgsql as $$begin perform pg_temp.cap_cmd(u,a,op,p);return false;exception when others then return sqlerrm=msg;end $$;
+do $$
+declare u uuid:=nullif(current_setting('lx_test.owner',true),'')::uuid;w uuid;v uuid;t uuid;ids uuid[]:='{}';code text;req jsonb;result jsonb;rev int;
+begin
+ if u is null or not lx_share_private.test_member(u) then raise exception 'Authorized test owner required';end if;
+ perform lx_rider_private.gateway(u,'initialize','{}');select id into w from lx_rider_private.workspaces where owner_id=u;
+ if exists(select 1 from lx_rider_private.tasks where workspace_id=w and rider_key='rider2' and status in ('accepted','picked_up','handover_pending','exception')) then raise exception 'rider2 fixture is busy; choose another test scope';end if;
+ update lx_rider_private.people set application='approved',license_status='approved',cert_valid_until=current_date+365,simulation_confirmed=true where workspace_id=w and key='rider2';
+ insert into lx_rider_private.vehicles(workspace_id,rider_key,label,status,owner_authorized) values(w,'rider2','TEST-HANDOVER-CAP','approved',true) returning id into v;
+ for i in 1..6 loop insert into lx_rider_private.tasks(workspace_id,bag_code,pickup_label,delivery_label,pickup_lat,pickup_lng,delivery_lat,delivery_lng) values(w,'TEST-HANDOVER-CAP-'||gen_random_uuid(),'模擬取件','模擬交付',22.9971,120.2125,23.004,120.211) returning id into t;ids:=array_append(ids,t);end loop;
+ for i in 1..3 loop perform pg_temp.cap_cmd(u,'rider2','claim',jsonb_build_object('task_id',ids[i],'vehicle_id',v));end loop;
+ perform pg_temp.cap_check('three held bags accepted',(select count(*)=3 from lx_rider_private.tasks where id=any(ids) and status='accepted'));
+ perform pg_temp.cap_check('fourth held bag blocked',pg_temp.cap_denied(u,'rider2','claim',jsonb_build_object('task_id',ids[4],'vehicle_id',v),'RIDER_CAPACITY_REACHED'));
+ select bag_code into code from lx_rider_private.tasks where id=ids[1];
+ perform pg_temp.cap_cmd(u,'rider2','pickup',jsonb_build_object('task_id',ids[1],'bag_code',code,'sealed',true));
+ perform pg_temp.cap_cmd(u,'rider2','exception',jsonb_build_object('task_id',ids[1],'code','safety'));
+ perform pg_temp.cap_check('in-custody exception still occupies slot',pg_temp.cap_denied(u,'rider2','claim',jsonb_build_object('task_id',ids[4],'vehicle_id',v),'RIDER_CAPACITY_REACHED'));
+ perform pg_temp.cap_cmd(u,'dispatch','resolve',jsonb_build_object('task_id',ids[1]));
+ perform pg_temp.cap_check('picked-up bag still occupies slot',pg_temp.cap_denied(u,'rider2','claim',jsonb_build_object('task_id',ids[4],'vehicle_id',v),'RIDER_CAPACITY_REACHED'));
+ perform pg_temp.cap_cmd(u,'rider2','handover',jsonb_build_object('task_id',ids[1]));
+ perform pg_temp.cap_check('handover pending has no receipt',(select status='handover_pending' and rider_handover_at is not null and received_at is null and receipt_code is null from lx_rider_private.tasks where id=ids[1]));
+ select revision into rev from lx_rider_private.workspaces where id=w;req:=jsonb_build_object('actor','rider2','task_id',ids[4],'vehicle_id',v,'revision',rev,'command_id',gen_random_uuid());result:=lx_rider_private.gateway(u,'claim',req);
+ perform pg_temp.cap_check('claim before recipient signature succeeds',(select status='accepted' from lx_rider_private.tasks where id=ids[4]));
+ perform pg_temp.cap_check('claim replay stays idempotent',lx_rider_private.gateway(u,'claim',req)=result);
+ perform pg_temp.cap_cmd(u,'rider2','exception',jsonb_build_object('task_id',ids[1],'code','address_issue'));
+ perform pg_temp.cap_check('post-handover exception does not reacquire capacity',(select count(*)=3 from lx_rider_private.tasks where workspace_id=w and rider_key='rider2' and (status in ('accepted','picked_up') or (status='exception' and rider_handover_at is null))));
+ perform pg_temp.cap_cmd(u,'dispatch','resolve',jsonb_build_object('task_id',ids[1]));
+ select bag_code into code from lx_rider_private.tasks where id=ids[2];perform pg_temp.cap_cmd(u,'rider2','pickup',jsonb_build_object('task_id',ids[2],'bag_code',code,'sealed',true));perform pg_temp.cap_cmd(u,'rider2','handover',jsonb_build_object('task_id',ids[2]));
+ perform pg_temp.cap_cmd(u,'dispatch','assign',jsonb_build_object('task_id',ids[5],'rider','rider2','vehicle_id',v));perform pg_temp.cap_cmd(u,'rider2','accept',jsonb_build_object('task_id',ids[5],'vehicle_id',v));
+ perform pg_temp.cap_check('offered accept also ignores pending signatures',(select status='accepted' from lx_rider_private.tasks where id=ids[5]));
+ perform pg_temp.cap_check('three held plus two pending still blocks fourth held',pg_temp.cap_denied(u,'rider2','claim',jsonb_build_object('task_id',ids[6],'vehicle_id',v),'RIDER_CAPACITY_REACHED'));
+ select bag_code into code from lx_rider_private.tasks where id=ids[1];perform pg_temp.cap_cmd(u,'receiver','receive',jsonb_build_object('task_id',ids[1],'bag_code',code));
+ perform pg_temp.cap_check('recipient confirmation generates receipt',(select status='delivered' and received_at is not null and receipt_code is not null from lx_rider_private.tasks where id=ids[1]));
+ perform pg_temp.cap_check('later signature does not release an extra slot',pg_temp.cap_denied(u,'rider2','claim',jsonb_build_object('task_id',ids[6],'vehicle_id',v),'RIDER_CAPACITY_REACHED'));
+ perform pg_temp.cap_check('service gateway still unavailable to clients',not has_function_privilege('authenticated','public.lx_rider_test_gateway(uuid,text,jsonb)','execute'));
+ perform pg_temp.cap_check('formal operation stays locked',(select not formal_enabled from lx_rider_private.workspaces where id=w));
+end $$;
+select jsonb_build_object('passed',count(*),'failed',0,'cases',jsonb_agg(name),'scope','Rollback SQL gateway fixtures, not Google Session/phone/real camera') as verification from capacity_results;

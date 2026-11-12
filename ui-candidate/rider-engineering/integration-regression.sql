@@ -31,12 +31,12 @@ begin
  -- Internal service fixture transitions do not represent user Edge/photo acceptance.
  perform pg_temp.int_cmd(u,'rider1','pickup',jsonb_build_object('task_id',ids[1],'bag_code',code,'sealed',true));
  perform pg_temp.int_cmd(u,'rider1','handover',jsonb_build_object('task_id',ids[1]));
- perform pg_temp.check_int('waiting receiver still uses capacity',pg_temp.int_denied(u,'rider1','claim',jsonb_build_object('task_id',ids[4],'vehicle_id',v),'RIDER_CAPACITY_REACHED'));
- perform pg_temp.int_cmd(u,'receiver','receive',jsonb_build_object('task_id',ids[1],'bag_code',code));
+ perform pg_temp.check_int('pending receiver keeps unsigned handover record',(select status='handover_pending' and received_at is null and receipt_code is null from lx_rider_private.tasks where id=ids[1]));
  select revision into rev from lx_rider_private.workspaces where id=w;cid:=gen_random_uuid();req:=jsonb_build_object('actor','rider1','task_id',ids[4],'vehicle_id',v,'revision',rev,'command_id',cid);
  r:=lx_rider_private.gateway(u,'claim',req);
- perform pg_temp.check_int('receiver completion releases one slot',(select status='accepted' from lx_rider_private.tasks where id=ids[4]));
+ perform pg_temp.check_int('handover releases slot before receiver signature',(select status='accepted' from lx_rider_private.tasks where id=ids[4]));
  perform pg_temp.check_int('duplicate claim command returns same result',lx_rider_private.gateway(u,'claim',req)=r);
+ perform pg_temp.int_cmd(u,'receiver','receive',jsonb_build_object('task_id',ids[1],'bag_code',code));
  perform pg_temp.check_int('completed task stays in history',exists(select 1 from jsonb_array_elements(lx_rider_private.snapshot(w,'rider1')->'tasks') x where x->>'id'=ids[1]::text and x->>'status'='delivered'));
  object_path:=u::text||'/'||w::text||'/'||ids[4]::text||'/rider1/pickup/image/'||gen_random_uuid()::text||'.webp';
  perform set_config('request.jwt.claim.sub',u::text,true);
