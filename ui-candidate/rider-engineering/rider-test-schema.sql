@@ -171,14 +171,14 @@ begin
  elsif p_payload->>'decision'='approve' then
  if not exists(select 1 from lx_rider_private.people where workspace_id=s.id and key=rid and cert_issued_on between current_date-30 and current_date) then raise exception 'RIDER_CERT_DATE_INVALID'; end if;
  update lx_rider_private.people set application='approved',license_status='approved',cert_valid_until=(current_date+interval '12 months')::date,review_note='模擬審核通過，不是正式資格' where workspace_id=s.id and key=rid;
- update lx_rider_private.documents set reviewed_at=now(),delete_after=now()+interval '30 days' where workspace_id=s.id and rider_key=rid and kind in ('license','certificate') and reviewed_at is null;
+ update lx_rider_private.documents d set reviewed_at=now(),delete_after=now()+interval '30 days' where d.workspace_id=s.id and d.rider_key=rid and d.kind in ('license','certificate') and d.reviewed_at is null;
  else raise exception 'RIDER_INPUT_INVALID'; end if;
  when 'review_vehicle' then
  if vid is null or v.status<>'pending' then raise exception 'RIDER_STATE_DENIED'; end if;
  if not exists(select 1 from lx_rider_private.documents d join storage.objects o on o.bucket_id='rider-test-documents' and o.name=d.path where d.workspace_id=s.id and d.vehicle_id=vid and d.kind='registration' and d.deleted_at is null)
  or (v.non_owner and not exists(select 1 from lx_rider_private.documents d join storage.objects o on o.bucket_id='rider-test-documents' and o.name=d.path where d.workspace_id=s.id and d.vehicle_id=vid and d.kind='owner_authorization' and d.deleted_at is null)) then raise exception 'RIDER_DOCUMENT_REQUIRED'; end if;
  update lx_rider_private.vehicles set status='approved',owner_authorized=true where id=vid;
- update lx_rider_private.documents set reviewed_at=now(),delete_after=case when kind='registration' then now()+interval '30 days' else null end where vehicle_id=vid and reviewed_at is null;
+ update lx_rider_private.documents d set reviewed_at=now(),delete_after=case when d.kind='registration' then now()+interval '30 days' else null end where d.vehicle_id=vid and d.reviewed_at is null;
  when 'revoke_vehicle' then
  if vid is null then raise exception 'RIDER_VEHICLE_DENIED'; end if;
  update lx_rider_private.vehicles set status='revoked',owner_authorized=false where id=vid;

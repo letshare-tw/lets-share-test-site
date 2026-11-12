@@ -72,3 +72,8 @@ DB 測試完全 ROLLBACK；部署後 workspace_count=0。未留下騎手工作�
 ## 回復
 
 先執行 lockdown.sql 關閉所有模擬工作區，並撤銷三個 service-only RPC 的 EXECUTE。前端以此次 commit 的父版本還原 index.html/test-auth-adapter.js，移除 workbench JS/CSS 引用即可；不重設登入或分享資料。保留測試稽核，不直接 DROP schema/bucket，避免誤刪新增測試紀錄。恢復前需重新核對目的與範圍。
+
+
+## 2026-11-12 審核修正
+
+RIDER-TEST-02 修正騎手/車輛審核文件 UPDATE 的 kind 名稱衝突；使用既有已上傳模擬圖片正向驗證 6/6 PASS，原 42 項回歸 PASS。測試皆回滾，手機重試待驗收。詳見 [修正紀錄](RIDER-TEST-02-review-fix.md)。
