@@ -145,7 +145,7 @@
  handle.addEventListener("pointercancel",resetSwipe);
  handle.addEventListener("keydown",e=>{if(handle.disabled)return;if(e.key==="ArrowRight"){e.preventDefault();moveSwipe(maxTravel());}if(e.key==="Enter"||e.key===" "){e.preventDefault();if(dragX>=maxTravel()*.85)finishSubmit();}});
  window.addEventListener("resize",()=>{if(submitState==="idle")resetSwipe();});
- window.addEventListener("lx-share-session-changed",()=>{++seq;busy=false;clear();$("shareIdentity").textContent="登入狀態已變更，正在重新確認…";reloadDraft();});
+ window.addEventListener("lx-share-session-changed",()=>{++seq;promptedAgreement=null;busy=false;clear();$("shareIdentity").textContent="登入狀態已變更，正在重新確認…";reloadDraft();});
  window.addEventListener("lx-member-state-changed",()=>{if(!busy&&!dirty)reloadDraft();});
  $("googleLogout").addEventListener("click",()=>{++seq;busy=false;clear();operation.textContent="已清除目前畫面的分享資料。";});
  window.addEventListener("pagehide",()=>{++seq;busy=false;clear();});window.addEventListener("pageshow",e=>{if(e.persisted)reloadDraft();});
