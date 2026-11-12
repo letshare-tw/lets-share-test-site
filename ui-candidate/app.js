@@ -13,6 +13,14 @@
  const save=$("shareSave"),reload=$("shareReload"),operation=$("shareOperation"),track=$("swipeTrack"),handle=$("swipeHandle");
  const photoLimitHint=document.createElement("p");photoLimitHint.className="help";photoLimitHint.textContent="新照片會先在本機壓縮至 100KB 以下，再於儲存草稿時上傳。";photo.insertAdjacentElement("afterend",photoLimitHint);
  let state=null,userId=null,requestId=null,path=null,savedPath=null,blob=null,photoUrl=null,seq=0,busy=false,dirty=false,submitState="idle",dragging=false,dragStart=0,dragX=0;
+ const navigation=window.LX_NAVIGATION_PREVIEW.mount({host:$("placeInfo"),getContext:()=>{
+  const address=kind()==="home"?state?.address?.home_address:state?.points?.find(p=>p.id===point.value)?.address_text;
+  return userId?{userId,address:address||"",selectionKey:kind()+":"+(kind()==="home"?"":point.value),eligible:!busy&&!dirty&&submitState==="idle"&&!!address&&validPlace()}:null;
+ },validateContext:async original=>{
+  const latest=await api.bootstrap();if(latest.userId!==original.userId||userId!==original.userId)return false;
+  const address=original.selectionKey==="home:"?latest.address?.home_address:latest.points?.find(p=>"collection_point:"+p.id===original.selectionKey)?.address_text;
+  return address===original.address;
+ }});
  function releasePhoto(){if(photoUrl)URL.revokeObjectURL(photoUrl);photoUrl=null;preview.removeAttribute("src");preview.hidden=true;blob=null;}
  function clear(){resetSwipe();submitState="idle";releasePhoto();state=null;userId=null;requestId=null;path=null;savedPath=null;dirty=false;count.value="2";notes.value="";photo.value="";placed.checked=false;point.replaceChildren(new Option("暫無可用集貨點",""));point.disabled=true;$("shareHistory").replaceChildren();$("shareConsentStatus").textContent="尚未確認分享測試協議。";$("shareDraftInfo").textContent="尚未讀取草稿。";$("photoFeedback").textContent="尚未選擇照片。";$("placeInfo").textContent="登入並完成會員註冊後，才能讀取本人取件地址。";check();}
  function kind(){return document.querySelector('input[name="place"]:checked')?.value==="station"?"collection_point":"home";}
@@ -28,6 +36,7 @@
  }
  function readyToSubmit(){return !!(userId&&state?.submission_enabled&&state.service?.submission_enabled&&consentReady()&&requestId&&path&&savedPath===path&&!blob&&!dirty&&placed.checked&&validCount()&&validPlace()&&Array.from(notes.value).length<=200&&submitState==="idle");}
  function check(){
+  navigation.refresh();
   const valid=validCount(),blocked=busy||!userId||submitState!=="idle";count.setAttribute("aria-invalid",String(!valid));$("countHelp").textContent=valid?"衣物件數有效。":"請輸入 2～1000 件整數。";
   save.disabled=blocked||!valid||!validPlace()||Array.from(notes.value).length>200;
   reload.disabled=busy;photo.disabled=blocked;count.disabled=notes.disabled=placed.disabled=blocked;

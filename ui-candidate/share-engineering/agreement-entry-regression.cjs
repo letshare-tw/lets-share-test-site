@@ -13,7 +13,7 @@ function setup(initial,defer=false){
  w.HTMLDialogElement.prototype.close=function(){this.removeAttribute('open');this.dispatchEvent(new w.Event('close'));};
  const api={bootstrap:async()=>{if(defer&&first){first=false;await new Promise(r=>release=r);}return structuredClone(data);},activate:async()=>{writes++;data.service.activated=true;data.service.agreed_at='2026-11-12T00:00:00Z';return structuredClone(data.service);}};
  w.LX_ADAPTER_SELECTOR={getAdapter:()=>api};
- for(const file of ['share-agreement-ui.js','app.js'])w.eval(fs.readFileSync(path.join(root,file),'utf8'));
+ for(const file of ['navigation-preview.js','share-agreement-ui.js','app.js'])w.eval(fs.readFileSync(path.join(root,file),'utf8'));
  const $=id=>w.document.getElementById(id),go=n=>w.document.querySelector('.bottom [data-go="'+n+'"]').click();
  return {dom,w,$,go,set:data2=>data=data2,release:()=>release(),get writes(){return writes},get opens(){return opens}};
 }
