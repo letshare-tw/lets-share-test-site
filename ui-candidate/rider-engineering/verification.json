@@ -1,0 +1,77 @@
+{
+  "date": "2026-11-12",
+  "version": "RIDER-TEST-01",
+  "baseline": "d82731a8d3ccdd35aa6c446def0ea35a3e236424",
+  "database": {
+    "suite": "RIDER-TEST-01 database transaction",
+    "failed": 0,
+    "passed": 42,
+    "results": [
+      "anonymous and authenticated cannot execute service gateway",
+      "another workspace cannot read document",
+      "another workspace cleanup does not include target",
+      "cannot cancel in-custody bag",
+      "cannot silently reassign in-custody bag",
+      "cleanup mark recorded after absent object",
+      "completed state cannot be replayed as new operation",
+      "cross-workspace task denied",
+      "expired document appears in own cleanup queue",
+      "expired document cannot issue link",
+      "expired rider can finish safety handover",
+      "expiry disables new work",
+      "formal mode locked",
+      "future certificate denied",
+      "incorrect bag denied",
+      "legal hold removes document from cleanup",
+      "live share bags untouched",
+      "missing images block application",
+      "no client access to private workspaces",
+      "no formal workspace enabled",
+      "non-whitelist denied",
+      "old certificate denied",
+      "other rider cannot take task",
+      "other rider snapshot hides assigned task",
+      "other workspace vehicle denied",
+      "pending second bike does not disable first",
+      "receiver cannot approve",
+      "receiver hides pre-handover tasks",
+      "renewal preserves still-valid qualification",
+      "reviewed or expired sample cannot be uploaded again",
+      "revoked bike blocks pickup",
+      "revoking one bike leaves another rider bike eligible",
+      "rider cannot dispatch",
+      "rider cannot sign for receiver",
+      "rider handover alone is not complete",
+      "same command different payload rejected",
+      "same command replay is idempotent",
+      "single accept event after replay",
+      "stale revision rejected",
+      "unapproved vehicle cannot assign",
+      "vehicle approval requires both documents",
+      "wrong receiver bag denied"
+    ],
+    "limitation": "Fixture-approved virtual riders; not Google Session, Storage upload, concurrent-connection or mobile acceptance"
+  },
+  "frontend": "PASS: JSDOM mocked adapter; not mobile",
+  "edge": "rider-test-api ACTIVE v3; verify_jwt=true",
+  "http": [
+    {
+      "probe": "anonymous POST",
+      "status": 401,
+      "result": "PASS"
+    },
+    {
+      "probe": "foreign origin OPTIONS",
+      "status": 403,
+      "result": "PASS"
+    }
+  ],
+  "formal": "LOCKED",
+  "pending": [
+    "Google Session end-to-end",
+    "Real Storage upload/sign/delete",
+    "Phone UI and native Maps",
+    "Independent working-account role binding",
+    "Simultaneous connections competing for initial task"
+  ]
+}

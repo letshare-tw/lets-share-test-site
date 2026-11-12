@@ -238,6 +238,15 @@
   }
   await shareIdentity(id);return results;
  }
- Object.defineProperty(window,"LX_TEST_AUTH_ADAPTER",{value:Object.freeze({mode:"test-auth-only",contract,signInWithGoogle,handleCallback,getSession:verifiedSession,restoreSession:verifiedSession,signOut,getProfile,saveDisplayName,phoneOtp,normalizeTaiwanPhone,validatePhoneToken,requestPhoneOtp,verifyPhoneOtp,saveAddress,saveAdultVerification,getRegistrationStatus,completeRegistration,shareRequest,shareUpload,shareDownload,shareRemove,shareIsolationProbe,sharePhotoLimitProbe}),writable:false,configurable:false});
+ async function riderRequest(action,payload={},expected){
+  const id=await shareIdentity(expected);
+  const {data,error}=await getClient().functions.invoke("rider-test-api",{body:{action,payload}});
+  await shareIdentity(id);
+  if(error||data?.error){let code=data?.error;try{if(!code&&error?.context)code=(await error.context.json()).error;}catch(_){}
+   const e=Error("騎手測試操作未完成，請確認登入或重新讀取。");e.code=/^RIDER_[A-Z_]+$/.test(code||"")?code:"RIDER_REQUEST_FAILED";throw e;
+  }
+  if(!data?.data)throw Error("騎手測試回應不完整。");return data.data;
+ }
+ Object.defineProperty(window,"LX_TEST_AUTH_ADAPTER",{value:Object.freeze({mode:"test-auth-only",contract,signInWithGoogle,handleCallback,getSession:verifiedSession,restoreSession:verifiedSession,signOut,getProfile,saveDisplayName,phoneOtp,normalizeTaiwanPhone,validatePhoneToken,requestPhoneOtp,verifyPhoneOtp,saveAddress,saveAdultVerification,getRegistrationStatus,completeRegistration,shareRequest,shareUpload,shareDownload,shareRemove,shareIsolationProbe,sharePhotoLimitProbe,riderRequest}),writable:false,configurable:false});
 })();
 
