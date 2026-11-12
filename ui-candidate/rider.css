@@ -122,10 +122,12 @@ p{line-height:1.7}
 @media(max-width:350px){.arrival-swipe-label{font-size:16px}}
 @media(prefers-reduced-motion:reduce){.arrival-swipe-handle{transition:none}}
 
-/* RIDER-PROOF-SWIPE-02: final confirmation after bag check/photo, dark green track. */
-.arrival-swipe{background:#075c35;border-color:#075c35}
-.arrival-swipe-label{color:#fff}
-.arrival-swipe.unready{background:#335e48;border-color:#335e48}
+/* RIDER-SWIPE-GREY-03: 15% grey/black before confirmation; brand green/white when snapped right. */
+.arrival-swipe{background:#d9d9d9;border-color:#d9d9d9;transition:background-color 180ms ease-out,border-color 180ms ease-out}
+.arrival-swipe-label{color:#000}
+.arrival-swipe.unready{background:#d9d9d9;border-color:#d9d9d9}
+.arrival-swipe.pending{background:#09923a;border-color:#09923a}
+.arrival-swipe.pending .arrival-swipe-label{color:#fff}
 .arrival-swipe-handle:disabled{background:#09923a;opacity:1;cursor:not-allowed}
 .arrival-swipe.pending .arrival-swipe-handle{opacity:1}
 #proofConfirm{margin-top:18px}
