@@ -36,7 +36,11 @@
     if(!result?.userId||!result.service?.published||!result.service.version||!result.service.content||!result.service.published_at)throw Error("尚無可確認的已發布協議。");
     documentState=result;title.textContent="分享測試協議｜"+result.service.version;
     const published=new Date(result.service.published_at).toLocaleString("zh-TW",{timeZone:"Asia/Taipei"});
-    text.textContent="發布／生效時間（台灣）："+published+"\n\n"+result.service.content;text.scrollTop=0;requestAnimationFrame(()=>{if(token===epoch)update();});
+    text.textContent="發布／生效時間（台灣）："+published+"\n\n"+result.service.content;text.scrollTop=0;
+    if(result.service.activated===true&&result.service.agreed_at){
+     settled=true;slider.disabled=true;caption.textContent="此版本已同意，無需再次確認";
+     hint.textContent="你已同意此版本，可隨時查看全文；分享規章更新版本時才需重新確認。";
+    }else requestAnimationFrame(()=>{if(token===epoch)update();});
    }catch(e){if(token===epoch){documentState=null;text.textContent="文件讀取未完成，沒有寫入同意。請關閉後重新開啟。";hint.textContent=e.message;slider.disabled=true;}}
   }
   async function finish(){

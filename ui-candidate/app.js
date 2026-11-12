@@ -3,7 +3,8 @@
 (()=>{
  const api=window.LX_ADAPTER_SELECTOR.getAdapter("test"),$=id=>document.getElementById(id);
  const names=["home","share","cart","member"];
- function go(name){if(!names.includes(name))return;for(const n of names){$("view-"+n).hidden=n!==name;const b=document.querySelector('.bottom [data-go="'+n+'"]');b.classList.toggle("active",n===name);if(n===name)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current");}window.scrollTo(0,0);}
+ let activeView="home",promptedAgreement=null;
+ function go(name){if(!names.includes(name))return;if(name!==activeView)promptedAgreement=null;activeView=name;for(const n of names){$("view-"+n).hidden=n!==name;const b=document.querySelector('.bottom [data-go="'+n+'"]');b.classList.toggle("active",n===name);if(n===name)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current");}window.scrollTo(0,0);if(name==="share")maybeOpenAgreement();}
  document.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=>go(b.dataset.go)));
  const panel=document.createElement("section");panel.className="share-status-panel";
  panel.innerHTML='<p id="shareIdentity" role="status">正在確認分享測試資格…</p><p id="shareDraftInfo" role="status">尚未讀取草稿。</p><label for="sharePoint">已核准集貨點</label><select id="sharePoint" disabled><option value="">暫無可用集貨點</option></select><div class="share-actions"><button id="shareReload" type="button">重新讀取草稿</button><button id="shareSave" type="button" class="primary" disabled>儲存分享草稿</button><button id="shareAddress" type="button">前往會員中心補填地址</button></div><button id="shareTerms" type="button">閱讀分享服務說明（待確認）</button><p id="shareConsentStatus" role="status">尚未確認分享測試協議。</p><p id="shareOperation" role="status" aria-live="polite"></p>';
@@ -19,6 +20,12 @@
  function validPlace(){return state&&(kind()==="home"?(state.address?.home_address||"").trim().length>=6:state.points.some(p=>p.id===point.value));}
  function resetSwipe(){dragging=false;dragX=0;handle.style.transform="translateX(0px)";track.classList.remove("ready","completed");}
  function consentReady(){return !!(state?.service?.published&&state.service.activated&&state.service.version&&state.service.agreed_at);}
+ function maybeOpenAgreement(){
+  const legal=state?.service;
+  if(activeView!=="share"||busy||!userId||!legal?.published||!legal.version||!legal.content||!legal.published_at||consentReady())return;
+  const key=userId+":"+legal.version;if(promptedAgreement===key)return;
+  promptedAgreement=key;agreementUI.open().catch(()=>{promptedAgreement=null;operation.textContent="文件開啟未完成，請點「閱讀並確認分享測試協議」重試。";});
+ }
  function readyToSubmit(){return !!(userId&&state?.submission_enabled&&state.service?.submission_enabled&&consentReady()&&requestId&&path&&savedPath===path&&!blob&&!dirty&&placed.checked&&validCount()&&validPlace()&&Array.from(notes.value).length<=200&&submitState==="idle");}
  function check(){
   const valid=validCount(),blocked=busy||!userId||submitState!=="idle";count.setAttribute("aria-invalid",String(!valid));$("countHelp").textContent=valid?"衣物件數有效。":"請輸入 2～1000 件整數。";
@@ -28,6 +35,7 @@
   point.disabled=blocked||kind()!=="collection_point"||!state?.points?.length;
   const ready=readyToSubmit()&&!busy;handle.disabled=!ready;track.classList.toggle("ready",ready);
   const legal=state?.service;
+  $("shareTerms").textContent=consentReady()?"查看已同意的分享測試協議":"閱讀並確認分享測試協議";
   $("shareConsentStatus").textContent=consentReady()?"已同意分享測試協議："+legal.version+"。":legal?.published?"請先閱讀並滑動同意分享測試協議："+legal.version:"分享測試協議尚未載入或未發布。";
   if(submitState==="submitted"){$("swipeText").textContent="測試申請已提交 ✓";track.classList.add("completed");$("formFeedback").textContent="測試提交成功，不安排實際騎手取件。";}
   else if(submitState==="uncertain"){$("swipeText").textContent="請重新讀取確認提交結果";$("formFeedback").textContent="提交結果尚未確認，請按「重新讀取草稿」核對本人分享紀錄。暫不建立新申請。";}
@@ -64,7 +72,7 @@
    if(uncertain){const receipt=result.bags.find(b=>b.share_request_id===uncertain);if(receipt){requestId=uncertain;showReceipt({...receipt,request_id:uncertain,test_only:true});}else if(result.draft?.id!==uncertain){submitState="uncertain";requestId=uncertain;operation.textContent="提交結果仍無法確認，請保留畫面並聯繫小P，不要建立新申請。";}}
    if(path){try{const file=await api.downloadPhoto(path,userId);if(token!==seq)return;photoUrl=URL.createObjectURL(file);preview.src=photoUrl;preview.hidden=false;$("photoFeedback").textContent="已讀取本人私有放置點照片。";}catch(e){if(token===seq){$("photoFeedback").textContent=e.message;operation.textContent="草稿已讀取，但照片載入失敗；請重試。";}}}
   }catch(e){if(token===seq){clear();$("shareIdentity").textContent=e.message;operation.textContent="尚未載入分享資料，未執行寫入。";}}
-  finally{if(token===seq){busy=false;check();}}
+  finally{if(token===seq){busy=false;check();maybeOpenAgreement();}}
  }
  function changed(){resetSwipe();dirty=true;operation.textContent="";check();}
  count.addEventListener("input",changed);notes.addEventListener("input",changed);placed.addEventListener("change",()=>{resetSwipe();check();});
@@ -109,7 +117,7 @@
  const history=document.createElement("section");history.className="share-status-panel";history.innerHTML='<h2>我的分享</h2><div id="shareHistory" role="status">登入後可查詢本人分享紀錄。</div>';
  document.querySelector("#view-member .section").append(history);
  const historyEntry=[...document.querySelectorAll("#view-member .member-item")].find(e=>e.textContent.includes("我的分享"));if(historyEntry){historyEntry.setAttribute("role","button");historyEntry.tabIndex=0;const open=()=>history.scrollIntoView({behavior:"smooth",block:"start"});historyEntry.addEventListener("click",open);historyEntry.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();open();}});}
- window.LX_SHARE_AGREEMENT_UI.mount({button:$("shareTerms"),getDocument:()=>api.bootstrap(),agree:(version,id)=>api.activate(version,id),onAgreed:(legal,id)=>{if(id!==userId)return;state.service=legal;state.submission_enabled=legal.submission_enabled;operation.textContent="分享測試協議已同意並確認儲存；尚未提交申請。";resetSwipe();check();}});
+ const agreementUI=window.LX_SHARE_AGREEMENT_UI.mount({button:$("shareTerms"),getDocument:()=>api.bootstrap(),agree:(version,id)=>api.activate(version,id),onAgreed:(legal,id)=>{if(id!==userId)return;state.service=legal;state.submission_enabled=legal.submission_enabled;operation.textContent="分享測試協議已同意並確認儲存；尚未提交申請。";resetSwipe();check();}});
  function showReceipt(receipt){
   if(receipt.test_only!==true||!receipt.bag_code||receipt.request_id!==requestId)throw Error("提交回執與申請不一致，請重新讀取。");
   submitState="submitted";const date=new Date(receipt.pickup_deadline_at);operation.textContent="測試提交成功｜袋號："+receipt.bag_code+"｜測試取件期限："+date.toLocaleString("zh-TW",{timeZone:"Asia/Taipei"})+"。不安排實際取件，不需交付衣物。";
