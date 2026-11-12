@@ -19,7 +19,7 @@ const root=path.join(__dirname,'..'),html=fs.readFileSync(path.join(root,'rider.
  w.eval(fs.readFileSync(path.join(root,'rider-arrival-swipe.js'),'utf8'));w.eval(fs.readFileSync(path.join(root,'rider-route.js'),'utf8'));w.eval(source);w.dispatchEvent(new w.Event('lx-share-session-changed'));await wait();
  assert.equal(doc.querySelectorAll('#nav button').length,4);assert.ok(doc.querySelector('#main').textContent.includes('待接 1 件'));
  const click=s=>{const e=doc.querySelector(s);assert.ok(e,s);e.click();};
- click('[data-act=detail]');assert.equal(doc.querySelector('#vehicle').value,'v1');click('[data-act=accept]');await wait();
+ click('[data-act=detail]');assert.equal(doc.querySelector('#vehicle'),null);assert.ok(!doc.querySelector('#body').textContent.includes('機車'));click('[data-act=accept]');await wait();
  assert.ok(calls.some(c=>c.action==='claim'&&c.payload.vehicle_id==='v1'));assert.ok(doc.querySelector('h1').textContent.includes('挑選任務'));
  const swipe=(distance=260,type='pointerup')=>{const h=doc.querySelector('#proofConfirm .arrival-swipe-handle'),track=doc.querySelector('#proofConfirm .arrival-swipe');assert.ok(h);track.getBoundingClientRect=()=>({width:340});h.getBoundingClientRect=()=>({width:72});h.setPointerCapture=()=>{};for(const [name,x] of [['pointerdown',0],['pointermove',distance],[type,distance]]){const e=new w.MouseEvent(name,{clientX:x,button:0,bubbles:true,cancelable:true});Object.defineProperties(e,{pointerId:{value:1},isPrimary:{value:true}});h.dispatchEvent(e);}};
  const photo=async()=>{Object.defineProperty(doc.querySelector('#proof'),'files',{value:[{}],configurable:true});doc.querySelector('#proof').dispatchEvent(new w.Event('change',{bubbles:true}));await wait();};
