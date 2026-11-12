@@ -139,3 +139,12 @@ p{line-height:1.7}
 
 /* RIDER-TRIP-STOPS-01: ordered pickup/delivery actions, not one tab per bag. */
 .stop-list{list-style:none;padding:0;margin:16px 0}.stop-item{display:flex;gap:12px;padding:14px 0;border-top:1px solid #e1e1e1;align-items:flex-start}.stop-item:first-child{border-top:0}.stop-item>div{min-width:0;flex:1}.stop-item b,.stop-item .muted,.stop-state{display:block;overflow-wrap:anywhere}.stop-item b{font-size:18px;line-height:1.5}.stop-number{flex:none;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:#09923a;color:#fff;font-size:17px;font-weight:700}.delivery-stop .stop-number{background:#f4a574;color:#482e1d}.stop-state{font-size:16px;margin-top:3px;color:#444}.stop-done .stop-state{color:#087a33}.delivery-button{background:#f4a574;color:#482e1d}.delivery-card .secondary{background:#f4a574;color:#482e1d}.stats strong{overflow-wrap:anywhere}.stop-list .muted{font-size:15px}
+
+/* RIDER-WEB-CAMERA-FILL-01: fill follows the centre of the logo, returns with it. */
+.arrival-swipe-fill{position:absolute;left:0;top:0;bottom:0;width:var(--swipe-fill,36px);background:var(--swipe-tone,#09923a);pointer-events:none;transition:width 180ms ease-out}
+.arrival-swipe.delivery-apricot{--swipe-tone:#f4a574}
+.arrival-swipe.dragging .arrival-swipe-fill{transition:none}
+.arrival-swipe.pending .arrival-swipe-fill{width:100%}
+@media(prefers-reduced-motion:reduce){.arrival-swipe-fill{transition:none}}
+
+.rider-camera{background:#f5f5f5;border:1px solid #ddd;border-radius:14px;padding:14px;margin:16px 0}.rider-camera video{display:block;width:100%;max-height:42dvh;object-fit:contain;background:#111;border-radius:10px}.rider-camera video[hidden],.rider-camera button[hidden]{display:none}.rider-camera button{margin-top:10px}.camera-fallback{margin:14px 0;padding:12px;border:1px solid #ddd;border-radius:12px}.camera-fallback summary{min-height:44px;display:flex;align-items:center;cursor:pointer}.camera-fallback input{max-width:100%;font:inherit}
