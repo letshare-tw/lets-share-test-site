@@ -109,3 +109,15 @@ p{line-height:1.7}
 .task-facts span,.route,.address,.task-title,.pill,.choice{overflow-wrap:anywhere}
 .app{padding-bottom:calc(160px + env(safe-area-inset-bottom))}
 .app:has(.action:empty){padding-bottom:calc(80px + env(safe-area-inset-bottom))}
+
+/* RIDER-ARRIVAL-SWIPE-01: original logo as a small rounded rectangular handle. */
+.arrival-swipe{position:relative;height:72px;width:100%;border:1px solid #b8d6c3;border-radius:16px;background:#e2f0e7;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:pan-y}
+.arrival-swipe-label{display:flex;align-items:center;justify-content:center;position:absolute;inset:0;padding:6px 14px 6px 78px;font-size:18px;line-height:1.4;font-weight:700;color:#17663a;pointer-events:none;text-align:center}
+.arrival-swipe-handle{position:absolute;left:8px;top:7px;width:56px;height:56px;min-height:56px;padding:0;border:0;border-radius:11px;background:#09923a;box-shadow:0 2px 5px #126c3c26;touch-action:none;cursor:grab;overflow:hidden;transition:transform 180ms ease-out;-webkit-tap-highlight-color:transparent}
+.arrival-swipe-handle img{display:block;width:100%;height:100%;object-fit:contain;pointer-events:none;-webkit-user-drag:none}
+.arrival-swipe.dragging .arrival-swipe-handle{transition:none;cursor:grabbing}
+.arrival-swipe.pending .arrival-swipe-handle{cursor:wait;opacity:1}
+.arrival-swipe.pending .arrival-swipe-label,.arrival-swipe.armed .arrival-swipe-label{padding-left:12px;padding-right:78px}
+.arrival-swipe-handle:focus-visible{outline:3px solid #eda943;outline-offset:-3px}
+@media(max-width:350px){.arrival-swipe-label{font-size:16px}}
+@media(prefers-reduced-motion:reduce){.arrival-swipe-handle{transition:none}}

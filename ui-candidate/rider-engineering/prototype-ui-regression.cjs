@@ -16,12 +16,12 @@ const root=path.join(__dirname,'..'),html=fs.readFileSync(path.join(root,'rider.
   if(action==='handover'){assert.ok(payload.photo_path);data.tasks[0].delivery_photo_path=payload.photo_path;data.tasks[0].status='handover_pending';}
   data.revision++;return {ok:true};
  }};
- w.eval(source);w.dispatchEvent(new w.Event('lx-share-session-changed'));await wait();
+ w.eval(fs.readFileSync(path.join(root,'rider-arrival-swipe.js'),'utf8'));w.eval(source);w.dispatchEvent(new w.Event('lx-share-session-changed'));await wait();
  assert.equal(doc.querySelectorAll('#nav button').length,4);assert.ok(doc.querySelector('#main').textContent.includes('待接 1 件'));
  const click=s=>{const e=doc.querySelector(s);assert.ok(e,s);e.click();};
  click('[data-act=detail]');assert.equal(doc.querySelector('#vehicle').value,'v1');click('[data-act=accept]');await wait();
  assert.ok(calls.some(c=>c.action==='claim'&&c.payload.vehicle_id==='v1'));assert.ok(doc.querySelector('#main').textContent.includes('前往取件'));
- click('[data-act=arrive]');await wait();assert.ok(data.tasks[0].arrived_at);click('[data-act=pickup]');assert.equal(doc.querySelector('#finish').disabled,true);
+ {const h=doc.querySelector('.arrival-swipe-handle'),track=doc.querySelector('.arrival-swipe');track.getBoundingClientRect=()=>({width:340});h.getBoundingClientRect=()=>({width:56});h.setPointerCapture=()=>{};for(const [type,x] of [['pointerdown',0],['pointermove',260],['pointerup',260]]){const e=new w.MouseEvent(type,{clientX:x,button:0,bubbles:true,cancelable:true});Object.defineProperties(e,{pointerId:{value:1},isPrimary:{value:true}});h.dispatchEvent(e);}}await wait();assert.ok(data.tasks[0].arrived_at);click('[data-act=pickup]');assert.equal(doc.querySelector('#finish').disabled,true);
  Object.defineProperty(doc.querySelector('#proof'),'files',{value:[{}],configurable:true});doc.querySelector('#proof').dispatchEvent(new w.Event('change',{bubbles:true}));await wait();
  assert.equal(doc.querySelector('#preview').hidden,false);assert.equal(doc.querySelector('#finish').disabled,false);
  click('[data-act=finish]');await wait();assert.equal(uploaded.length,0,'bag/seal gate before upload');
