@@ -131,3 +131,8 @@ p{line-height:1.7}
 .arrival-swipe-handle:disabled{background:#09923a;opacity:1;cursor:not-allowed}
 .arrival-swipe.pending .arrival-swipe-handle{opacity:1}
 #proofConfirm{margin-top:18px}
+
+/* RIDER-DELIVERY-APRICOT-01: only rider delivery uses apricot; receiving remains green. */
+.arrival-swipe.delivery-apricot .arrival-swipe-handle{background:#f4a574}
+.arrival-swipe.delivery-apricot.pending{background:#f4a574;border-color:#f4a574}
+.arrival-swipe.delivery-apricot.pending .arrival-swipe-label{color:#fff;text-shadow:0 1px 2px #60321d66}

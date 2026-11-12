@@ -1,10 +1,10 @@
 "use strict";
 (()=>{
- function mount({host,getKey,onConfirm,labelText="向右滑動，確認抵達",pendingText="正在確認…",blockedText="請先完成前置資料",ariaLabel="向右滑動確認"}){
-  const track=document.createElement("div");track.className="arrival-swipe";track.setAttribute("role","group");track.setAttribute("aria-label",ariaLabel);
+ function mount({host,getKey,onConfirm,labelText="向右滑動，確認抵達",pendingText="正在確認…",blockedText="請先完成前置資料",ariaLabel="向右滑動確認",tone="green"}){
+  const track=document.createElement("div");track.className="arrival-swipe"+(tone==="apricot"?" delivery-apricot":"");track.setAttribute("role","group");track.setAttribute("aria-label",ariaLabel);
   const label=document.createElement("span");label.className="arrival-swipe-label";label.textContent=labelText;
   const handle=document.createElement("button");handle.type="button";handle.className="arrival-swipe-handle";handle.setAttribute("aria-label",ariaLabel);handle.title="拖曳至右側放開；鍵盤先按向右鍵，再按 Enter 確認";
-  const logo=document.createElement("img");logo.src="rider-logo.png";logo.alt="";logo.draggable=false;logo.setAttribute("aria-hidden","true");handle.append(logo);track.append(label,handle);host.append(track);
+  const logo=document.createElement("img");logo.src=tone==="apricot"?"rider-logo-apricot.svg":"rider-logo.png";logo.alt="";logo.draggable=false;logo.setAttribute("aria-hidden","true");handle.append(logo);track.append(label,handle);host.append(track);
   let pointer=null,start=0,position=0,key=null,committed=false,disposed=false;
   const travel=()=>Math.max(0,track.getBoundingClientRect().width-handle.getBoundingClientRect().width-16);
   const valid=()=>!disposed&&!committed&&!handle.disabled&&track.isConnected&&getKey()!==null;
