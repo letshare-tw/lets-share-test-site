@@ -9,17 +9,17 @@ const root=path.join(__dirname,'..'),html=fs.readFileSync(path.join(root,'rider.
  w.LX_RIDER_PHOTO={compress:async()=>new w.Blob([new Uint8Array(50000)],{type:'image/webp'})};
  w.LX_TEST_AUTH_ADAPTER={getSession:async()=>({user:{id:owner}}),riderProofUpload:async(p,b,id)=>{assert.equal(id,'A');assert.equal(b.size,50000);uploaded.push(p);},riderProofRemove:async()=>{},riderRequest:async(action,payload,id)=>{
   calls.push({action,payload,id});assert.equal(id,owner);
-  if(action==='bootstrap'){if(blocking)return new Promise(r=>release=r);return structuredClone(data);}
+  if(action==='bootstrap'){if(blocking)return new Promise(r=>release=r);return {...structuredClone(data),...(payload.task_id?{task_preview:[...data.available_tasks,...data.tasks].find(t=>t.id===payload.task_id)}:{})};}
   if(action==='claim'){data.available_tasks=[];data.tasks=[{...task,status:'accepted'}];}
   if(action==='arrive')data.tasks[0].arrived_at=new Date().toISOString();
   if(action==='pickup'){assert.ok(payload.photo_path);data.tasks[0].pickup_photo_path=payload.photo_path;data.tasks[0].status='picked_up';}
   if(action==='handover'){assert.ok(payload.photo_path);data.tasks[0].delivery_photo_path=payload.photo_path;data.tasks[0].status='handover_pending';}
   data.revision++;return {ok:true};
  }};
- w.eval(fs.readFileSync(path.join(root,'rider-arrival-swipe.js'),'utf8'));w.eval(fs.readFileSync(path.join(root,'rider-route.js'),'utf8'));w.eval(source);w.dispatchEvent(new w.Event('lx-share-session-changed'));await wait();
+ w.eval(fs.readFileSync(path.join(root,'rider-arrival-swipe.js'),'utf8'));w.eval(fs.readFileSync(path.join(root,'rider-route.js'),'utf8'));w.eval(fs.readFileSync(path.join(root,'rider-distance.js'),'utf8'));w.eval(source);w.dispatchEvent(new w.Event('lx-share-session-changed'));await wait();
  assert.equal(doc.querySelectorAll('#nav button').length,4);assert.ok(doc.querySelector('#main').textContent.includes('待接 1 件'));
  const click=s=>{const e=doc.querySelector(s);assert.ok(e,s);e.click();};
- click('[data-act=detail]');assert.equal(doc.querySelector('#vehicle'),null);assert.ok(!doc.querySelector('#body').textContent.includes('機車'));click('[data-act=accept]');await wait();
+ click('[data-act=detail]');await wait();assert.equal(doc.querySelector('#vehicle'),null);assert.ok(!doc.querySelector('#body').textContent.includes('本趟使用機車'));click('[data-act=accept]');await wait();
  assert.ok(calls.some(c=>c.action==='claim'&&c.payload.vehicle_id==='v1'));assert.ok(doc.querySelector('h1').textContent.includes('挑選任務'));
  const swipe=(distance=260,type='pointerup')=>{const h=doc.querySelector('#proofConfirm .arrival-swipe-handle'),track=doc.querySelector('#proofConfirm .arrival-swipe');assert.ok(h);track.getBoundingClientRect=()=>({width:340});h.getBoundingClientRect=()=>({width:72});h.setPointerCapture=()=>{};for(const [name,x] of [['pointerdown',0],['pointermove',distance],[type,distance]]){const e=new w.MouseEvent(name,{clientX:x,button:0,bubbles:true,cancelable:true});Object.defineProperties(e,{pointerId:{value:1},isPrimary:{value:true}});h.dispatchEvent(e);}};
  const photo=async()=>{Object.defineProperty(doc.querySelector('#proof'),'files',{value:[{}],configurable:true});doc.querySelector('#proof').dispatchEvent(new w.Event('change',{bubbles:true}));await wait();};
@@ -47,4 +47,3 @@ const root=path.join(__dirname,'..'),html=fs.readFileSync(path.join(root,'rider.
  blocking=true;click('#reload');await wait();owner='B';w.dispatchEvent(new w.Event('lx-share-session-changed'));release({...data,people:[{key:'rider1',label:'OLD_SECRET',eligible:true}]});await wait();assert.ok(!doc.body.textContent.includes('OLD_SECRET'));assert.equal(doc.querySelectorAll('#nav button').length,0);
  d.window.close();console.log('PASS: prototype module with mocked Auth/Storage: backend claim/ordinary arrival, final proof swipe gates, vehicle binding, bag/seal gates, compressed preview/upload paths, handover waits for receiver, fee lock, capacity disabled state, XSS escaping, motorcycle URL and account-switch stale response suppression. Not phone/Google/Storage end-to-end.');
 })().catch(e=>{console.error(e);process.exitCode=1;});
-

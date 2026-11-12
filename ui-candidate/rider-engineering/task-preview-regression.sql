@@ -1,0 +1,33 @@
+-- Run inside a rollback-only transaction with lx_test.owner and lx_test.other authorized owners.
+create temporary table preview_results(name text,pass boolean);
+create function pg_temp.preview_check(n text,v boolean) returns void language plpgsql as $$begin if not coalesce(v,false) then raise exception 'FAIL: %',n;end if;insert into preview_results values(n,true);end $$;
+create function pg_temp.preview_denied(u uuid,a text,t uuid,msg text) returns boolean language plpgsql as $$begin perform lx_rider_private.gateway(u,'bootstrap',jsonb_build_object('actor',a,'task_id',t));return false;exception when others then return sqlerrm=msg;end $$;
+do $$declare u uuid:=current_setting('lx_test.owner')::uuid;other_u uuid:=current_setting('lx_test.other')::uuid;w uuid;other_w uuid;t uuid;foreign_t uuid;v uuid;r jsonb;rev int;events_n int;commands_n int;
+begin
+ if not lx_share_private.test_member(u) or not lx_share_private.test_member(other_u) then raise exception 'Authorized test owners required';end if;
+ perform lx_rider_private.gateway(u,'initialize','{}');perform lx_rider_private.gateway(other_u,'initialize','{}');
+ select id into w from lx_rider_private.workspaces where owner_id=u;select id into other_w from lx_rider_private.workspaces where owner_id=other_u;
+ update lx_rider_private.people set application='approved',license_status='approved',cert_valid_until=current_date+365,simulation_confirmed=true where workspace_id=w and key='rider2';
+ insert into lx_rider_private.vehicles(workspace_id,rider_key,label,status,owner_authorized) values(w,'rider2','TEST-PREVIEW','approved',true) returning id into v;
+ insert into lx_rider_private.tasks(workspace_id,bag_code,pickup_label,delivery_label,pickup_lat,pickup_lng,delivery_lat,delivery_lng) values(w,'TEST-PREVIEW-'||gen_random_uuid(),'模擬取件地址','模擬送件地址',22.9971,120.2125,23.004,120.211) returning id into t;
+ insert into lx_rider_private.tasks(workspace_id,bag_code,pickup_label,delivery_label,pickup_lat,pickup_lng,delivery_lat,delivery_lng) values(other_w,'TEST-PREVIEW-'||gen_random_uuid(),'模擬外部取件','模擬外部送件',22.9971,120.2125,23.004,120.211) returning id into foreign_t;
+ select revision into rev from lx_rider_private.workspaces where id=w;select count(*) into events_n from lx_rider_private.events where workspace_id=w;select count(*) into commands_n from lx_rider_private.commands where workspace_id=w;
+ r:=lx_rider_private.gateway(u,'bootstrap',jsonb_build_object('actor','rider2','task_id',t));
+ perform pg_temp.preview_check('qualified own available task address and coordinates',r#>>'{task_preview,pickup_label}'='模擬取件地址' and (r#>>'{task_preview,pickup_lat}')::numeric=22.9971);
+ perform pg_temp.preview_check('preview has only eight minimal fields',(select count(*)=8 from jsonb_object_keys(r->'task_preview')));
+ perform pg_temp.preview_check('preview does not mutate revision events commands',(select revision=rev from lx_rider_private.workspaces where id=w) and (select count(*)=events_n from lx_rider_private.events where workspace_id=w) and (select count(*)=commands_n from lx_rider_private.commands where workspace_id=w));
+ r:=lx_rider_private.gateway(u,'bootstrap',jsonb_build_object('actor','rider2'));
+ perform pg_temp.preview_check('ordinary task pool has no addresses or coordinates',not exists(select 1 from jsonb_array_elements(r->'available_tasks') x where x ? 'pickup_lat' or x ? 'pickup_label' or x ? 'delivery_lng' or x ? 'delivery_label'));
+ perform pg_temp.preview_check('other workspace denied',pg_temp.preview_denied(u,'rider2',foreign_t,'RIDER_TASK_DENIED'));
+ perform pg_temp.preview_check('receiver cannot preview',pg_temp.preview_denied(u,'receiver',t,'RIDER_QUALIFICATION_DENIED'));
+ update lx_rider_private.tasks set rider_key='rider1',status='offered' where id=t;
+ perform pg_temp.preview_check('other rider offered task denied',pg_temp.preview_denied(u,'rider2',t,'RIDER_TASK_DENIED'));
+ update lx_rider_private.tasks set rider_key='rider2' where id=t;
+ r:=lx_rider_private.gateway(u,'bootstrap',jsonb_build_object('actor','rider2','task_id',t));
+ perform pg_temp.preview_check('own offered task preview allowed',r#>>'{task_preview,id}'=t::text);
+ update lx_rider_private.people set license_status='pending' where workspace_id=w and key='rider2';
+ perform pg_temp.preview_check('unqualified rider denied',pg_temp.preview_denied(u,'rider2',t,'RIDER_QUALIFICATION_DENIED'));
+ perform pg_temp.preview_check('public client gateway privilege still denied',not has_function_privilege('authenticated','public.lx_rider_test_gateway(uuid,text,jsonb)','execute'));
+ perform pg_temp.preview_check('formal operation stays locked',(select not formal_enabled from lx_rider_private.workspaces where id=w));
+end $$;
+select jsonb_build_object('passed',count(*),'failed',0,'cases',jsonb_agg(name),'scope','Rollback SQL service gateway; not Google Session or phone') as verification from preview_results;

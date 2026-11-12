@@ -99,7 +99,27 @@
  function renderMoney(){$('main').innerHTML=`<div class="eyebrow">YOUR EARNINGS</div><h1>我的收益</h1><div class="card"><span class="muted">本期配送收益</span><div class="money">NT$ —</div><span class="pill">正式費率與付款鎖定</span></div><div class="card"><h2>配送紀錄</h2>${data.tasks.map(t=>`<div class="route"><b>${esc(t.bag_code)}</b><span>${esc(labels[t.status])}</span>${t.receipt_code?'<p class="muted">'+esc(t.receipt_code)+'</p>':''}</div>`).join('')||'<p>尚無配送紀錄。</p>'}<p class="muted">只顯示後端任務紀錄，不以示範金額冒充已賺收益。</p></div>`;}
  function renderProfile(){const p=data.people.find(p=>p.key===actor);$('main').innerHTML=`<div class="eyebrow">RIDER PROFILE</div><h1>我的騎手資料</h1><div class="card"><div class="row"><h2>${esc(p?.label||'模擬騎手')}</h2><span class="pill">${p?.eligible?'模擬資格有效':'尚不可接單'}</span></div><p class="muted">工作區內的模擬角色，不是正式工作帳號。</p><div class="route"><b>良民證有效期限</b>${esc(p?.cert_valid_until||'尚未核准')}</div><div class="route"><b>我的機車</b>${data.vehicles.map(v=>'<p>'+esc(v.label)+' · '+esc({approved:'已核准',pending:'待審核',revoked:'授權已撤回'}[v.status])+'</p>').join('')||'尚未新增'}</div><button class="secondary" data-act="qual">查看資格、車輛與模擬證件</button><button class="cancel" data-act="history">查看操作歷程</button></div>`;}
  function defaultVehicle(){const cars=(data?.vehicles||[]).filter(v=>v.status==='approved'&&v.owner_authorized&&(!v.rider_key||v.rider_key===actor));return (data?.tasks||[]).slice().reverse().map(t=>cars.find(v=>v.id===t.vehicle_id)).find(Boolean)||cars[0]||null;}
- function detail(id){const t=[...(data.available_tasks||[]),...data.tasks].find(t=>t.id===id);if(!t)return;const car=defaultVehicle();modal(`<h2>任務詳情</h2><span class="pill">${esc(t.bag_code)}</span><div class="route"><b>臺南取件區 → 臺南交接區</b><p>1 袋 · 取件期限 ${esc(new Date(t.pickup_deadline).toLocaleString('zh-TW'))}</p></div><p class="muted">承接成功後才顯示導航目的地。費率未核定，僅測試操作。</p>${!car?'<p class="reminder">目前配送資格不完整，請至「我的」確認。</p>':''}<button class="primary" data-act="accept" data-id="${esc(t.id)}" data-kind="${t.status==='unassigned'?'claim':'accept'}" ${!car||active().length>=3?'disabled':''}>確認承接任務</button>`);}
+ async function detail(id){
+ const t=[...(data.available_tasks||[]),...data.tasks].find(t=>t.id===id);if(!t)return;
+ modal('<h2>任務詳情</h2><span class="pill">'+esc(t.bag_code)+'</span><div class="route"><p>1 袋 · 取件期限 '+esc(new Date(t.pickup_deadline).toLocaleString('zh-TW'))+'</p></div><section id="taskPreview" aria-live="polite">正在讀取取送地址與距離…</section><p class="muted">費率未核定，僅測試操作。</p><button class="primary" data-act="accept" data-id="'+esc(t.id)+'" data-kind="'+(t.status==='unassigned'?'claim':'accept')+'" disabled>確認承接任務</button>');
+ const version=epoch,modalVersion=modalEpoch,idOwner=owner,role=actor;
+ const valid=()=>version===epoch&&modalVersion===modalEpoch&&idOwner===owner&&role===actor&&$('sheet').classList.contains('open');
+ try{
+  const result=await auth.riderRequest('bootstrap',{actor:role,task_id:id},idOwner);if(!valid())return;
+  const p=result.task_preview;if(!p||p.id!==id)throw Error('任務地址尚未讀取，請重新查看。');
+  const distance=window.LX_RIDER_DISTANCE;
+  $('taskPreview').innerHTML='<div class="route"><b>取件地址</b><p>'+esc(p.pickup_label||'尚未提供')+'</p><b>送件地址</b><p>'+esc(p.delivery_label||'尚未提供')+'</p></div><div class="route"><b>取件點 → 送件點</b><p>'+esc(distance.format(distance.km(p.pickup_lat,p.pickup_lng,p.delivery_lat,p.delivery_lng)))+'</p><b>目前位置 → 取件點</b><p id="pickupDistance" role="status">正在取得目前位置…</p><button type="button" class="textbtn" id="retryPosition">重新定位</button></div><p class="muted">直線估算距離，非機車實際里程。定位僅在本頁計算，不會上傳。測試任務使用模擬地點，非正式取送門牌。</p>';
+  const accept=$('body').querySelector('[data-act="accept"]');accept.disabled=!defaultVehicle()||active().length>=3||busy;
+  let positionSeq=0;
+  function locate(){if(!valid())return;const seq=++positionSeq,button=$('retryPosition');button.disabled=true;
+   const finish=text=>{if(!valid()||seq!==positionSeq)return;$('pickupDistance').textContent=text;button.disabled=false;};
+   if(!navigator.geolocation){finish('此瀏覽器不支援定位，暫無法估算');return;}
+   $('pickupDistance').textContent='正在取得目前位置…';
+   navigator.geolocation.getCurrentPosition(pos=>finish(distance.format(distance.km(pos.coords.latitude,pos.coords.longitude,p.pickup_lat,p.pickup_lng))),err=>finish(err.code===1?'未允許定位，暫無法估算':'定位暫時無法取得，請重試'),{enableHighAccuracy:false,timeout:10000,maximumAge:60000});
+  }
+  $('retryPosition').addEventListener('click',locate);locate();
+ }catch(e){if(!valid())return;$('taskPreview').textContent=errors[e.code]||e.message||'地址讀取失敗，請返回後重新查看。';}
+ }
  function proofForm(kind){const t=current();if(!t||!working(kind==='pickup'?'pickup':'delivery'))return;modal(`<h2>${kind==='pickup'?'確認取件':'確認交出袋件'}</h2><p>分享袋：${esc(t.bag_code)} · 1 袋</p><label class="choice">核對袋號<input id="bag" type="text" autocomplete="off" placeholder="輸入或掃描袋號"></label><button class="secondary" data-act="scan">模擬掃描袋號</button>${kind==='pickup'?'<label class="choice"><input id="sealed" type="checkbox"> 我已核對封袋完整，未開袋</label>':''}<div id="riderCamera"></div><details class="camera-fallback"><summary>相機無法使用時，選擇照片</summary><label class="choice">選擇現場照片<input id="proof" type="file" accept="image/jpeg,image/png,image/webp" style="display:block;width:100%;margin-top:10px"></label></details><img id="preview" alt="現場照片縮圖" hidden><p id="proofState" class="proof-state">照片會先在本機壓縮至 100,000 bytes 以下，再上傳私密儲存空間。</p><div id="proofConfirm"></div>`);
   const taskId=t.id;
   proofControl=window.LX_RIDER_ARRIVAL?.mount({host:$('proofConfirm'),tone:kind==='delivery'?'apricot':'green',labelText:kind==='pickup'?'向右滑動，確認取件':'向右滑動，確認交付',pendingText:kind==='pickup'?'正在確認取件…':'正在確認交付…',blockedText:kind==='pickup'?'先核對袋號、封袋並拍照':'先核對袋號並完成拍照',ariaLabel:kind==='pickup'?'核袋與拍照完成後，向右滑動確認取件':'核袋與拍照完成後，向右滑動確認交付',getKey:()=>{
