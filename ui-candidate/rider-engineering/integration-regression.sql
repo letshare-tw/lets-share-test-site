@@ -6,8 +6,8 @@ create function pg_temp.int_denied(u uuid,a text,op text,p jsonb,msg text) retur
 do $$
 declare u uuid;b uuid;w uuid;v uuid;t uuid;ids uuid[]:='{}';code text;object_path text;before_count int;after_count int;req jsonb;r jsonb;rev int;cid uuid;
 begin
- select id into u from auth.users where lx_share_private.test_member(id) order by id limit 1;
- select id into b from auth.users where lx_share_private.test_member(id) order by id offset 1 limit 1;
+ u:=current_setting('lx_test.owner')::uuid;
+ b:=current_setting('lx_test.other')::uuid;
  select count(*) into before_count from public.lx_share_bags;
  perform lx_rider_private.gateway(u,'initialize','{}');perform lx_rider_private.gateway(b,'initialize','{}');
  select id into w from lx_rider_private.workspaces where owner_id=u;

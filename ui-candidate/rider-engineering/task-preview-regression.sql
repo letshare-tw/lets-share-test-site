@@ -14,7 +14,7 @@ begin
  select revision into rev from lx_rider_private.workspaces where id=w;select count(*) into events_n from lx_rider_private.events where workspace_id=w;select count(*) into commands_n from lx_rider_private.commands where workspace_id=w;
  r:=lx_rider_private.gateway(u,'bootstrap',jsonb_build_object('actor','rider2','task_id',t));
  perform pg_temp.preview_check('qualified own available task address and coordinates',r#>>'{task_preview,pickup_label}'='模擬取件地址' and (r#>>'{task_preview,pickup_lat}')::numeric=22.9971);
- perform pg_temp.preview_check('preview has only eight minimal fields',(select count(*)=8 from jsonb_object_keys(r->'task_preview')));
+ perform pg_temp.preview_check('preview has only nine minimal fields',(select count(*)=9 from jsonb_object_keys(r->'task_preview')));
  perform pg_temp.preview_check('preview does not mutate revision events commands',(select revision=rev from lx_rider_private.workspaces where id=w) and (select count(*)=events_n from lx_rider_private.events where workspace_id=w) and (select count(*)=commands_n from lx_rider_private.commands where workspace_id=w));
  r:=lx_rider_private.gateway(u,'bootstrap',jsonb_build_object('actor','rider2'));
  perform pg_temp.preview_check('ordinary task pool has no addresses or coordinates',not exists(select 1 from jsonb_array_elements(r->'available_tasks') x where x ? 'pickup_lat' or x ? 'pickup_label' or x ? 'delivery_lng' or x ? 'delivery_label'));

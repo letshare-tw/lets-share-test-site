@@ -1,0 +1,46 @@
+-- Caller wraps in BEGIN/ROLLBACK, lx_test.owner and lx_test.other are authorized test owners.
+create temporary table count_results(name text,pass boolean);
+create function pg_temp.ccheck(n text,v boolean) returns void language plpgsql as $$begin if not coalesce(v,false) then raise exception 'FAIL: %',n;end if;insert into count_results values(n,true);end $$;
+create function pg_temp.ccmd(u uuid,a text,op text,p jsonb default '{}') returns jsonb language plpgsql as $$declare r int;begin select revision into r from lx_rider_private.workspaces where owner_id=u;return lx_rider_private.gateway(u,op,p||jsonb_build_object('actor',a,'revision',r,'command_id',gen_random_uuid()));end $$;
+create function pg_temp.cdeny(u uuid,a text,op text,p jsonb,msg text) returns boolean language plpgsql as $$begin perform pg_temp.ccmd(u,a,op,p);return false;exception when others then return sqlerrm=msg;end $$;
+do $$declare u uuid:=current_setting('lx_test.owner')::uuid;b uuid:=current_setting('lx_test.other')::uuid;w uuid;wb uuid;v uuid;t uuid;ft uuid;r jsonb;req jsonb;rev int;before_events int;created uuid;newcode text;
+begin
+ if not lx_share_private.test_member(u) or not lx_share_private.test_member(b) then raise exception 'Authorized test owners required';end if;
+ perform lx_rider_private.gateway(u,'initialize','{}');perform lx_rider_private.gateway(b,'initialize','{}');select id into w from lx_rider_private.workspaces where owner_id=u;select id into wb from lx_rider_private.workspaces where owner_id=b;
+ update lx_rider_private.people set application='approved',license_status='approved',simulation_confirmed=true,cert_valid_until=current_date+365 where workspace_id=w and key='rider2';
+ insert into lx_rider_private.vehicles(workspace_id,rider_key,label,status,owner_authorized) values(w,'rider2','TEST-COUNT','approved',true) returning id into v;
+ insert into lx_rider_private.tasks(workspace_id,bag_code,pickup_label,delivery_label,pickup_lat,pickup_lng,delivery_lat,delivery_lng) values(w,'TEST-COUNT-'||gen_random_uuid(),'模擬取件','模擬交付',22.99,120.2,23,120.21) returning id into t;
+ insert into lx_rider_private.tasks(workspace_id,bag_code,pickup_label,delivery_label,pickup_lat,pickup_lng,delivery_lat,delivery_lng) values(wb,'TEST-COUNT-'||gen_random_uuid(),'模擬外部取件','模擬外部交付',22.99,120.2,23,120.21) returning id into ft;
+ perform pg_temp.ccheck('unknown count stays null',(select clothing_count is null from lx_rider_private.tasks where id=t));
+ perform pg_temp.ccheck('rider cannot set count',pg_temp.cdeny(u,'rider2','set_item_count',jsonb_build_object('task_id',t,'clothing_count',8),'RIDER_ROLE_DENIED'));
+ perform pg_temp.ccheck('receiver cannot set count',pg_temp.cdeny(u,'receiver','set_item_count',jsonb_build_object('task_id',t,'clothing_count',8),'RIDER_ROLE_DENIED'));
+ perform pg_temp.ccheck('other owner task denied',pg_temp.cdeny(u,'dispatch','set_item_count',jsonb_build_object('task_id',ft,'clothing_count',8),'RIDER_TASK_DENIED'));
+ for r in select x from jsonb_array_elements('[0,1001,1.5,"8",null,-1,100000000000000000000]') x loop
+ perform pg_temp.ccheck('invalid count rejected: '||r::text,pg_temp.cdeny(u,'dispatch','set_item_count',jsonb_build_object('task_id',t,'clothing_count',r),'RIDER_INPUT_INVALID'));
+ end loop;
+ select revision into rev from lx_rider_private.workspaces where id=w;select count(*) into before_events from lx_rider_private.events where workspace_id=w;
+ req:=jsonb_build_object('actor','dispatch','task_id',t,'clothing_count',8,'revision',rev,'command_id',gen_random_uuid());r:=lx_rider_private.gateway(u,'set_item_count',req);
+ perform pg_temp.ccheck('dispatcher stores valid count',(select clothing_count=8 from lx_rider_private.tasks where id=t));
+ perform pg_temp.ccheck('audit stores exact declared count',exists(select 1 from lx_rider_private.events where workspace_id=w and target_id=t and action='set_item_count' and detail->>'clothing_count'='8'));
+ perform pg_temp.ccheck('same command replay is idempotent',lx_rider_private.gateway(u,'set_item_count',req)=r and (select count(*)=before_events+1 from lx_rider_private.events where workspace_id=w));
+ begin perform lx_rider_private.gateway(u,'set_item_count',req||jsonb_build_object('clothing_count',9,'command_id',gen_random_uuid()));raise exception 'stale unexpectedly accepted';exception when others then perform pg_temp.ccheck('explicit stale revision refused',sqlerrm='RIDER_STALE_STATE');end;
+ perform pg_temp.ccmd(u,'dispatch','set_item_count',jsonb_build_object('task_id',t,'clothing_count',1000));
+ perform pg_temp.ccheck('upper boundary valid',(select clothing_count=1000 from lx_rider_private.tasks where id=t));
+ r:=lx_rider_private.gateway(u,'bootstrap',jsonb_build_object('actor','rider2','task_id',t));perform pg_temp.ccheck('scoped preview carries count',r#>>'{task_preview,clothing_count}'='1000');
+ perform pg_temp.ccheck('pool carries count without coordinates',exists(select 1 from jsonb_array_elements(r->'available_tasks') x where x->>'id'=t::text and x->>'clothing_count'='1000' and not x ? 'pickup_lat'));
+ perform pg_temp.ccmd(u,'dispatch','assign',jsonb_build_object('task_id',t,'rider','rider2','vehicle_id',v));perform pg_temp.ccmd(u,'dispatch','set_item_count',jsonb_build_object('task_id',t,'clothing_count',1));perform pg_temp.ccmd(u,'rider2','accept',jsonb_build_object('task_id',t,'vehicle_id',v));
+ perform pg_temp.ccheck('accepted count locked',pg_temp.cdeny(u,'dispatch','set_item_count',jsonb_build_object('task_id',t,'clothing_count',9),'RIDER_STATE_DENIED'));
+ perform pg_temp.ccmd(u,'rider2','pickup',jsonb_build_object('task_id',t,'bag_code',(select bag_code from lx_rider_private.tasks where id=t),'sealed',true));perform pg_temp.ccmd(u,'rider2','handover',jsonb_build_object('task_id',t));
+ r:=lx_rider_private.gateway(u,'bootstrap',jsonb_build_object('actor','receiver'));perform pg_temp.ccheck('receiver sees same declared count',exists(select 1 from jsonb_array_elements(r->'tasks') x where x->>'id'=t::text and x->>'clothing_count'='1'));
+ perform pg_temp.ccmd(u,'receiver','receive',jsonb_build_object('task_id',t,'bag_code',(select bag_code from lx_rider_private.tasks where id=t)));perform pg_temp.ccheck('receipt retains count and normal completion',(select clothing_count=1 and status='delivered' and receipt_code is not null from lx_rider_private.tasks where id=t));
+ select 'TEST-'||to_char(count(*)+1,'FM0000') into newcode from lx_rider_private.tasks where workspace_id=w;perform pg_temp.ccmd(u,'dispatch','create_tasks');select id into created from lx_rider_private.tasks where workspace_id=w and bag_code=newcode;perform pg_temp.ccheck('new synthetic task has two declared test items',(select clothing_count=2 from lx_rider_private.tasks where id=created));
+ for i in 1..12 loop insert into lx_rider_private.tasks(workspace_id,bag_code,status,rider_key,vehicle_id,pickup_label,delivery_label,pickup_lat,pickup_lng,delivery_lat,delivery_lng,picked_up_at,rider_handover_at) values(w,'TEST-COUNT-HISTORY-'||gen_random_uuid(),'handover_pending','rider2',v,'測試取件','測試送件',22.99,120.2,23,120.21,now(),now());end loop;
+ select 'TEST-'||to_char(count(*)+1,'FM0000') into newcode from lx_rider_private.tasks where workspace_id=w;perform pg_temp.ccmd(u,'dispatch','create_tasks');
+ perform pg_temp.ccheck('historical and pending signatures do not exhaust pool',exists(select 1 from lx_rider_private.tasks where workspace_id=w and bag_code=newcode and clothing_count=2));
+ perform pg_temp.ccheck('pending signature records remain untouched',(select count(*)=12 from lx_rider_private.tasks where workspace_id=w and bag_code like 'TEST-COUNT-HISTORY-%' and status='handover_pending' and received_at is null and receipt_code is null));
+ for i in 1..12 loop insert into lx_rider_private.tasks(workspace_id,bag_code,pickup_label,delivery_label,pickup_lat,pickup_lng,delivery_lat,delivery_lng) values(w,'TEST-COUNT-POOL-'||gen_random_uuid(),'測試取件','測試送件',22.99,120.2,23,120.21);end loop;
+ perform pg_temp.ccheck('active pool still bounded at twelve',pg_temp.cdeny(u,'dispatch','create_tasks','{}','RIDER_TASK_LIMIT'));
+ perform pg_temp.ccheck('private gateway remains service only',not has_function_privilege('authenticated','public.lx_rider_test_gateway(uuid,text,jsonb)','execute'));
+ perform pg_temp.ccheck('formal mode remains locked',(select not formal_enabled from lx_rider_private.workspaces where id=w));
+end $$;
+select jsonb_build_object('passed',count(*),'failed',0,'cases',jsonb_agg(name),'scope','Rollback SQL gateway tests; no real photo/Google/phone') as verification from count_results;

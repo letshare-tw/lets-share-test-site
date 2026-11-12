@@ -1,0 +1,14 @@
+const {JSDOM}=require('jsdom'),fs=require('fs'),path=require('path'),assert=require('assert/strict'),root=path.join(__dirname,'..'),tick=()=>new Promise(r=>setTimeout(r,15));
+(async()=>{
+ const d=new JSDOM(fs.readFileSync(path.join(root,'rider.html'),'utf8'),{runScripts:'outside-only',url:'https://letshare-tw.github.io/lets-share-test-site/ui-candidate/rider.html'}),w=d.window,doc=w.document,calls=[];
+ w.HTMLDialogElement.prototype.showModal=function(){this.setAttribute('open','')};w.HTMLDialogElement.prototype.close=function(){this.removeAttribute('open');this.dispatchEvent(new w.Event('close'))};
+ const task={id:'t',bag_code:'TEST-COUNT',status:'unassigned',pickup_label:'測試取件',delivery_label:'測試送件',pickup_deadline:new Date().toISOString(),clothing_count:null};
+ const data={workspace_id:'w',revision:1,notifications:[],people:[{key:'rider1',label:'騎手 A',role:'rider',application:'draft',eligible:false}],vehicles:[],documents:[],tasks:[task],events:[]};
+ w.LX_TEST_AUTH_ADAPTER={getSession:async()=>({user:{id:'A'}}),riderRequest:async(action,payload,id)=>{assert.equal(id,'A');if(action==='bootstrap')return structuredClone(data);calls.push({action,payload});assert.equal(payload.actor,'dispatch');assert.equal(payload.revision,data.revision);assert.ok(payload.command_id);task.clothing_count=payload.clothing_count;data.revision++;return {ok:true};}};
+ for(const f of ['rider-arrival-swipe.js','rider-workbench.js'])w.eval(fs.readFileSync(path.join(root,f),'utf8'));await tick();doc.querySelector('#riderWorkbenchEntry').click();await tick();
+ const clickText=t=>{const b=[...doc.querySelectorAll('.rw-dialog button')].find(b=>b.textContent===t);assert.ok(b,t);b.click()};
+ assert.equal([...doc.querySelectorAll('button')].some(b=>b.textContent==='儲存模擬件數'),false,'rider has no count editor');clickText('模擬總部');await tick();assert.match(doc.querySelector('.rw-dialog').textContent,/件數待確認/);const input=doc.querySelector('input[type=number]');assert.equal(input.min,'1');assert.equal(input.max,'1000');
+ for(const value of ['0','1001','1.5']){input.value=value;clickText('儲存模擬件數');await tick();assert.equal(calls.length,0,'invalid count must not be sent')}
+ input.value='8';clickText('儲存模擬件數');await tick();assert.equal(calls.length,1);assert.equal(calls[0].action,'set_item_count');assert.equal(calls[0].payload.clothing_count,8);assert.match(doc.querySelector('.rw-dialog').textContent,/共 8 件/);
+ task.status='accepted';clickText('重新讀取');await tick();assert.equal(doc.querySelector('.rw-dialog input[type=number]'),null,'accepted task has no editor');d.window.close();console.log('PASS dispatcher-only pre-accept count UI, integer range validation, bound task/revision/command and readback; accepted editor removed. Mock Auth/backend.');
+})().catch(e=>{console.error(e);process.exitCode=1});
