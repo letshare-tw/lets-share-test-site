@@ -26,7 +26,7 @@ const root=path.join(__dirname,'..'),html=fs.readFileSync(path.join(root,'rider.
  click('[data-tab=ride]');assert.equal(doc.querySelector('[data-act=arrive]'),null,'departure required before work');
  {const track=doc.querySelector('#departureConfirm .arrival-swipe'),h=track.querySelector('button');track.getBoundingClientRect=()=>({width:340});h.getBoundingClientRect=()=>({width:56});h.setPointerCapture=()=>{};for(const [name,x] of [['pointerdown',0],['pointermove',260],['pointerup',260]]){const e=new w.MouseEvent(name,{clientX:x,button:0,bubbles:true,cancelable:true});Object.defineProperties(e,{pointerId:{value:1},isPrimary:{value:true}});h.dispatchEvent(e);}}await wait();await wait();
  assert.equal(doc.querySelector('.arrival-swipe'),null,'arrival is ordinary action after departure');
- click('[data-act=arrive]');await wait();assert.ok(data.tasks[0].arrived_at);click('[data-act=pickup]');
+ click('[data-act=arrive]');await wait();assert.ok(data.tasks[0].arrived_at);assert.ok(doc.querySelector('.sheet.open'),'arrival opens proof form without second tap');assert.ok(doc.querySelector('#bag'));
  assert.equal(doc.querySelector('.arrival-swipe-handle').disabled,true);assert.equal(doc.querySelector('[data-act=finish]'),null,'old click completion is removed');
  swipe();await wait();assert.equal(uploaded.length,0,'no upload before bag/photo');
  await photo();assert.equal(doc.querySelector('#preview').hidden,false);assert.equal(doc.querySelector('.arrival-swipe-handle').disabled,true,'photo alone is insufficient');
