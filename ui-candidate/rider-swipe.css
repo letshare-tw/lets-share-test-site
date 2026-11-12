@@ -25,7 +25,7 @@
 .rw-dialog .arrival-swipe.pending .arrival-swipe-fill{width:100%}
 @media(prefers-reduced-motion:reduce){.rw-dialog .arrival-swipe-fill{transition:none}}
 
-/* RIDER-SWIPE-SEAMLESS-01: full-height logo joins the fill with no inset or separate shadow. */
+/* RIDER-SWIPE-SEAMLESS-01: full-height original logo; no zoom, crop, blend or separate shadow. */
 .rw-dialog .arrival-swipe{border:0}
 .rw-dialog .arrival-swipe-handle{left:0;top:0;width:72px;height:72px;min-height:72px;border:0;border-radius:16px;box-shadow:none}
-.rw-dialog .arrival-swipe-handle img{border-radius:0;transform:scale(1.2);mix-blend-mode:lighten}
+.rw-dialog .arrival-swipe-handle img{border-radius:0;transform:none;mix-blend-mode:normal;object-fit:contain;max-height:none}

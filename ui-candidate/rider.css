@@ -149,7 +149,7 @@ p{line-height:1.7}
 
 .rider-camera{background:#f5f5f5;border:1px solid #ddd;border-radius:14px;padding:14px;margin:16px 0}.rider-camera video{display:block;width:100%;max-height:42dvh;object-fit:contain;background:#111;border-radius:10px}.rider-camera video[hidden],.rider-camera button[hidden]{display:none}.rider-camera button{margin-top:10px}.camera-fallback{margin:14px 0;padding:12px;border:1px solid #ddd;border-radius:12px}.camera-fallback summary{min-height:44px;display:flex;align-items:center;cursor:pointer}.camera-fallback input{max-width:100%;font:inherit}
 
-/* RIDER-SWIPE-SEAMLESS-01: full-height logo joins the fill with no inset or separate shadow. */
+/* RIDER-SWIPE-SEAMLESS-01: full-height original logo; no zoom, crop, blend or separate shadow. */
 .arrival-swipe{border:0}
 .arrival-swipe-handle{left:0;top:0;width:72px;height:72px;min-height:72px;border:0;border-radius:16px;box-shadow:none}
-.arrival-swipe-handle img{border-radius:0;transform:scale(1.2);mix-blend-mode:lighten}
+.arrival-swipe-handle img{border-radius:0;transform:none;mix-blend-mode:normal;object-fit:contain;max-height:none}
