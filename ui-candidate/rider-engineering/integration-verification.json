@@ -1,0 +1,69 @@
+{
+  "version": "RIDER-TEST-03",
+  "date": "2026-11-12 Asia/Taipei",
+  "baseline": "73e296e28af79606b096d3860faf336791653c86",
+  "prototype": {
+    "version": 8,
+    "commit": "2642af052f4f596c34043a1ae79bb6425911107d",
+    "remote_changed": false
+  },
+  "database": {
+    "cases": [
+      "pool summary hides coordinates",
+      "other workspace cannot claim",
+      "receiver cannot claim",
+      "three pool claims succeed",
+      "fourth claim is blocked",
+      "other rider cannot claim taken task",
+      "arrival timestamp persists",
+      "missing proof object rejected when referenced",
+      "waiting receiver still uses capacity",
+      "receiver completion releases one slot",
+      "duplicate claim command returns same result",
+      "completed task stays in history",
+      "own accepted task permits proof insert",
+      "other actor path cannot upload proof",
+      "path traversal rejected",
+      "other account cannot read target proof",
+      "other account cannot insert target proof",
+      "expired qualification blocks new pickup proof",
+      "expired rider may upload safety handover proof",
+      "empty photo cannot produce signed link",
+      "existing share bags untouched",
+      "proof bucket enforces private 100000-byte limit",
+      "client still cannot execute service gateway"
+    ],
+    "scope": "Rollback database tests. Fixture qualification and simulated SQL claims, not Google Session, actual Storage requests, native Maps or phone acceptance.",
+    "failed": 0,
+    "passed": 23
+  },
+  "legacy_database": {
+    "passed": 42,
+    "failed": 0,
+    "mode": "rollback / virtual fixture qualification"
+  },
+  "frontend": {
+    "prototype_ui": "PASS mock Auth/Storage; includes initial session event and account-change races",
+    "adapter": "PASS mock SDK 100000/100001 boundary",
+    "photo_encoder": "PASS existing mocked regression"
+  },
+  "edge": {
+    "version": 4,
+    "status": "ACTIVE",
+    "verify_jwt": true
+  },
+  "readiness": {
+    "virtual_riders": 1,
+    "approved_virtual_vehicles": 1,
+    "available_test_tasks": 4,
+    "formal_enabled_count": 0
+  },
+  "pending": [
+    "phone UI",
+    "valid Google Session end-to-end",
+    "actual Storage proof upload/read/delete/boundary",
+    "native Maps launch",
+    "concurrent independent first claims",
+    "real working-account role isolation"
+  ]
+}

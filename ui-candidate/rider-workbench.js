@@ -139,9 +139,9 @@
     }
     if(t.status==='accepted'){
      const code=el('input');code.placeholder='袋號';code.autocomplete='off';const sealed=el('input');sealed.type='checkbox';
-     c.append(field('核對分享袋編號',code),button('模擬掃描袋號',()=>{code.value=t.bag_code;},true),field('模擬確認封袋完整，未開袋',sealed),button('確認取件',()=>run('pickup',{task_id:t.id,bag_code:code.value.trim(),sealed:sealed.checked})));
+     c.append(field('核對分享袋編號',code),button('模擬掃描袋號',()=>{code.value=t.bag_code;},true),field('模擬確認封袋完整，未開袋',sealed),button('開啟新版拍照取件',()=>location.assign('./rider.html?actor='+encodeURIComponent(actor))));
     }
-    if(t.status==='picked_up')c.append(button('我已交出袋件，等待對方簽收',()=>run('handover',{task_id:t.id})));
+    if(t.status==='picked_up')c.append(button('開啟新版交付拍照',()=>location.assign('./rider.html?actor='+encodeURIComponent(actor))));
     if(['accepted','picked_up','handover_pending'].includes(t.status)){
      const reason=select([['bag_missing','找不到袋件'],['seal_broken','封袋破損'],['address_issue','地址問題'],['cannot_deliver','無法交付'],['safety','安全問題']]);
      const note=el('input');note.maxLength=200;note.placeholder='補充說明（不填個資）';c.append(field('異常類型',reason),field('補充說明',note),button('回報異常',()=>run('exception',{task_id:t.id,code:reason.value,note:note.value}),true));
@@ -175,6 +175,7 @@
   const entry=button('樂享騎手｜受控測試工作台',async()=>{
    lastFocus=document.activeElement;epoch++;owner=null;snapshot=null;actor='rider1';body.replaceChildren();panel.showModal();await refresh();
   },true);entry.id='riderWorkbenchEntry';host.append(entry);
+  if(!location.pathname.endsWith('/rider.html')){const portal=document.createElement('a');portal.href='./rider.html?v=RIDER-TEST-03';portal.textContent='開啟騎手工作站｜任務・配送・收益・我的';portal.className='rw-button';portal.style.cssText='display:block;margin:16px 0;padding:16px;background:#09923a;color:white;border-radius:12px;text-align:center;text-decoration:none';host.insertBefore(portal,entry);}
   panel=el('dialog',undefined,'rw-dialog');panel.setAttribute('aria-labelledby','rwTitle');
   const head=el('header',undefined,'rw-header'),title=el('h2','樂享騎手');title.id='rwTitle';
   const close=button('關閉',()=>panel.close(),true);close.dataset.close='true';head.append(title,close);
@@ -187,3 +188,4 @@
  Object.defineProperty(window,'LX_RIDER_WORKBENCH',{value:Object.freeze({navigationUrl}),writable:false});
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
 })();
+
