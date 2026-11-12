@@ -14,6 +14,8 @@
   }).join('|'));}return u.href;
  }
  let panel,body,status,roleBar,actor='rider1',snapshot=null,owner=null,epoch=0,busy=false,retry=null,lastFocus=null;
+ const receiveControls=new Set();
+ function clearSwipes(){for(const c of receiveControls)c.destroy();receiveControls.clear();}
  const api=()=>window.LX_TEST_AUTH_ADAPTER;
  const el=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;};
  function message(text){status.textContent=text;}
@@ -38,7 +40,7 @@
    try{await load(version);}catch(_){}if(version===epoch)message(text);return null;
   }finally{if(version===epoch){busy=false;setDisabled(false);renderRetry();}}
  }
- function setDisabled(value){if(!panel)return;panel.querySelectorAll('button,input,select').forEach(b=>{if(!b.dataset.close)b.disabled=value;});}
+ function setDisabled(value){if(!panel)return;panel.querySelectorAll('button,input,select').forEach(b=>{if(!b.dataset.close)b.disabled=value;});for(const c of receiveControls)c.refresh();}
  function renderRetry(){panel?.querySelector('#rwRetry')?.remove();if(!retry)return;const b=button('重試模擬圖片',async()=>{
   if(busy)return;busy=true;const version=epoch;setDisabled(true);
   try{await api().riderRequest(retry.action,retry.command,retry.id);if(version!==epoch)return;retry=null;await load(version);message('模擬圖片已完成。');}
@@ -51,10 +53,11 @@
   if(version!==epoch)return;
   owner=id;snapshot=data;render();
  }
- function clear(){epoch++;snapshot=null;owner=null;retry=null;busy=false;if(body)body.replaceChildren();if(panel?.open)panel.close();}
+ function clear(){clearSwipes();epoch++;snapshot=null;owner=null;retry=null;busy=false;if(body)body.replaceChildren();if(panel?.open)panel.close();}
  function render(){
+  clearSwipes();
   panel.querySelectorAll('a').forEach(a=>a.remove());body.replaceChildren();roleBar.replaceChildren();
-  for(const [key,label] of Object.entries(roles)){const b=button(label,()=>{if(busy)return;epoch++;actor=key;snapshot=null;body.replaceChildren();refresh();},true);b.setAttribute('aria-pressed',String(actor===key));roleBar.append(b);}
+  for(const [key,label] of Object.entries(roles)){const b=button(label,()=>{if(busy)return;clearSwipes();epoch++;actor=key;snapshot=null;body.replaceChildren();refresh();},true);b.setAttribute('aria-pressed',String(actor===key));roleBar.append(b);}
   if(!snapshot?.workspace_id){body.append(el('p','建立專屬模擬工作區後，可測試資格審核、接單、取件及雙方交接。'),button('建立本人模擬工作區',()=>run('initialize')));return;}
   const intro=card(roles[actor]);intro.append(el('p','測試紀錄會儲存在後端；每個 Google 帳號的工作區分開。切換模擬角色不會取得任何正式工作權限。'));body.append(intro);
   for(const n of snapshot.notifications||[])body.append(el('p',(roles[n.rider]||'')+'：'+n.message+'（剩餘 '+n.days_left+' 天）','rw-banner'));
@@ -148,7 +151,16 @@
     }
    }
    if(actor==='receiver'&&t.status==='handover_pending'){
-    const code=el('input');code.placeholder='請核對袋號';c.append(field('收件袋號',code),button('模擬掃描袋號',()=>{code.value=t.bag_code;},true),button('確認收到袋件並簽收',()=>run('receive',{task_id:t.id,bag_code:code.value.trim()})));
+    const code=el('input');code.placeholder='請核對袋號';code.autocomplete='off';
+    const host=el('div');let control;
+    c.append(field('收件袋號',code),button('模擬掃描袋號',()=>{code.value=t.bag_code;control?.refresh();},true),host);
+    const version=epoch,taskId=t.id,taskRevision=snapshot.revision;
+    control=window.LX_RIDER_ARRIVAL?.mount({host,labelText:'向右滑動，確認簽收',pendingText:'正在確認簽收…',blockedText:'請先核對收件袋號',ariaLabel:'核對袋號後，向右滑動確認簽收',getKey:()=>{
+     const task=snapshot?.tasks.find(x=>x.id===taskId);
+     return panel.open&&!busy&&owner&&epoch===version&&actor==='receiver'&&snapshot.revision===taskRevision&&task?.status==='handover_pending'&&code.value.trim()===task.bag_code?[version,owner,actor,taskId,taskRevision].join(':'):null;
+    },onConfirm:()=>run('receive',{task_id:taskId,bag_code:code.value.trim()})});
+    if(control){receiveControls.add(control);code.addEventListener('input',()=>control.refresh());}
+    else host.textContent='滑動元件未載入，請重新整理。';
    }
    if(t.status==='delivered')c.append(el('p','計費依據已保留；費率未設定，不產生應付款或實際匯款。','rw-muted'));
    section.append(c);
@@ -182,7 +194,7 @@
   status=el('p','', 'rw-status');status.setAttribute('role','status');status.setAttribute('aria-live','polite');
   roleBar=el('div',undefined,'rw-roles');roleBar.setAttribute('aria-label','切換模擬角色');body=el('div');
   panel.append(head,el('p','受控模擬測試 · 正式營運鎖定','rw-banner'),roleBar,status,button('重新讀取',refresh,true),body);document.body.append(panel);
-  panel.addEventListener('close',()=>{epoch++;snapshot=null;owner=null;retry=null;busy=false;body.replaceChildren();roleBar.replaceChildren();panel.querySelectorAll('a').forEach(a=>a.remove());lastFocus?.focus();});
+  panel.addEventListener('close',()=>{clearSwipes();epoch++;snapshot=null;owner=null;retry=null;busy=false;body.replaceChildren();roleBar.replaceChildren();panel.querySelectorAll('a').forEach(a=>a.remove());lastFocus?.focus();});
   window.addEventListener('lx-share-session-changed',clear);
  }
  Object.defineProperty(window,'LX_RIDER_WORKBENCH',{value:Object.freeze({navigationUrl}),writable:false});

@@ -1,0 +1,19 @@
+.rw-dialog .arrival-swipe{position:relative;height:72px;width:100%;border:1px solid #b8d6c3;border-radius:16px;background:#e2f0e7;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:pan-y}
+.rw-dialog .arrival-swipe-label{display:flex;align-items:center;justify-content:center;position:absolute;inset:0;padding:6px 14px 6px 78px;font-size:18px;line-height:1.4;font-weight:700;color:#17663a;pointer-events:none;text-align:center}
+.rw-dialog .arrival-swipe-handle{position:absolute;left:8px;top:7px;width:56px;height:56px;min-height:56px;padding:0;border:0;border-radius:11px;background:#09923a;box-shadow:0 2px 5px #126c3c26;touch-action:none;cursor:grab;overflow:hidden;transition:transform 180ms ease-out;-webkit-tap-highlight-color:transparent}
+.rw-dialog .arrival-swipe-handle img{display:block;width:100%;height:100%;object-fit:contain;pointer-events:none;-webkit-user-drag:none}
+.rw-dialog .arrival-swipe.dragging .rw-dialog .arrival-swipe-handle{transition:none;cursor:grabbing}
+.rw-dialog .arrival-swipe.pending .rw-dialog .arrival-swipe-handle{cursor:wait;opacity:1}
+.rw-dialog .arrival-swipe.pending .rw-dialog .arrival-swipe-label,.rw-dialog .arrival-swipe.armed .rw-dialog .arrival-swipe-label{padding-left:12px;padding-right:78px}
+.rw-dialog .arrival-swipe-handle:focus-visible{outline:3px solid #eda943;outline-offset:-3px}
+@media(max-width:350px){.rw-dialog .arrival-swipe-label{font-size:16px}}
+@media(prefers-reduced-motion:reduce){.rw-dialog .arrival-swipe-handle{transition:none}}
+
+/* RIDER-SWIPE-GREY-03: grey/black, brand green/white when snapped right. */
+.rw-dialog .arrival-swipe{background:#d9d9d9;border-color:#d9d9d9;transition:background-color 180ms ease-out,border-color 180ms ease-out}
+.rw-dialog .arrival-swipe-label{color:#000}
+.rw-dialog .arrival-swipe.unready{background:#d9d9d9;border-color:#d9d9d9}
+.rw-dialog .arrival-swipe.pending{background:#09923a;border-color:#09923a}
+.rw-dialog .arrival-swipe.pending .rw-dialog .arrival-swipe-label{color:#fff}
+.rw-dialog .arrival-swipe-handle:disabled{background:#09923a;opacity:1;cursor:not-allowed}
+.rw-dialog .arrival-swipe.pending .rw-dialog .arrival-swipe-handle{opacity:1}
