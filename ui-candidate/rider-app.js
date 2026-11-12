@@ -62,11 +62,11 @@
    await load().catch(()=>{});if(version===epoch)toast(errors[e.code]||e.message||'結果未確認，請重新讀取任務狀態。');return null;
   }finally{if(version===epoch){busy=false;lock();departureControl?.refresh();proofControl?.refresh();}}
  }
- function nav(){ $('nav').innerHTML=[['tasks','任務'],['ride','配送'],['money','收益'],['user','我的']].map(([key,label])=>`<button type="button" data-tab="${key}" class="${tab===key?'active tap-feedback':''}" ${tab===key?'aria-current="page"':''}>${icon(key)}<span>${label}</span></button>`).join(''); }
+ function nav(){ $('nav').innerHTML=[['tasks','任務'],['ride','配送'],['money','收益'],['user','我的']].map(([key,label])=>`<button type="button" data-tab="${key}" class="${(tab===key||key==='tasks'&&tab==='available')?'active tap-feedback':''}" ${(tab===key||key==='tasks'&&tab==='available')?'aria-current="page"':''}>${icon(key)}<span>${label}</span></button>`).join(''); }
  function render(){departureControl?.destroy();departureControl=null;restoreTrip();nav();$('action').replaceChildren();
   if(!data?.workspace_id){$('main').innerHTML='<h1>開始騎手測試</h1><div class="card"><p>建立本人隔離工作區後，先完成模擬資格與車輛審核。這不授予正式工作權限。</p><button class="primary" data-act="init">建立本人模擬工作區</button></div>';return;}
   if(!currentId||!data.tasks.some(t=>t.id===currentId))currentId=active()[0]?.id||data.tasks[0]?.id||null;
-  if(tab==='tasks')renderTasks();else if(tab==='ride')renderRide();else if(tab==='money')renderMoney();else renderProfile();lock();proofControl?.refresh();cameraControl?.refresh();
+  if(tab==='tasks'||tab==='available')renderTasks(tab==='available');else if(tab==='ride')renderRide();else if(tab==='money')renderMoney();else renderProfile();lock();proofControl?.refresh();cameraControl?.refresh();
  }
 
  let cardScope='',cardPreviews=new Map(),cardPending=new Set(),listPosition=null,listLocationStatus='尚未定位',locationRequested=false,locationBusy=false,locationSeq=0;
@@ -77,7 +77,7 @@
   return '<section class="task-distance"><span>目前位置 → 取件點</span><strong'+(list?'':' id="pickupDistance" role="status"')+'>'+esc(locationText)+'</strong><small>取件 → 送件：'+esc(routeDistance)+'</small></section><section class="task-addresses"><div><span>取件地址</span><b>'+esc(p?.pickup_label||'地址讀取中…')+'</b></div><div><span>送件地址</span><b>'+esc(p?.delivery_label||'地址讀取中…')+'</b></div></section><p class="task-quantity">'+esc(itemQuantity({...t,...p}))+'</p>';
  }
  function pickupEstimate(p){if(!listPosition)return listLocationStatus;return window.LX_RIDER_DISTANCE.format(window.LX_RIDER_DISTANCE.km(listPosition.latitude,listPosition.longitude,p?.pickup_lat,p?.pickup_lng));}
- function paintTaskFocus(){if(tab!=='tasks')return;document.querySelectorAll('[data-card-focus]').forEach(el=>{const t=[...(data.available_tasks||[]),...data.tasks].find(t=>t.id===el.dataset.cardFocus);if(!t)return;const p=cardPreviews.get(t.id)||null;el.innerHTML=focusMarkup(p,t,pickupEstimate(p),true);if(p?.error)el.querySelector('.task-addresses').textContent='地址未能讀取，請查看任務或重新讀取。';});const b=$('listLocate');if(b){b.disabled=locationBusy;b.textContent=locationBusy?'正在定位…':'更新目標距離';}}
+ function paintTaskFocus(){if(!['tasks','available'].includes(tab))return;document.querySelectorAll('[data-card-focus]').forEach(el=>{const t=[...(data.available_tasks||[]),...data.tasks].find(t=>t.id===el.dataset.cardFocus);if(!t)return;const p=cardPreviews.get(t.id)||null;el.innerHTML=focusMarkup(p,t,pickupEstimate(p),true);if(p?.error)el.querySelector('.task-addresses').textContent='地址未能讀取，請查看任務或重新讀取。';});const b=$('listLocate');if(b){b.disabled=locationBusy;b.textContent=locationBusy?'正在定位…':'更新目標距離';}}
  function locateTaskList(){if(locationBusy||!owner)return;locationRequested=true;locationBusy=true;listLocationStatus='正在定位…';const scope=taskScope(),seq=++locationSeq;paintTaskFocus();
   const finish=(position,message)=>{if(scope!==taskScope()||seq!==locationSeq)return;listPosition=position;listLocationStatus=message;locationBusy=false;paintTaskFocus();};
   if(!navigator.geolocation){finish(null,'此瀏覽器無法定位');return;}
@@ -92,7 +92,12 @@
   void worker();void worker();
  }
 
- function renderTasks(){const n=active().length,available=data.available_tasks||[],offered=data.tasks.filter(t=>t.status==='offered');
+ function renderSelectedTrip(){
+  const items=stops(),done=items.filter(s=>s.done).length,extra=active().filter(t=>!trip.ids.includes(t.id));
+  $('main').innerHTML='<div class="eyebrow">THIS TRIP</div><div class="row"><h1>本趟取送任務</h1>'+(active().length<3?'<button type="button" class="textbtn" data-tab="available">繼續挑選任務 →</button>':'')+'</div><section class="card"><div class="row"><b>已完成 '+done+'／'+items.length+' 項</b><span class="pill">待完成 '+(items.length-done)+' 項</span></div>'+stopList(items)+'</section>'+(extra.length?'<section class="card"><h2>下一趟已選任務</h2><p>'+extra.map(t=>esc(t.bag_code)).join('、')+' · '+extra.length+' 袋</p><p class="muted">本趟交付後，再確認下一趟出發。</p></section>':'');
+  $('action').innerHTML='<button type="button" class="primary" data-tab="ride">前往目前站點 →</button>';
+ }
+ function renderTasks(forcePicker=false){if(inTrip()&&!forcePicker){renderSelectedTrip();return;}const n=active().length,available=data.available_tasks||[],offered=data.tasks.filter(t=>t.status==='offered');
   const person=data.people.find(p=>p.key===actor);
   $('main').innerHTML=`<div class="eyebrow">AVAILABLE TASKS</div><div class="row"><h1>挑選任務</h1><span class="pill">待接 ${available.length+offered.length} 件</span></div><div class="capacity"><div class="row"><b>身上任務 ${n}／3 袋</b><button class="textbtn" data-tab="ride">查看本趟路線 →</button></div><div class="slots">${[0,1,2].map(i=>`<i class="${i<n?'filled':''}"></i>`).join('')}</div><p class="reminder">${n>=3?'身上已滿三袋，交付袋件後即釋出名額。':'目前還可接 '+(3-n)+' 件。'}</p></div>${!person?.eligible?'<div class="qual-status">尚未取得有效模擬資格。<button class="textbtn" data-act="qual">查看資格與機車 →</button></div>':''}${[...offered,...available].map(t=>`<article class="card task-card"><div class="row"><span class="pill">衣物取送 · 測試</span><span class="muted">${esc(t.bag_code)}</span></div><div data-card-focus="${esc(t.id)}">${focusMarkup(cardPreviews.get(t.id),t,pickupEstimate(cardPreviews.get(t.id)),true)}</div><p class="task-deadline">取件期限 ${esc(new Date(t.pickup_deadline).toLocaleString('zh-TW'))}</p><div class="row task-bottom"><span class="muted">費率尚未核定</span><button class="primary compact" data-act="detail" data-id="${esc(t.id)}" ${n>=3?'disabled':''}>${n>=3?'已接滿三件':'查看任務 →'}</button></div></article>`).join('')}${!available.length&&!offered.length?'<div class="empty">目前沒有可承接任務。<br><button class="textbtn" data-act="qual">前往測試管理建立模擬任務</button></div>':''}<p class="muted">任務來自本人隔離的測試工作區，不會安排實際取送。</p>`;
   $('main').insertAdjacentHTML('beforeend','<p class="task-distance-note">直線估算，非機車實際里程。<button type="button" class="textbtn" id="listLocate" data-act="locate-list">更新目標距離</button></p>');loadTaskCardPreviews();paintTaskFocus();
