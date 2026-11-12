@@ -1,0 +1,48 @@
+:is(.share-form,.share-agreement-dialog) .arrival-swipe{position:relative;height:72px;width:100%;border:1px solid #b8d6c3;border-radius:16px;background:#e2f0e7;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:pan-y}
+:is(.share-form,.share-agreement-dialog) .arrival-swipe-label{display:flex;align-items:center;justify-content:center;position:absolute;inset:0;padding:6px 14px 6px 78px;font-size:18px;line-height:1.4;font-weight:700;color:#17663a;pointer-events:none;text-align:center}
+:is(.share-form,.share-agreement-dialog) .arrival-swipe-handle{position:absolute;left:8px;top:7px;width:56px;height:56px;min-height:56px;padding:0;border:0;border-radius:11px;background:#09923a;box-shadow:0 2px 5px #126c3c26;touch-action:none;cursor:grab;overflow:hidden;transition:transform 180ms ease-out;-webkit-tap-highlight-color:transparent}
+:is(.share-form,.share-agreement-dialog) .arrival-swipe-handle img{display:block;width:100%;height:100%;object-fit:contain;pointer-events:none;-webkit-user-drag:none}
+:is(.share-form,.share-agreement-dialog) .arrival-swipe.dragging .arrival-swipe-handle{transition:none;cursor:grabbing}
+:is(.share-form,.share-agreement-dialog) .arrival-swipe.pending .arrival-swipe-handle{cursor:wait;opacity:1}
+:is(.share-form,.share-agreement-dialog) .arrival-swipe.pending .arrival-swipe-label,:is(.share-form,.share-agreement-dialog) .arrival-swipe.armed .arrival-swipe-label{padding-left:12px;padding-right:78px}
+:is(.share-form,.share-agreement-dialog) .arrival-swipe-handle:focus-visible{outline:3px solid #eda943;outline-offset:-3px}
+@media(max-width:350px){:is(.share-form,.share-agreement-dialog) .arrival-swipe-label{font-size:16px}}
+@media(prefers-reduced-motion:reduce){:is(.share-form,.share-agreement-dialog) .arrival-swipe-handle{transition:none}}
+
+/* RIDER-SWIPE-GREY-03: grey/black, brand green/white when snapped right. */
+:is(.share-form,.share-agreement-dialog) .arrival-swipe{background:#d9d9d9;border-color:#d9d9d9;transition:background-color 180ms ease-out,border-color 180ms ease-out}
+:is(.share-form,.share-agreement-dialog) .arrival-swipe-label{color:#000}
+:is(.share-form,.share-agreement-dialog) .arrival-swipe.unready{background:#d9d9d9;border-color:#d9d9d9}
+:is(.share-form,.share-agreement-dialog) .arrival-swipe.pending{background:#09923a;border-color:#09923a}
+:is(.share-form,.share-agreement-dialog) .arrival-swipe.pending .arrival-swipe-label{color:#fff}
+:is(.share-form,.share-agreement-dialog) .arrival-swipe-handle:disabled{background:#09923a;opacity:1;cursor:not-allowed}
+:is(.share-form,.share-agreement-dialog) .arrival-swipe.pending .arrival-swipe-handle{opacity:1}
+
+/* RIDER-WEB-CAMERA-FILL-01: fill follows the centre of the logo, returns with it. */
+:is(.share-form,.share-agreement-dialog) .arrival-swipe-fill{position:absolute;left:0;top:0;bottom:0;width:var(--swipe-fill,36px);background:var(--swipe-tone,#09923a);pointer-events:none;transition:width 180ms ease-out}
+:is(.share-form,.share-agreement-dialog) .arrival-swipe.delivery-apricot{--swipe-tone:#f4a574}
+:is(.share-form,.share-agreement-dialog) .arrival-swipe.dragging .arrival-swipe-fill{transition:none}
+:is(.share-form,.share-agreement-dialog) .arrival-swipe.pending .arrival-swipe-fill{width:100%}
+@media(prefers-reduced-motion:reduce){:is(.share-form,.share-agreement-dialog) .arrival-swipe-fill{transition:none}}
+
+/* RIDER-SWIPE-SEAMLESS-01: full-height original logo; no zoom, crop, blend or separate shadow. */
+:is(.share-form,.share-agreement-dialog) .arrival-swipe{border:0}
+:is(.share-form,.share-agreement-dialog) .arrival-swipe-handle{left:0;top:0;width:72px;height:72px;min-height:72px;border:0;border-radius:16px;box-shadow:none}
+:is(.share-form,.share-agreement-dialog) .arrival-swipe-handle img{border-radius:0;transform:none;mix-blend-mode:normal;object-fit:contain;max-height:none}
+
+/* SHARE-WEB-CAMERA-SWIPE-01: shared original-logo swipe, scoped to sharer controls. */
+.share-agreement-dialog .share-agreement-track{height:auto;min-height:72px;padding:0;border:0;border-radius:16px;background:transparent;overflow:hidden;opacity:1}
+:is(.share-form,.share-agreement-dialog) .arrival-swipe.completed{background:#09923a}
+:is(.share-form,.share-agreement-dialog) .arrival-swipe.completed .arrival-swipe-fill{width:100%}
+:is(.share-form,.share-agreement-dialog) .arrival-swipe.completed .arrival-swipe-handle{left:calc(100% - 72px);transform:none!important}
+:is(.share-form,.share-agreement-dialog) .arrival-swipe.completed .arrival-swipe-label{color:#fff;padding-left:12px;padding-right:78px;opacity:1!important}
+.share-form .rider-camera{margin-top:18px;padding:14px;border:1px solid #dce3dd;border-radius:16px;background:#f6f8f6}
+.share-form .rider-camera video{display:block;width:100%;max-height:55dvh;object-fit:contain;background:#172c22;border-radius:12px}
+.share-form .rider-camera video[hidden],.share-form .rider-camera button[hidden]{display:none!important}
+.share-form .rider-camera button{width:100%;padding:14px;font:inherit;border-radius:12px;margin-top:10px;border:1px solid #c8d1c8}
+.share-form .rider-camera .primary{background:#09923a;border-color:#09923a;color:#fff}
+.share-form .rider-camera .secondary{background:#fff;color:#174c30}
+.share-form .rider-camera .cancel{background:transparent;color:#4a5b50}
+.share-form .rider-camera .proof-state{line-height:1.6;font-size:16px}
+.share-photo-fallback{margin-top:14px;padding:12px;border:1px solid #dce3dd;border-radius:12px}
+.share-photo-fallback input{max-width:100%;font:inherit}

@@ -3,7 +3,7 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
 const root=path.join(__dirname,'..'),actor='aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';let uploads=0;
 const window={dispatchEvent(){},supabase:{createClient:()=>({auth:{onAuthStateChange(){},getSession:async()=>({data:{session:{}}}),getUser:async()=>({data:{user:{id:actor,user_metadata:{}}}})},storage:{from:()=>({upload:async()=>{uploads++;return {};}})}})}};
 vm.runInNewContext(fs.readFileSync(path.join(root,'test-auth-adapter.js'),'utf8'),{window,location:{origin:'https://letshare-tw.github.io',pathname:'/lets-share-test-site/ui-candidate/index.html'},setTimeout,URL,Event:class{}});
-const source=fs.readFileSync(path.join(root,'app.js'),'utf8'),start=source.indexOf('async function compress(file)'),end=source.indexOf(' photo.addEventListener("change"',start);
+const source=fs.readFileSync(path.join(root,'app.js'),'utf8'),start=source.indexOf('async function compress(file)'),end=source.indexOf(' async function processPhoto',start);
 function encoder(sizes,type='image/webp'){
  let calls=0,revoked=0;const canvas={getContext:()=>({fillRect(){},drawImage(){}}),toBlob:cb=>cb({type,size:sizes[Math.min(calls++,sizes.length-1)]})};
  const ctx={Image:class{naturalWidth=4032;naturalHeight=3024;async decode(){}},URL:{createObjectURL:()=>'',revokeObjectURL:()=>revoked++},document:{createElement:()=>canvas}};

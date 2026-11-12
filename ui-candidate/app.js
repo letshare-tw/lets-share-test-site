@@ -4,15 +4,15 @@
  const api=window.LX_ADAPTER_SELECTOR.getAdapter("test"),$=id=>document.getElementById(id);
  const names=["home","share","cart","member"];
  let activeView="home",promptedAgreement=null;
- function go(name){if(!names.includes(name))return;if(name!==activeView)promptedAgreement=null;activeView=name;for(const n of names){$("view-"+n).hidden=n!==name;const b=document.querySelector('.bottom [data-go="'+n+'"]');b.classList.toggle("active",n===name);if(n===name)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current");}window.scrollTo(0,0);if(name==="share")maybeOpenAgreement();}
+ function go(name){if(!names.includes(name))return;if(name!==activeView)promptedAgreement=null;activeView=name;if(name!=="share")cameraControl?.stop();cameraControl?.refresh();submitControl?.refresh();for(const n of names){$("view-"+n).hidden=n!==name;const b=document.querySelector('.bottom [data-go="'+n+'"]');b.classList.toggle("active",n===name);if(n===name)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current");}window.scrollTo(0,0);if(name==="share")maybeOpenAgreement();}
  document.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=>go(b.dataset.go)));
  const panel=document.createElement("section");panel.className="share-status-panel";
  panel.innerHTML='<p id="shareIdentity" role="status">正在確認分享測試資格…</p><p id="shareDraftInfo" role="status">尚未讀取草稿。</p><label for="sharePoint">已核准集貨點</label><select id="sharePoint" disabled><option value="">暫無可用集貨點</option></select><div class="share-actions"><button id="shareReload" type="button">重新讀取草稿</button><button id="shareSave" type="button" class="primary" disabled>儲存分享草稿</button><button id="shareAddress" type="button">前往會員中心補填地址</button></div><button id="shareTerms" type="button">閱讀分享服務說明（待確認）</button><p id="shareConsentStatus" role="status">尚未確認分享測試協議。</p><p id="shareOperation" role="status" aria-live="polite"></p>';
  document.querySelector("#view-share .share-steps").insertAdjacentElement("afterend",panel);
  const count=$("count"),notes=$("notes"),photo=$("photo"),preview=$("preview"),placed=$("placed"),point=$("sharePoint");
- const save=$("shareSave"),reload=$("shareReload"),operation=$("shareOperation"),track=$("swipeTrack"),handle=$("swipeHandle");
+ const save=$("shareSave"),reload=$("shareReload"),operation=$("shareOperation"),swipeHost=$("swipeWrap");
  const photoLimitHint=document.createElement("p");photoLimitHint.className="help";photoLimitHint.textContent="新照片會先在本機壓縮至 100KB 以下，再於儲存草稿時上傳。";photo.insertAdjacentElement("afterend",photoLimitHint);
- let state=null,userId=null,requestId=null,path=null,savedPath=null,blob=null,photoUrl=null,seq=0,busy=false,dirty=false,submitState="idle",dragging=false,dragStart=0,dragX=0;
+ let state=null,userId=null,requestId=null,path=null,savedPath=null,blob=null,photoUrl=null,seq=0,busy=false,dirty=false,submitState="idle",swipeGeneration=0,submitControl=null,cameraControl=null;
  const navigation=window.LX_NAVIGATION_PREVIEW.mount({host:$("placeInfo"),getContext:()=>{
   const address=kind()==="home"?state?.address?.home_address:state?.points?.find(p=>p.id===point.value)?.address_text;
   return userId?{userId,address:address||"",selectionKey:kind()+":"+(kind()==="home"?"":point.value),eligible:!busy&&!dirty&&submitState==="idle"&&!!address&&validPlace()}:null;
@@ -22,32 +22,33 @@
   return address===original.address;
  }});
  function releasePhoto(){if(photoUrl)URL.revokeObjectURL(photoUrl);photoUrl=null;preview.removeAttribute("src");preview.hidden=true;blob=null;}
- function clear(){resetSwipe();submitState="idle";releasePhoto();state=null;userId=null;requestId=null;path=null;savedPath=null;dirty=false;count.value="2";notes.value="";photo.value="";placed.checked=false;point.replaceChildren(new Option("暫無可用集貨點",""));point.disabled=true;$("shareHistory").replaceChildren();$("shareConsentStatus").textContent="尚未確認分享測試協議。";$("shareDraftInfo").textContent="尚未讀取草稿。";$("photoFeedback").textContent="尚未選擇照片。";$("placeInfo").textContent="登入並完成會員註冊後，才能讀取本人取件地址。";check();}
+ function clear(){cameraControl?.stop();resetSwipe();submitState="idle";releasePhoto();state=null;userId=null;requestId=null;path=null;savedPath=null;dirty=false;count.value="2";notes.value="";photo.value="";placed.checked=false;point.replaceChildren(new Option("暫無可用集貨點",""));point.disabled=true;$("shareHistory").replaceChildren();$("shareConsentStatus").textContent="尚未確認分享測試協議。";$("shareDraftInfo").textContent="尚未讀取草稿。";$("photoFeedback").textContent="尚未選擇照片。";$("placeInfo").textContent="登入並完成會員註冊後，才能讀取本人取件地址。";check();}
  function kind(){return document.querySelector('input[name="place"]:checked')?.value==="station"?"collection_point":"home";}
  function validCount(){return /^\d+$/.test(count.value.trim())&&Number(count.value)>=2&&Number(count.value)<=1000;}
  function validPlace(){return state&&(kind()==="home"?(state.address?.home_address||"").trim().length>=6:state.points.some(p=>p.id===point.value));}
- function resetSwipe(){dragging=false;dragX=0;handle.style.transform="translateX(0px)";track.classList.remove("ready","completed");}
+ function resetSwipe(){swipeGeneration++;submitControl?.refresh();}
  function consentReady(){return !!(state?.service?.published&&state.service.activated&&state.service.version&&state.service.agreed_at);}
  function maybeOpenAgreement(){
   const legal=state?.service;
   if(activeView!=="share"||busy||!userId||!legal?.published||!legal.version||!legal.content||!legal.published_at||consentReady())return;
   const key=userId+":"+legal.version;if(promptedAgreement===key)return;
-  promptedAgreement=key;agreementUI.open().catch(()=>{promptedAgreement=null;operation.textContent="文件開啟未完成，請點「閱讀並確認分享測試協議」重試。";});
+  promptedAgreement=key;cameraControl?.stop();agreementUI.open().catch(()=>{promptedAgreement=null;operation.textContent="文件開啟未完成，請點「閱讀並確認分享測試協議」重試。";});
  }
  function readyToSubmit(){return !!(userId&&state?.submission_enabled&&state.service?.submission_enabled&&consentReady()&&requestId&&path&&savedPath===path&&!blob&&!dirty&&placed.checked&&validCount()&&validPlace()&&Array.from(notes.value).length<=200&&submitState==="idle");}
  function check(){
-  navigation.refresh();
+  navigation.refresh();cameraControl?.refresh();
   const valid=validCount(),blocked=busy||!userId||submitState!=="idle";count.setAttribute("aria-invalid",String(!valid));$("countHelp").textContent=valid?"衣物件數有效。":"請輸入 2～1000 件整數。";
   save.disabled=blocked||!valid||!validPlace()||Array.from(notes.value).length>200;
   reload.disabled=busy;photo.disabled=blocked;count.disabled=notes.disabled=placed.disabled=blocked;
   document.querySelectorAll('input[name="place"]').forEach(el=>el.disabled=blocked);
   point.disabled=blocked||kind()!=="collection_point"||!state?.points?.length;
-  const ready=readyToSubmit()&&!busy;handle.disabled=!ready;track.classList.toggle("ready",ready);
+  const ready=readyToSubmit()&&!busy;submitControl?.refresh();
   const legal=state?.service;
   $("shareTerms").textContent=consentReady()?"查看已同意的分享測試協議":"閱讀並確認分享測試協議";
   $("shareConsentStatus").textContent=consentReady()?"已同意分享測試協議："+legal.version+"。":legal?.published?"請先閱讀並滑動同意分享測試協議："+legal.version:"分享測試協議尚未載入或未發布。";
-  if(submitState==="submitted"){$("swipeText").textContent="測試申請已提交 ✓";track.classList.add("completed");$("formFeedback").textContent="測試提交成功，不安排實際騎手取件。";}
-  else if(submitState==="uncertain"){$("swipeText").textContent="請重新讀取確認提交結果";$("formFeedback").textContent="提交結果尚未確認，請按「重新讀取草稿」核對本人分享紀錄。暫不建立新申請。";}
+  swipeHost.querySelector(".arrival-swipe")?.classList.toggle("completed",submitState==="submitted");
+  if(submitState==="submitted"){swipeCaption("測試申請已提交 ✓");swipeHost.querySelector(".arrival-swipe")?.classList.add("completed");$("formFeedback").textContent="測試提交成功，不安排實際騎手取件。";}
+  else if(submitState==="uncertain"){swipeCaption("請重新讀取確認提交結果");$("formFeedback").textContent="提交結果尚未確認，請按「重新讀取草稿」核對本人分享紀錄。暫不建立新申請。";}
   else{
    const missing=[];
    if(!userId)missing.push("登入指定測試會員");
@@ -57,7 +58,7 @@
    if(!consentReady())missing.push("到頁面上方開啟「閱讀並確認分享測試協議」，讀到底後滑動同意");
    if(!placed.checked)missing.push("勾選上方的測試情境確認");
    if(Array.from(notes.value).length>200)missing.push("將放置說明縮短至 200 字內");
-   $("swipeText").textContent=ready?"向右滑動提交測試申請 →":!consentReady()?"請先完成分享測試協議確認":"請完成下列待辦後再滑動";
+   swipeCaption(ready?"向右滑動提交測試申請 →":!consentReady()?"請先完成分享測試協議確認":"請完成下列待辦後再滑動");
    $("formFeedback").textContent=!state?.submission_enabled?"測試提交目前未開放。":ready?"資料已齊全，滑動後會建立測試申請與袋號；不安排實際取件。":"尚需完成："+missing.join("；")+"。";
   }
  }
@@ -100,12 +101,16 @@
    }throw Error("照片無法壓縮至 100KB，請重新拍攝；此照片不會上傳。");
   }finally{URL.revokeObjectURL(url);}
  }
- photo.addEventListener("change",async()=>{
-  const file=photo.files?.[0];if(!file)return;const token=++seq;busy=true;check();$("photoFeedback").textContent="正在處理照片…";
-  try{const result=await compress(file);if(token!==seq)return;releasePhoto();blob=result;path=null;photoUrl=URL.createObjectURL(result);preview.src=photoUrl;preview.hidden=false;dirty=true;$("photoFeedback").textContent="照片已壓縮（"+Math.ceil(result.size/1000)+"KB）；按儲存草稿才會上傳。";$("cameraLabel").textContent="📷 重新拍攝分享放置點";}
-  catch(e){if(token===seq)$("photoFeedback").textContent=e.message;}
+ async function processPhoto(file,fromCamera=false){
+  if(!file||busy||!userId||submitState!=="idle")return false;
+  if(!fromCamera)cameraControl?.stop();const token=++seq;busy=true;releasePhoto();path=null;dirty=true;resetSwipe();check();$("photoFeedback").textContent="正在處理照片…";
+  try{const result=await compress(file);if(token!==seq)return false;blob=result;photoUrl=URL.createObjectURL(result);preview.src=photoUrl;preview.hidden=false;$("photoFeedback").textContent="照片已壓縮（"+Math.ceil(result.size/1000)+"KB）；按儲存草稿才會上傳。";return true;}
+  catch(e){if(token===seq)$("photoFeedback").textContent=e.message;return false;}
   finally{if(token===seq){busy=false;check();}}
- });
+ }
+ photo.addEventListener("change",()=>{const file=photo.files?.[0];photo.value="";if(file)void processPhoto(file);});
+ cameraControl=window.LX_RIDER_CAMERA.mount({host:$("shareCamera"),getKey:()=>activeView==="share"&&userId&&!busy&&submitState==="idle"&&!document.querySelector("dialog[open]")?[userId,seq].join(":"):null,onStart:()=>{releasePhoto();path=null;dirty=true;resetSwipe();$("photoFeedback").textContent="正在重拍，完成拍攝後請儲存草稿。";check();},onCapture:file=>processPhoto(file,true)});
+
  save.addEventListener("click",async()=>{
   check();if(save.disabled)return;const token=++seq,id=userId;busy=true;operation.textContent="正在儲存草稿…";check();
   let uploaded=null;
@@ -127,17 +132,17 @@
  document.querySelector("#view-member .section").append(history);
  const historyEntry=[...document.querySelectorAll("#view-member .member-item")].find(e=>e.textContent.includes("我的分享"));if(historyEntry){historyEntry.setAttribute("role","button");historyEntry.tabIndex=0;const open=()=>history.scrollIntoView({behavior:"smooth",block:"start"});historyEntry.addEventListener("click",open);historyEntry.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();open();}});}
  const agreementUI=window.LX_SHARE_AGREEMENT_UI.mount({button:$("shareTerms"),getDocument:()=>api.bootstrap(),agree:(version,id)=>api.activate(version,id),onAgreed:(legal,id)=>{if(id!==userId)return;state.service=legal;state.submission_enabled=legal.submission_enabled;operation.textContent="分享測試協議已同意並確認儲存；尚未提交申請。";resetSwipe();check();}});
+ $("lxShareAgreementDialog").addEventListener("close",()=>cameraControl?.refresh());
  function showReceipt(receipt){
   if(receipt.test_only!==true||!receipt.bag_code||receipt.request_id!==requestId)throw Error("提交回執與申請不一致，請重新讀取。");
   submitState="submitted";const date=new Date(receipt.pickup_deadline_at);operation.textContent="測試提交成功｜袋號："+receipt.bag_code+"｜測試取件期限："+date.toLocaleString("zh-TW",{timeZone:"Asia/Taipei"})+"。不安排實際取件，不需交付衣物。";
   $("shareDraftInfo").textContent="本次測試申請已提交，不能再編輯原草稿。";
   const row={...receipt,share_request_id:receipt.request_id};state.bags=[row,...(state.bags||[]).filter(b=>b.share_request_id!==receipt.request_id)];paintHistory(state.bags);check();
  }
- function maxTravel(){return Math.max(0,track.clientWidth-handle.offsetWidth-8);}
- function moveSwipe(x){dragX=Math.max(0,Math.min(maxTravel(),x));handle.style.transform="translateX("+dragX+"px)";}
+ function swipeCaption(value){const label=swipeHost.querySelector(".arrival-swipe-label"),track=swipeHost.querySelector(".arrival-swipe");if(label&&!track.classList.contains("pending"))label.textContent=value;}
+ submitControl=window.LX_RIDER_ARRIVAL.mount({host:swipeHost,labelText:"向右滑動，提交分享申請",pendingText:"正在提交測試申請…",blockedText:"請完成資料、協議及情境確認",ariaLabel:"向右滑動提交測試分享申請",getKey:()=>activeView==="share"&&!busy&&readyToSubmit()?[seq,userId,requestId,state.service.version,path,swipeGeneration].join(":"):null,onConfirm:async()=>{try{await finishSubmit();}finally{setTimeout(check,0);}}});
  async function finishSubmit(){
-  if(busy||!readyToSubmit())return;
-  if(dragX<maxTravel()*.85||maxTravel()<=20){resetSwipe();return;}
+  if(activeView!=="share"||busy||!readyToSubmit())return;
   const token=++seq,id=userId,submittedId=requestId,version=state.service.version;busy=true;operation.textContent="正在檢查及提交測試申請…";check();let dispatched=false;
   try{
    const pre=await api.preflight(submittedId,id);if(token!==seq)return;if(pre.ready!==true||pre.agreement_version!==version)throw Error(pre.reason||"提交資料或協議版本已改變，請重新讀取。");
@@ -148,12 +153,6 @@
    else{resetSwipe();operation.textContent=e.message;}
   }finally{if(token===seq){busy=false;check();}}
  }
- handle.addEventListener("pointerdown",e=>{if(handle.disabled)return;resetSwipe();dragging=true;dragStart=e.clientX;handle.setPointerCapture(e.pointerId);e.preventDefault();});
- handle.addEventListener("pointermove",e=>{if(dragging)moveSwipe(e.clientX-dragStart);});
- handle.addEventListener("pointerup",()=>{if(dragging){dragging=false;finishSubmit();}});
- handle.addEventListener("pointercancel",resetSwipe);
- handle.addEventListener("keydown",e=>{if(handle.disabled)return;if(e.key==="ArrowRight"){e.preventDefault();moveSwipe(maxTravel());}if(e.key==="Enter"||e.key===" "){e.preventDefault();if(dragX>=maxTravel()*.85)finishSubmit();}});
- window.addEventListener("resize",()=>{if(submitState==="idle")resetSwipe();});
  window.addEventListener("lx-share-session-changed",()=>{++seq;promptedAgreement=null;busy=false;clear();$("shareIdentity").textContent="登入狀態已變更，正在重新確認…";reloadDraft();});
  window.addEventListener("lx-member-state-changed",()=>{if(!busy&&!dirty)reloadDraft();});
  $("googleLogout").addEventListener("click",()=>{++seq;busy=false;clear();operation.textContent="已清除目前畫面的分享資料。";});
