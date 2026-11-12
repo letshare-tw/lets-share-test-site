@@ -7,9 +7,9 @@
   const handle=document.createElement("button");handle.type="button";handle.className="arrival-swipe-handle";handle.setAttribute("aria-label",ariaLabel);handle.title="拖曳至右側放開；鍵盤先按向右鍵，再按 Enter 確認";
   const logo=document.createElement("img");logo.src=tone==="apricot"?"rider-logo-apricot.svg":"rider-logo.png";logo.alt="";logo.draggable=false;logo.setAttribute("aria-hidden","true");handle.append(logo);track.append(fill,label,handle);host.append(track);
   let pointer=null,start=0,position=0,key=null,committed=false,disposed=false;
-  const travel=()=>Math.max(0,track.getBoundingClientRect().width-handle.getBoundingClientRect().width-16);
+  const travel=()=>Math.max(0,track.getBoundingClientRect().width-handle.getBoundingClientRect().width);
   const valid=()=>!disposed&&!committed&&!handle.disabled&&track.isConnected&&getKey()!==null;
-  const move=x=>{position=Math.max(0,Math.min(travel(),x));handle.style.transform="translateX("+position+"px)";track.style.setProperty("--swipe-fill",(position+8+handle.getBoundingClientRect().width/2)+"px");label.style.opacity=String(Math.max(.12,1-position/Math.max(1,travel())));};
+  const move=x=>{position=Math.max(0,Math.min(travel(),x));handle.style.transform="translateX("+position+"px)";track.style.setProperty("--swipe-fill",(position+handle.getBoundingClientRect().width/2)+"px");label.style.opacity=String(Math.max(.12,1-position/Math.max(1,travel())));};
   function release(){const p=pointer;pointer=null;if(p!==null){try{if(handle.hasPointerCapture?.(p))handle.releasePointerCapture(p);}catch(_){}}}
   function reset(){release();key=null;move(0);track.classList.remove("dragging","armed");if(!committed){label.textContent=getKey()!==null?labelText:blockedText;label.style.opacity="1";}}
   async function finish(){
