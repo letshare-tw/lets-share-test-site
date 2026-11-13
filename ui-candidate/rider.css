@@ -291,3 +291,20 @@ body,.app{background:#f7f8f5}
 
 /* Pickup and delivery navigation: 75% grey with white text and icon. */
 .card .secondary[data-act="navigate"],.delivery-card .secondary[data-act="navigate"]{background:#404040;color:#fff}
+
+/* RIDER-TASK-COMPACT-02: picker only; full addresses wrap without clipping. */
+.card.task-card{padding:12px 16px;margin-bottom:12px}
+.task-card .pill{font-size:12px;padding:3px 8px}
+.task-card .task-distance{padding:7px 0 8px}
+.task-card .task-distance>span{font-size:12px;line-height:1.35}
+.task-card .task-distance>strong{font-size:30px;line-height:1.2;margin:2px 0 3px}
+.task-card .task-distance>small{font-size:13px;line-height:1.4}
+.task-card .task-addresses{padding:8px 0 0;gap:6px}
+.task-card .task-addresses>div{display:grid;grid-template-columns:32px minmax(0,1fr);gap:8px;align-items:baseline}
+.task-card .task-addresses span{font-size:12px;line-height:1.4}
+.task-card .task-addresses b{font-size:18px;line-height:1.4;margin:0;overflow-wrap:anywhere}
+.task-card .task-quantity{font-size:20px;line-height:1.35;margin:8px 0 4px}
+.task-card .task-deadline{font-size:12px;line-height:1.4;margin:4px 0 6px}
+.task-card .task-bottom{margin-top:6px;padding-top:6px;gap:6px}
+.task-card .task-bottom>.muted{font-size:13px}
+.task-card .primary.compact{min-height:44px;font-size:16px;padding:8px 12px}
