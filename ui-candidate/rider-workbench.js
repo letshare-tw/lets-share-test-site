@@ -2,7 +2,7 @@
 /* RIDER-TEST-01: isolated synthetic workflow, never operational account-role switching. */
 (()=>{
  const docNames={certificate:'良民證',license:'機車駕照',registration:'機車行照',owner_authorization:'車主簽名授權'};
- const states={draft:'待準備',submitted:'待審核',supplement:'待補件',approved:'已核准',suspended:'暫停',pending:'待審核',revoked:'已撤回',unassigned:'待派單',offered:'待接單',accepted:'已接單',picked_up:'已取件',handover_pending:'待收件端簽收',delivered:'交接完成',exception:'異常待處理',cancelled:'已取消'};
+ const states={draft:'待準備',submitted:'待審核',supplement:'待補件',approved:'已核准',suspended:'暫停',pending:'待審核',revoked:'已撤回',unassigned:'待騎手認領',offered:'待接單',accepted:'已接單',picked_up:'已取件',handover_pending:'待收件端簽收',delivered:'交接完成',exception:'異常待處理',cancelled:'已取消'};
  const roles={rider1:'模擬騎手 A',rider2:'模擬騎手 B',dispatch:'模擬總部',receiver:'模擬收件端'};
  const errors={RIDER_INPUT_INVALID:'請檢查輸入格式與件數範圍。',RIDER_MEMBER_DENIED:'僅限指定且已完成註冊的測試帳號。',RIDER_STALE_STATE:'資料已更新，已重新讀取，請確認後再操作。',RIDER_ROLE_DENIED:'目前模擬角色沒有這項權限。',RIDER_DOCUMENT_REQUIRED:'請先建立所需的模擬證件。',RIDER_CERT_DATE_INVALID:'良民證須於核發後 30 天內提交，日期不可在未來。',RIDER_QUALIFICATION_DENIED:'騎手或指定機車資格不符，請由模擬總部檢查。',RIDER_ASSIGN_DENIED:'任務狀態或騎手、機車資格不符。',RIDER_BAG_CHECK_REQUIRED:'請核對袋號並確認封袋完整。',RIDER_STATE_DENIED:'狀態已改變，請重新確認。',RIDER_REASSIGN_DENIED:'已取件的袋件不能直接改派，需保留原騎手安全交接。',RIDER_CANCEL_DENIED:'已取件的袋件不能直接取消，請完成安全交接。',RIDER_FORMAL_LOCKED:'正式營運維持鎖定。',RIDER_SAMPLE_RETRY_REQUIRED:'模擬圖片上傳未完成，請按「重試模擬圖片」。',RIDER_TEST_LOCKED:'騎手測試入口目前關閉。'};
  function navigationUrl(task,delivery=false,waypoints=[]){
@@ -106,20 +106,7 @@
    if(v.status==='pending')r.append(button('核准模擬車輛及授權',()=>run('review_vehicle',{vehicle_id:v.id})));
    if(v.status==='approved')r.append(button('核實撤回這台車的授權',()=>run('revoke_vehicle',{vehicle_id:v.id}),true));vs.append(r);
   }body.append(vs);renderDocuments(body);
-  body.append(button('建立一筆模擬取送任務',()=>run('create_tasks')),el('p','新模擬任務預設 1 袋、2 件，可於接單前調整。','rw-muted'));
- }
- function assignmentVehicle(rider){
-  const cars=snapshot.vehicles.filter(v=>v.rider_key===rider&&v.status==='approved'&&v.owner_authorized);
-  return snapshot.tasks.slice().reverse().filter(t=>t.rider_key===rider).map(t=>cars.find(v=>v.id===t.vehicle_id)).find(Boolean)||cars[0]||null;
- }
- function assignment(task,action){
-  const candidates=snapshot.people.filter(p=>p.role==='rider'&&p.eligible&&assignmentVehicle(p.key));
-  const s=select(candidates.map(p=>[p.key,p.label||roles[p.key]]));const wrap=el('div',undefined,'rw-actions');
-  wrap.append(field('指定騎手',s),button(action==='assign'?'確認派單':'確認改派',()=>{
-   const rider=candidates.find(p=>p.key===s.value),v=rider&&assignmentVehicle(rider.key);
-   if(!rider||!v){message('請先完成騎手與機車審核。');return;}
-   run(action,{task_id:task.id,rider:rider.key,vehicle_id:v.id});
-  }));return wrap;
+  body.append(button('建立一筆模擬取送任務',()=>run('create_tasks')),el('p','任務建立後進入待接任務池，由騎手自行認領，不指定騎手。新模擬任務預設 1 袋、2 件，可於接單前調整。','rw-muted'));
  }
  function renderTasks(){
   const section=card(actor==='receiver'?'待簽收與交接紀錄':'取送任務');const tasks=snapshot.tasks;
@@ -140,8 +127,6 @@
    if(actor==='dispatch'){
     if(['unassigned','offered'].includes(t.status)){const count=el('input');count.type='number';count.min='1';count.max='1000';count.step='1';count.inputMode='numeric';count.value=t.clothing_count??'';c.append(field('每袋衣物件數（1～1000 件）',count),button('儲存模擬件數',()=>{if(!/^[0-9]{1,4}$/.test(count.value)||Number(count.value)<1||Number(count.value)>1000){message('請填寫 1～1000 件整數。');return;}run('set_item_count',{task_id:t.id,clothing_count:Number(count.value)});},true));}
 
-    if(t.status==='unassigned')c.append(assignment(t,'assign'));
-    if(['offered','accepted','exception'].includes(t.status)&&!t.picked_up_at)c.append(assignment(t,'reassign'));
     if(t.status==='exception')c.append(button('處理異常，恢復原階段',()=>run('resolve',{task_id:t.id}),true));
     if(['unassigned','offered','accepted','exception'].includes(t.status)&&!t.picked_up_at)c.append(button('取消模擬任務',()=>run('cancel',{task_id:t.id}),true));
     if(!['delivered','cancelled'].includes(t.status))c.append(button('移至路線第一站',()=>run('route',{task_id:t.id,order:1}),true));
