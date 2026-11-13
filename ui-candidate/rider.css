@@ -224,3 +224,14 @@ body,.app{background:#f7f8f5}
 .proof-sheet #proofConfirm{margin-top:6px}
 .proof-sheet>.cancel{min-height:36px;padding:6px;font-size:15px}
 @media(max-height:620px){.proof-sheet .rider-camera video,.proof-sheet .delivery-proof-camera .rider-camera video,.proof-sheet #preview{height:clamp(80px,18dvh,120px);max-height:120px}.sheetbody.proof-sheet{padding-top:10px}.proof-sheet>p{margin:4px 0}}
+
+/* Delivery camera expands into all remaining viewport space above fixed-size controls. */
+.sheetbody.proof-sheet:has(.delivery-proof-camera){height:calc(100dvh - 8px);display:flex;flex-direction:column;gap:0}
+.proof-sheet:has(.delivery-proof-camera)>*{flex-shrink:0}
+.proof-sheet .delivery-proof-camera{display:flex;flex-direction:column;flex:1 0 220px;min-height:220px}
+.proof-sheet .delivery-proof-camera .rider-camera{flex:0 0 auto;margin:4px 0 0}
+.proof-sheet .delivery-proof-camera .rider-camera:has(video:not([hidden])){display:flex;flex-direction:column;flex:1 0 110px;min-height:110px}
+.proof-sheet .delivery-proof-camera .rider-camera video:not([hidden]){flex:1 1 0;height:0;min-height:80px;max-height:none;width:100%;object-fit:contain}
+.proof-sheet .delivery-proof-camera .rider-camera .proof-state{flex:0 0 auto}
+.proof-sheet .delivery-proof-camera>#preview:not([hidden]){flex:1 1 0;height:0;min-height:100px;max-height:none;width:100%;object-fit:contain}
+.proof-sheet .delivery-camera-controls{flex:0 0 auto}
