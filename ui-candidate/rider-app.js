@@ -35,7 +35,7 @@
 
  function toast(text){clearTimeout(toastTimer);$('toast').textContent=text;$('toast').style.display='block';toastTimer=setTimeout(()=>$('toast').style.display='none',5000);}
  function releaseProof(){photoSeq++;proofBlob=null;if(proofUrl)URL.revokeObjectURL(proofUrl);proofUrl=null;}
- function closeModal(){scanSeq++;cameraControl?.destroy();cameraControl=null;proofControl?.destroy();proofControl=null;modalEpoch++;releaseProof();$('sheet').classList.remove('open');$('body').replaceChildren();}
+ function closeModal(){ $('body').classList.remove('proof-sheet');scanSeq++;cameraControl?.destroy();cameraControl=null;proofControl?.destroy();proofControl=null;modalEpoch++;releaseProof();$('sheet').classList.remove('open');$('body').replaceChildren();}
  function modal(html){closeModal();$('body').innerHTML=html+'<button type="button" class="cancel" data-act="close">返回畫面</button>';$('sheet').classList.add('open');$('body').querySelector('button,input,select,textarea')?.focus();}
  function clear(){cardScope='';cardPreviews=new Map();cardPending=new Set();listPosition=null;locationRequested=false;locationBusy=false;locationSeq++;listLocationStatus='尚未定位';departureControl?.destroy();departureControl=null;trip=null;proofControl?.destroy();proofControl=null;epoch++;readSeq++;busy=false;data=null;owner=null;currentId=null;pendingCommand=null;closeModal();$('main').textContent='登入身分已變更，請重新讀取。';$('action').replaceChildren();$('nav').replaceChildren();lock();}
  async function load(){const version=epoch,seq=++readSeq,role=actor;
@@ -171,6 +171,7 @@
  }
  
  function proofForm(kind){const t=current();if(!t||!working(kind==='pickup'?'pickup':'delivery'))return;modal(`<h2>${kind==='pickup'?'確認取件':'確認交出袋件'}</h2><p>分享袋：${esc(t.bag_code)} · ${esc(itemQuantity(t))}</p>${kind==='delivery'?`<div id="riderCamera" class="delivery-camera delivery-proof-camera"><img id="preview" alt="現場照片縮圖" hidden><div class="delivery-camera-controls"><div class="delivery-scan-controls"><label class="delivery-bag-label" for="bag">核對袋號</label><input id="bag" type="text" autocomplete="off" placeholder="輸入或掃描袋號"><button type="button" class="secondary delivery-button" data-act="scan">掃描袋號</button></div><div id="deliveryCapture" class="delivery-capture-control"></div></div></div>`:`<label class="choice">核對袋號<input id="bag" type="text" autocomplete="off" placeholder="輸入或掃描袋號"></label><button class="secondary" data-act="scan">掃描袋號</button><label class="choice"><input id="sealed" type="checkbox"> 我已核對封袋完整，未開袋</label><div id="riderCamera"></div><img id="preview" alt="現場照片縮圖" hidden>`}<details class="camera-fallback"><summary>相機無法使用時，選擇照片</summary><label class="choice">選擇現場照片<input id="proof" type="file" accept="image/jpeg,image/png,image/webp" style="display:block;width:100%;margin-top:10px"></label></details><p id="proofState" class="proof-state">照片會先在本機壓縮至 100,000 bytes 以下，再上傳私密儲存空間。</p><div id="proofConfirm"></div>`);
+  $('body').classList.add('proof-sheet');
   const taskId=t.id;
   proofControl=window.LX_RIDER_ARRIVAL?.mount({host:$('proofConfirm'),tone:kind==='delivery'?'apricot':'green',labelText:kind==='pickup'?'向右滑動，確認取件':'向右滑動，確認交付',pendingText:kind==='pickup'?'正在確認取件…':'正在確認交付…',blockedText:kind==='pickup'?'先核對袋號、封袋並拍照':'先核對袋號並完成拍照',ariaLabel:kind==='pickup'?'核袋與拍照完成後，向右滑動確認取件':'核袋與拍照完成後，向右滑動確認交付',getKey:()=>{
    const task=current();
