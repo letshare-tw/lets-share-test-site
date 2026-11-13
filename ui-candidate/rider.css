@@ -240,3 +240,35 @@ body,.app{background:#f7f8f5}
 .pickup-camera .pickup-scan-button{background:#09923a;color:#fff}
 .proof-sheet .pickup-seal{display:flex;align-items:center;gap:8px;font-size:14px;line-height:1.4;margin:4px 0;min-height:36px}
 .proof-sheet .pickup-seal input{width:22px;height:22px;flex:none;accent-color:#09923a;margin:0}
+
+/* Pickup travel view: compact chrome and one working screen at default phone text size. */
+.pickup-mode .app{height:100dvh;min-height:0;display:flex;flex-direction:column;padding-bottom:0}
+.pickup-mode header{flex:none;padding:9px 16px}
+.pickup-mode .company-logo{width:30px;height:30px}
+.pickup-mode .brand{font-size:19px}
+.pickup-mode .brand small{display:none}
+.pickup-mode .avatar{width:30px;height:30px;font-size:15px}
+.pickup-mode .demo{flex:none;font-size:10px;padding:4px 8px}
+.pickup-mode .test-controls{display:none}
+.pickup-mode #main{flex:1;min-height:0;overflow:auto;padding:10px 16px 6px}
+.pickup-mode #main h1{font-size:25px;margin:4px 0 9px}
+.pickup-mode .trip-heading{gap:6px}
+.pickup-mode .trip-heading .textbtn{font-size:13px}
+.pickup-mode .compact-settings{float:right;font-size:12px;padding:0;min-height:24px}
+.pickup-mode .card{padding:14px 16px;margin:0 0 4px}
+.pickup-mode .address{font-size:21px;line-height:1.35;margin:0 0 5px}
+.pickup-mode .card>p{font-size:14px;line-height:1.4;margin:4px 0}
+.pickup-mode .map{height:clamp(64px,15dvh,136px);margin:8px 0}
+.pickup-mode .card .secondary{min-height:44px;padding:10px;margin:0;font-size:17px}
+.pickup-mode .navigation-note{font-size:12px;margin:5px 0}
+.pickup-mode .stats{margin-top:6px;padding-top:7px;gap:10px}
+.pickup-mode .stats strong{font-size:18px;margin-bottom:2px}
+.pickup-mode .stats .muted{font-size:11px;line-height:1.4}
+.records-link{display:inline-block;width:auto;min-height:36px;margin:2px 16px 2px 0;padding:6px 0;background:none;color:#2267a5;font-size:14px;text-decoration:underline;text-underline-offset:3px}
+.pickup-mode #main>[data-act=report]{font-size:14px;min-height:36px;padding:6px 0}
+.pickup-mode .dock{position:static;flex:none;width:100%;padding-bottom:env(safe-area-inset-bottom)}
+.pickup-mode .action{padding:8px 16px 4px}
+.pickup-mode .action .primary{min-height:50px;padding:10px;font-size:18px}
+.pickup-mode .nav{padding:3px 8px 5px}
+.pickup-mode .nav button{padding:4px 0;gap:3px}
+@media(min-width:650px){.pickup-mode .app{margin:0 auto}}

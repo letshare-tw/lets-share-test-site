@@ -38,7 +38,7 @@ function flowCount(ctx,selector){assert.equal(ctx.doc.querySelectorAll('#main .s
  const app=boot(make(),{owner:'A'},seed);await wait();app.click('[data-tab=ride]');
  assert.equal(app.doc.querySelectorAll('#main .route').length,0,'delivery main has no per-bag long list');
  assert.equal(app.doc.querySelector('#main h2'),null,'no separate bag record card');
- assert.equal(app.doc.querySelector('[data-act=bag-records]').classList.contains('delivery-button'),true);
+ assert.equal(app.doc.querySelector('[data-act=bag-records]').classList.contains('records-link'),true);
  assert.equal(app.calls.filter(x=>x.action==='proof_link').length,0,'no private links until opened');
  const before=app.calls.length;app.click('[data-act=bag-records]');await wait();await wait();
  assert.equal(app.doc.querySelectorAll('.bag-record-row').length,3);
