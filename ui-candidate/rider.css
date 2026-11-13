@@ -272,3 +272,12 @@ body,.app{background:#f7f8f5}
 .pickup-mode .nav{padding:3px 8px 5px}
 .pickup-mode .nav button{padding:4px 0;gap:3px}
 @media(min-width:650px){.pickup-mode .app{margin:0 auto}}
+
+/* Proof swipes match the 56px current-stop action; scale the entire original logo. */
+:root{--rider-confirm-height:56px}
+.action .primary[data-tab="ride"]{height:var(--rider-confirm-height);min-height:var(--rider-confirm-height);padding-top:0;padding-bottom:0}
+.proof-sheet #proofConfirm .arrival-swipe{height:var(--rider-confirm-height);border-radius:12px}
+.proof-sheet #proofConfirm .arrival-swipe-handle{width:var(--rider-confirm-height);height:var(--rider-confirm-height);min-height:var(--rider-confirm-height);left:0;top:0;padding:0;border:0;border-radius:12px}
+.proof-sheet #proofConfirm .arrival-swipe-handle img{width:100%;height:100%;max-height:none;object-fit:contain;object-position:center;transform:none;border-radius:0}
+.proof-sheet #proofConfirm .arrival-swipe-label{padding-left:64px;padding-right:10px;font-size:16px;line-height:1.35}
+.proof-sheet #proofConfirm .arrival-swipe.pending .arrival-swipe-label,.proof-sheet #proofConfirm .arrival-swipe.armed .arrival-swipe-label{padding-left:10px;padding-right:64px}
