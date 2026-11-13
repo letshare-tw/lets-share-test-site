@@ -288,3 +288,6 @@ body,.app{background:#f7f8f5}
 #departureConfirm .arrival-swipe-handle img{width:100%;height:100%;max-height:none;object-fit:contain;object-position:center;transform:none;border-radius:0}
 #departureConfirm .arrival-swipe-label{padding-left:64px;padding-right:10px;font-size:16px;line-height:1.35}
 #departureConfirm .arrival-swipe.pending .arrival-swipe-label,#departureConfirm .arrival-swipe.armed .arrival-swipe-label{padding-left:10px;padding-right:64px}
+
+/* Pickup and delivery navigation: 75% grey with white text and icon. */
+.card .secondary[data-act="navigate"],.delivery-card .secondary[data-act="navigate"]{background:#404040;color:#fff}
