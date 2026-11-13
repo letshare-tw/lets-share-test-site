@@ -334,3 +334,11 @@ body,.app{background:#f7f8f5}
 .trip-overview-mode .action{padding:6px 16px}
 .trip-overview-mode .nav{padding:2px 8px 4px}
 @media(min-width:650px){.trip-overview-mode .app{margin:0 auto}}
+
+/* Continuous same-stop handover keeps conditions folded below the camera controls. */
+.batch-list{font-size:13px;line-height:1.4;margin:6px 0}
+.batch-list summary{cursor:pointer;min-height:32px;padding:5px 0;color:#666}
+.batch-list[open]{max-height:20dvh;overflow:auto;overscroll-behavior:contain}
+.batch-list p{font-size:13px;line-height:1.4;margin:4px 0}
+.proof-sheet #proofConfirm:has(.batch-list){flex:none}
+#batchProgress{font-size:14px;line-height:1.5;overflow-wrap:anywhere}

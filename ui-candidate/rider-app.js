@@ -8,6 +8,7 @@
  const errors={RIDER_CAPACITY_REACHED:'身上已滿三袋，交付袋件後即可再接單。',RIDER_STALE_STATE:'任務已更新，請確認最新狀態後重試。',RIDER_QUALIFICATION_DENIED:'騎手或本次機車資格不符，請先完成審核。',RIDER_TASK_DENIED:'此任務已被承接或無權操作。',RIDER_PHOTO_REQUIRED:'請先拍攝並儲存現場照片。',RIDER_PHOTO_INVALID:'照片尚未儲存成功或不屬於此任務。',RIDER_BAG_CHECK_REQUIRED:'袋號或封袋確認不符，請重新核對。',RIDER_MEMBER_DENIED:'請使用指定且完成註冊的測試會員。',RIDER_TEST_LOCKED:'騎手測試目前關閉。'};
  let actor=['rider1','rider2'].includes(new URLSearchParams(location.search).get('actor'))?new URLSearchParams(location.search).get('actor'):'rider1';
  let data=null,owner=null,tab='tasks',currentId=null,busy=false,epoch=0,readSeq=0,modalEpoch=0,proofBlob=null,proofUrl=null,photoSeq=0,toastTimer=null,pendingCommand=null,proofControl=null,departureControl=null,trip=null,cameraControl=null,scanSeq=0;
+ let deliveryBatch=null;
  const active=()=>data?.tasks?.filter(t=>route.holds(t))||[];
  const awaiting=()=>data?.tasks?.filter(t=>t.status==='handover_pending'||t.status==='exception'&&!!t.rider_handover_at)||[];
  const current=()=>data?.tasks?.find(t=>t.id===currentId);
@@ -37,7 +38,7 @@
  function releaseProof(){photoSeq++;proofBlob=null;if(proofUrl)URL.revokeObjectURL(proofUrl);proofUrl=null;}
  function closeModal(){ $('body').classList.remove('proof-sheet');scanSeq++;cameraControl?.destroy();cameraControl=null;proofControl?.destroy();proofControl=null;modalEpoch++;releaseProof();$('sheet').classList.remove('open');$('body').replaceChildren();}
  function modal(html){closeModal();$('body').innerHTML=html+'<button type="button" class="cancel" data-act="close">返回畫面</button>';$('sheet').classList.add('open');const heading=$('body').querySelector('h2');if(heading){heading.tabIndex=-1;heading.focus({preventScroll:true});}else $('body').querySelector('button')?.focus({preventScroll:true});}
- function clear(){document.body.classList.remove('pickup-mode','trip-overview-mode');cardScope='';cardPreviews=new Map();cardPending=new Set();listPosition=null;locationRequested=false;locationBusy=false;locationSeq++;listLocationStatus='尚未定位';departureControl?.destroy();departureControl=null;trip=null;proofControl?.destroy();proofControl=null;epoch++;readSeq++;busy=false;data=null;owner=null;currentId=null;pendingCommand=null;closeModal();$('main').textContent='登入身分已變更，請重新讀取。';$('action').replaceChildren();$('nav').replaceChildren();lock();}
+ function clear(){deliveryBatch=null;document.body.classList.remove('pickup-mode','trip-overview-mode');cardScope='';cardPreviews=new Map();cardPending=new Set();listPosition=null;locationRequested=false;locationBusy=false;locationSeq++;listLocationStatus='尚未定位';departureControl?.destroy();departureControl=null;trip=null;proofControl?.destroy();proofControl=null;epoch++;readSeq++;busy=false;data=null;owner=null;currentId=null;pendingCommand=null;closeModal();$('main').textContent='登入身分已變更，請重新讀取。';$('action').replaceChildren();$('nav').replaceChildren();lock();}
  async function load(){const version=epoch,seq=++readSeq,role=actor;
   const session=await auth.getSession();if(version!==epoch||seq!==readSeq)return;
   if(!session){clear();$('main').innerHTML='<h1>請先登入</h1><div class="card"><p>此工作站沿用測試站 Google 登入。</p><a class="primary" href="index.html">前往測試站登入</a></div>';return;}
@@ -137,7 +138,7 @@
 
   if(['accepted','picked_up','handover_pending'].includes(t.status))$('main').innerHTML+='<button class="textbtn" data-act="report">⚑ 異常通報</button>';
   if(canWork&&stop.kind==='pickup'&&t.status==='accepted')$('action').innerHTML='<button class="primary" data-act="'+(t.arrived_at?'pickup':'arrive')+'">'+(t.arrived_at?'繼續確認取件':'我已抵達取件點')+' →</button>';
-  if(canWork&&delivery&&t.status==='picked_up')$('action').innerHTML='<button class="primary delivery-button" data-act="handover">核對 '+esc(t.bag_code)+' 並交付拍照 →</button>';
+  if(canWork&&delivery&&t.status==='picked_up')$('action').innerHTML='<button class="primary delivery-button" data-act="handover">同站袋件掃碼與拍照 →</button>';
  }
  function renderMoney(){$('main').innerHTML=`<div class="eyebrow">YOUR EARNINGS</div><h1>我的收益</h1><div class="card"><span class="muted">本期配送收益</span><div class="money">NT$ —</div><span class="pill">正式費率與付款鎖定</span></div><div class="card"><h2>配送紀錄</h2>${data.tasks.map(t=>`<div class="route"><b>${esc(t.bag_code)}</b><span>${esc(labels[t.status])}</span>${t.receipt_code?'<p class="muted">'+esc(t.receipt_code)+'</p>':''}</div>`).join('')||'<p>尚無配送紀錄。</p>'}<p class="muted">只顯示後端任務紀錄，不以示範金額冒充已賺收益。</p></div>`;}
  function renderProfile(){const p=data.people.find(p=>p.key===actor);$('main').innerHTML=`<div class="eyebrow">RIDER PROFILE</div><h1>我的騎手資料</h1><div class="card"><div class="row"><h2>${esc(p?.label||'模擬騎手')}</h2><span class="pill">${p?.eligible?'模擬資格有效':'尚不可接單'}</span></div><p class="muted">工作區內的模擬角色，不是正式工作帳號。</p><div class="route"><b>良民證有效期限</b>${esc(p?.cert_valid_until||'尚未核准')}</div><div class="route"><b>我的機車</b>${data.vehicles.map(v=>'<p>'+esc(v.label)+' · '+esc({approved:'已核准',pending:'待審核',revoked:'授權已撤回'}[v.status])+'</p>').join('')||'尚未新增'}</div><button class="secondary" data-act="qual">查看資格、車輛與模擬證件</button><button class="cancel" data-act="history">查看操作歷程</button></div>`;}
@@ -181,13 +182,20 @@
   }finally{if(button.isConnected&&modalVersion===modalEpoch){button.disabled=false;button.textContent='掃描袋號';}}
  }
  
- function proofForm(kind){const t=current();if(!t||!working(kind==='pickup'?'pickup':'delivery'))return;modal(`<h2>${kind==='pickup'?'確認取件':'確認交出袋件'}</h2><p>分享袋：${esc(t.bag_code)} · ${esc(itemQuantity(t))}</p><div id="riderCamera" class="proof-camera-layout ${kind==='delivery'?'delivery-camera':'pickup-camera'}"><img id="preview" alt="現場照片縮圖" hidden><div class="proof-camera-controls"><div class="proof-scan-controls"><label class="proof-bag-label" for="bag">核對袋號</label><input id="bag" type="text" autocomplete="off" placeholder="輸入或掃描袋號"><button type="button" class="secondary ${kind==='delivery'?'delivery-button':'pickup-scan-button'}" data-act="scan">掃描袋號</button></div><div id="proofCapture" class="proof-capture-control"></div></div></div>${kind==='pickup'?'<label class="pickup-seal"><input id="sealed" type="checkbox"> 我已核對封袋完整，未開袋</label>':''}<details class="camera-fallback"><summary>相機無法使用時，選擇照片</summary><label class="choice">選擇現場照片<input id="proof" type="file" accept="image/jpeg,image/png,image/webp" style="display:block;width:100%;margin-top:10px"></label></details><p id="proofState" class="proof-state">照片會先在本機壓縮至 100,000 bytes 以下，再上傳私密儲存空間。</p><div id="proofConfirm"></div>`);
+ function proofForm(kind){if(kind==='delivery'&&!deliveryBatch){const stop=nextStop();deliveryBatch={scope:routeScope(),epoch,revision:data.revision,items:(stop?.kind==='delivery'?stop.tasks:[]).filter(t=>t.status==='picked_up').map(t=>({id:t.id,code:t.bag_code,blob:null,path:null,payload:null,done:false}))};}const t=current();if(!t||!working(kind==='pickup'?'pickup':'delivery'))return;modal(`<h2>${kind==='pickup'?'確認取件':'確認交出袋件'}</h2><p>分享袋：${esc(t.bag_code)} · ${esc(itemQuantity(t))}</p><div id="riderCamera" class="proof-camera-layout ${kind==='delivery'?'delivery-camera':'pickup-camera'}"><img id="preview" alt="現場照片縮圖" hidden><div class="proof-camera-controls"><div class="proof-scan-controls"><label class="proof-bag-label" for="bag">核對袋號</label><input id="bag" type="text" autocomplete="off" placeholder="輸入或掃描袋號"><button type="button" class="secondary ${kind==='delivery'?'delivery-button':'pickup-scan-button'}" data-act="scan">掃描袋號</button></div><div id="proofCapture" class="proof-capture-control"></div></div></div>${kind==='pickup'?'<label class="pickup-seal"><input id="sealed" type="checkbox"> 我已核對封袋完整，未開袋</label>':''}<details class="camera-fallback"><summary>相機無法使用時，選擇照片</summary><label class="choice">選擇現場照片<input id="proof" type="file" accept="image/jpeg,image/png,image/webp" style="display:block;width:100%;margin-top:10px"></label></details><p id="proofState" class="proof-state">照片會先在本機壓縮至 100,000 bytes 以下，再上傳私密儲存空間。</p><div id="proofConfirm"></div>`);
   $('body').classList.add('proof-sheet');
   const taskId=t.id;
+  if(kind==='delivery'){
+   const entry=deliveryBatch?.items.find(x=>x.id===t.id);
+   const staged=deliveryBatch?.items.filter(x=>x.blob).length||0;
+   $('proofConfirm').innerHTML='<button type="button" class="primary delivery-button" data-act="batch-add" disabled>' +(staged+1===deliveryBatch.items.length?'加入清單，前往提交':'加入清單，繼續下一袋')+'</button><details class="batch-list"><summary>待交清單 '+staged+'／'+deliveryBatch.items.length+' 袋 · 提交條件</summary><p>同站每袋均須核對袋號及拍照；全部加入後再滑動提交，交出後仍待收件端簽收。照片暫存在本頁，離開或重整需重新拍攝。</p>'+deliveryBatch.items.map(x=>'<p>'+esc(x.code)+(x.blob?' · 已拍照':' · 待掃碼拍照')+'</p>').join('')+'</details>';
+   proofControl={destroy(){},refresh(){const b=$('body').querySelector('[data-act="batch-add"]');if(b)b.disabled=busy||!entry||!proofBlob||$('bag')?.value.trim()!==t.bag_code||!working('delivery');}};
+  }else{
   proofControl=window.LX_RIDER_ARRIVAL?.mount({host:$('proofConfirm'),tone:kind==='delivery'?'apricot':'green',labelText:kind==='pickup'?'向右滑動，確認取件':'向右滑動，確認交付',pendingText:kind==='pickup'?'正在確認取件…':'正在確認交付…',blockedText:kind==='pickup'?'先核對袋號、封袋並拍照':'先核對袋號並完成拍照',ariaLabel:kind==='pickup'?'核袋與拍照完成後，向右滑動確認取件':'核袋與拍照完成後，向右滑動確認交付',getKey:()=>{
    const task=current();
    return !busy&&working(kind==='pickup'?'pickup':'delivery')&&owner&&$('sheet').classList.contains('open')&&task?.id===taskId&&task.status===(kind==='pickup'?'accepted':'picked_up')&&proofBlob&&proofBlob.size>0&&proofBlob.size<=100000&&$('bag')?.value.trim()===task.bag_code&&(kind!=='pickup'||$('sealed')?.checked)?[epoch,owner,actor,taskId,data.revision,modalEpoch,photoSeq].join(':'):null;
   },onConfirm:()=>finish(kind)});
+  }
   if(!proofControl)$('proofConfirm').textContent='滑動元件未載入，請重新整理。';
   const cameraVersion=epoch,cameraModal=modalEpoch;
   cameraControl=window.LX_RIDER_CAMERA?.mount({host:$('riderCamera'),captureHost:$('proofCapture'),getKey:()=>!busy&&owner&&cameraVersion===epoch&&cameraModal===modalEpoch&&$('sheet').classList.contains('open')&&current()?.id===taskId&&current()?.status===(kind==='pickup'?'accepted':'picked_up')?[epoch,owner,actor,taskId,cameraModal].join(':'):null,onStart:()=>{releaseProof();$('preview').hidden=true;$('proof').value='';$('proofState').textContent='請拍攝現場照片，尚未上傳。';proofControl?.refresh();},onCapture:blob=>processPhoto(blob,true)});
@@ -206,6 +214,51 @@
    if(!r&&version===epoch){const latest=data?.tasks?.find(x=>x.id===t.id);const linked=latest?.pickup_photo_path===path||latest?.delivery_photo_path===path;if(!linked&&!pendingCommand&&latest&&data.revision>startedRevision){await auth.riderProofRemove(path,id).catch(()=>{});}}
   }catch(e){if(version===epoch){toast(e.message||'照片儲存失敗。');if(uploaded)await auth.riderProofRemove(path,id).catch(()=>{});}}
   finally{if(version===epoch){busy=false;lock();}}
+ }
+
+ function batchValid(batch){return !!batch&&batch===deliveryBatch&&batch.epoch===epoch&&batch.scope===routeScope()&&!!owner;}
+ function addDeliveryBag(){
+  const batch=deliveryBatch,t=current(),entry=batch?.items.find(x=>x.id===t?.id);
+  if(!batchValid(batch)||busy||!entry||!proofBlob||proofBlob.size>100000||$('bag')?.value.trim()!==entry.code||!working('delivery'))return;
+  entry.blob=proofBlob;
+  const next=batch.items.find(x=>!x.blob);
+  if(next){currentId=next.id;proofForm('delivery');}else reviewDeliveryBatch();
+ }
+ function reviewDeliveryBatch(){
+  const batch=deliveryBatch;if(!batchValid(batch))return;
+  modal('<h2>確認本次交件</h2><p>已拍照 '+batch.items.length+' 袋；最後確認後才上傳及交出。</p><details class="batch-list"><summary>袋件清單與提交條件（展開查看）</summary><p>每袋已核對袋號並拍照。逐袋記錄交出，簽收由收件端另外確認。</p>'+batch.items.map(x=>'<p>'+esc(x.code)+(x.done?' · 已交出':' · 待提交')+'</p>').join('')+'</details><p id="batchProgress" role="status"></p><div id="proofConfirm"></div>');
+  proofControl=window.LX_RIDER_ARRIVAL?.mount({host:$('proofConfirm'),tone:'apricot',labelText:'向右滑動，提交本次交件',pendingText:'正在逐袋確認交出…',blockedText:'請先完成每袋掃碼拍照',getKey:()=>batchValid(batch)&&!busy&&batch.items.every(x=>x.blob&&x.blob.size>0&&x.blob.size<=100000)?[epoch,batch.scope,data.revision,...batch.items.map(x=>x.id)].join(':'):null,onConfirm:()=>submitDeliveryBatch(batch)});
+ }
+ async function submitDeliveryBatch(batch){
+  if(busy||!batchValid(batch))return;
+  const uid=owner,role=actor;busy=true;lock();cameraControl?.stop();
+  try{
+   for(const entry of batch.items){
+    if(!batchValid(batch))return;
+    const latest=await auth.riderRequest('bootstrap',{actor:role},uid);if(!batchValid(batch))return;data=latest;
+    const task=latest.tasks.find(t=>t.id===entry.id);
+    if(entry.path&&task?.delivery_photo_path===entry.path&&['handover_pending','delivered'].includes(task.status)){entry.done=true;continue;}
+    if(entry.done)continue;
+    if(!task||task.status!=='picked_up'||task.bag_code!==entry.code||!nextStop()?.tasks.some(t=>t.id===entry.id))throw Error('袋件或站點狀態已變更，已停止後續提交。');
+    $('batchProgress').textContent='正在提交 '+entry.code+'；已完成 '+batch.items.filter(x=>x.done).length+'／'+batch.items.length+' 袋。';
+    if(!entry.path){
+     const ext={'image/jpeg':'jpg','image/png':'png','image/webp':'webp'}[entry.blob.type];if(!ext)throw Error('照片格式不符。');
+     const path=[uid,data.workspace_id,entry.id,role,'delivery','image',crypto.randomUUID()+'.'+ext].join('/');
+     await auth.riderProofUpload(path,entry.blob,uid);if(!batchValid(batch))return;entry.path=path;
+    }
+    if(!entry.payload)entry.payload={actor:role,revision:data.revision,command_id:crypto.randomUUID(),task_id:entry.id,bag_code:entry.code,sealed:true,photo_path:entry.path};
+    try{await auth.riderRequest('handover',entry.payload,uid);}
+    catch(error){if(!batchValid(batch))return;if(error.code&&error.code!=='RIDER_REQUEST_FAILED')entry.payload=null;throw error;}
+    if(!batchValid(batch))return;
+    const check=await auth.riderRequest('bootstrap',{actor:role},uid);if(!batchValid(batch))return;data=check;
+    const saved=check.tasks.find(t=>t.id===entry.id);
+    if(saved?.delivery_photo_path!==entry.path||!['handover_pending','delivered'].includes(saved.status))throw Error('交出結果尚未確認，請保留畫面並重試核對。');
+    entry.done=true;
+   }
+   if(batchValid(batch)){deliveryBatch=null;closeModal();render();toast('本次袋件已交出，等待收件端簽收。');}
+  }catch(error){
+   if(batchValid(batch)){$('batchProgress').textContent='已確認 '+batch.items.filter(x=>x.done).length+'／'+batch.items.length+' 袋。'+(errors[error.code]||error.message||'結果尚未確認')+'；可再次滑動核對並續傳，已成功袋件不重送。';}
+  }finally{if(batchValid(batch)||epoch===batch.epoch){busy=false;lock();proofControl?.refresh();}}
  }
  function mapsUrl(t){const delivery=t.status==='picked_up';if([delivery?t.delivery_lat:t.pickup_lat,delivery?t.delivery_lng:t.pickup_lng].some(v=>v===null||v===undefined||v===''))throw Error('目的地座標不完整');const lat=Number(delivery?t.delivery_lat:t.pickup_lat),lng=Number(delivery?t.delivery_lng:t.pickup_lng);if(!Number.isFinite(lat)||!Number.isFinite(lng)||Math.abs(lat)>90||Math.abs(lng)>180)throw Error('目的地座標不完整');const u=new URL('https://www.google.com/maps/dir/');u.searchParams.set('api','1');u.searchParams.set('destination',lat+','+lng);u.searchParams.set('travelmode','two-wheeler');u.searchParams.set('dir_action','navigate');return u.href;}
  async function navigate(){if(busy||!trip||!nextStop()||nextStop().blocked)return;const version=epoch,id=currentId,role=actor,uid=owner,expected=nextStop().kind==='pickup'?'accepted':'picked_up';try{const latest=await auth.riderRequest('bootstrap',{actor:role},uid);if(version!==epoch)return;const t=latest.tasks.find(t=>t.id===id&&t.status===expected);if(!t)throw Error('任務狀態已變更，請重新讀取。');location.assign(mapsUrl(t));}catch(e){if(version===epoch)toast(e.message);}}
@@ -254,9 +307,9 @@
 
  async function showPhoto(stage){const t=current(),version=epoch;try{const r=await auth.riderRequest('proof_link',{actor,task_id:t.id,stage},owner);if(version!==epoch)return;const u=new URL(r.signed_url);if(u.origin!=='https://rfwqcrvxyjhtmafnbuyy.supabase.co')throw Error('照片來源不符');modal('<h2>私密現場照片</h2><img alt="任務現場照片" src="'+esc(u.href)+'"><p class="muted">短效閱覽連結，請勿轉傳。</p>');}catch(e){if(version===epoch)toast(e.message||'照片暫時無法讀取。');}}
  function qual(){$('riderWorkbenchEntry')?.click();}
- document.addEventListener('click',async e=>{const b=e.target.closest('button');if(!b||b.disabled)return;if(b.dataset.tab){if(busy)return;closeModal();tab=b.dataset.tab;render();return;}const act=b.dataset.act;if(!act)return;if(busy&&act!=='close')return;
-  if(act==='compact-settings'){modal('<h2>測試設定</h2><label class="choice">模擬身分<select id="compactActor"><option value="rider1">騎手 A</option><option value="rider2">騎手 B</option></select></label><button class="secondary" id="compactReload">重新讀取</button><button class="textbtn" data-act="qual">資格與測試管理</button><p><a href="index.html">返回會員中心</a></p>');$('compactActor').value=actor;$('compactActor').addEventListener('change',()=>{$('actor').value=$('compactActor').value;$('actor').dispatchEvent(new Event('change'));});$('compactReload').addEventListener('click',()=>{closeModal();refresh();});return;}if(act==='locate-list'){locateTaskList();return;}if(act==='close'){closeModal();return;}if(act==='qual'){qual();return;}if(act==='init'){await command('initialize');return;}if(act==='detail'){detail(b.dataset.id);return;}if(act==='accept'){const car=defaultVehicle();if(!car){toast('目前配送資格不完整，請至「我的」確認。');return;}const r=await command(b.dataset.kind,{task_id:b.dataset.id,vehicle_id:car.id});if(r){currentId=b.dataset.id;tab='tasks';render();toast('已承接，可繼續挑選；準備好再滑動出發。');}return;}
-  if(act==='arrive'){if(!working('pickup'))return;const taskId=currentId,version=epoch;const r=await command('arrive',{task_id:taskId});if(r&&version===epoch&&currentId===taskId&&current()?.status==='accepted'&&current()?.arrived_at&&working('pickup'))proofForm('pickup');return;}if(act==='select'){currentId=b.dataset.id;tab='ride';render();return;}if(act==='pickup'||act==='handover'){proofForm(act==='pickup'?'pickup':'delivery');return;}if(act==='scan'){await scanBag(b);return;}if(act==='navigate'){await navigate();return;}if(act==='report'){report();return;}if(act==='send-report'){await command('exception',{task_id:currentId,code:$('reason').value,note:$('note').value});return;}if(act==='bag-records'){await showBagRecords();return;}if(act==='photo'){await showPhoto(b.dataset.stage);return;}
+ document.addEventListener('click',async e=>{const b=e.target.closest('button');if(!b||b.disabled)return;if(b.dataset.tab){if(busy)return;deliveryBatch=null;closeModal();tab=b.dataset.tab;render();return;}const act=b.dataset.act;if(!act)return;if(busy&&act!=='close')return;
+  if(act==='compact-settings'){modal('<h2>測試設定</h2><label class="choice">模擬身分<select id="compactActor"><option value="rider1">騎手 A</option><option value="rider2">騎手 B</option></select></label><button class="secondary" id="compactReload">重新讀取</button><button class="textbtn" data-act="qual">資格與測試管理</button><p><a href="index.html">返回會員中心</a></p>');$('compactActor').value=actor;$('compactActor').addEventListener('change',()=>{$('actor').value=$('compactActor').value;$('actor').dispatchEvent(new Event('change'));});$('compactReload').addEventListener('click',()=>{closeModal();refresh();});return;}if(act==='locate-list'){locateTaskList();return;}if(act==='close'){if(busy)return;deliveryBatch=null;closeModal();return;}if(act==='batch-add'){addDeliveryBag();return;}if(act==='qual'){qual();return;}if(act==='init'){await command('initialize');return;}if(act==='detail'){detail(b.dataset.id);return;}if(act==='accept'){const car=defaultVehicle();if(!car){toast('目前配送資格不完整，請至「我的」確認。');return;}const r=await command(b.dataset.kind,{task_id:b.dataset.id,vehicle_id:car.id});if(r){currentId=b.dataset.id;tab='tasks';render();toast('已承接，可繼續挑選；準備好再滑動出發。');}return;}
+  if(act==='arrive'){if(!working('pickup'))return;const taskId=currentId,version=epoch;const r=await command('arrive',{task_id:taskId});if(r&&version===epoch&&currentId===taskId&&current()?.status==='accepted'&&current()?.arrived_at&&working('pickup'))proofForm('pickup');return;}if(act==='select'){currentId=b.dataset.id;tab='ride';render();return;}if(act==='pickup'||act==='handover'){deliveryBatch=null;proofForm(act==='pickup'?'pickup':'delivery');return;}if(act==='scan'){await scanBag(b);return;}if(act==='navigate'){await navigate();return;}if(act==='report'){report();return;}if(act==='send-report'){await command('exception',{task_id:currentId,code:$('reason').value,note:$('note').value});return;}if(act==='bag-records'){await showBagRecords();return;}if(act==='photo'){await showPhoto(b.dataset.stage);return;}
   if(act==='route'){modal('<h2>本趟取送流程</h2>'+stopList(trip?stops():route.buildStops(active()))+'<p class="muted">依任務順序取件，再送至各收件點；不自動最佳化路線。</p>');return;}
   if(act==='history'){modal('<h2>操作歷程</h2>'+data.events.slice(-30).reverse().map(x=>'<div class="route"><b>'+esc(x.action)+'</b>'+esc(new Date(x.created_at).toLocaleString('zh-TW'))+'</div>').join(''));}
  });
@@ -265,6 +318,6 @@
  $('actor').value=actor;$('actor').addEventListener('change',()=>{clear();actor=$('actor').value;refresh();});$('reload').addEventListener('click',refresh);$('engineering').addEventListener('click',qual);
  window.addEventListener('lx-share-session-changed',()=>{clear();refresh();});window.addEventListener('pageshow',()=>{if(owner)refresh();});window.addEventListener('focus',()=>{if(owner&&!$('sheet').classList.contains('open')&&!document.querySelector('.rw-dialog[open]'))refresh();});
  document.addEventListener('close',e=>{if(e.target.classList?.contains('rw-dialog'))refresh();},true);
- document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();if(e.key==='Tab'&&$('sheet').classList.contains('open')){const f=[...$('body').querySelectorAll('button:not(:disabled),input,select,textarea,a')];if(!f.length)return;const first=f[0],last=f[f.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}});
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!busy){deliveryBatch=null;closeModal();}if(e.key==='Tab'&&$('sheet').classList.contains('open')){const f=[...$('body').querySelectorAll('button:not(:disabled),input,select,textarea,a')];if(!f.length)return;const first=f[0],last=f[f.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}});
  Object.defineProperty(window,'LX_RIDER_APP',{value:Object.freeze({mapsUrl})});refresh();
 })();
