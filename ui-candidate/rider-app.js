@@ -37,7 +37,7 @@
  function releaseProof(){photoSeq++;proofBlob=null;if(proofUrl)URL.revokeObjectURL(proofUrl);proofUrl=null;}
  function closeModal(){ $('body').classList.remove('proof-sheet');scanSeq++;cameraControl?.destroy();cameraControl=null;proofControl?.destroy();proofControl=null;modalEpoch++;releaseProof();$('sheet').classList.remove('open');$('body').replaceChildren();}
  function modal(html){closeModal();$('body').innerHTML=html+'<button type="button" class="cancel" data-act="close">返回畫面</button>';$('sheet').classList.add('open');$('body').querySelector('button,input,select,textarea')?.focus();}
- function clear(){document.body.classList.remove('pickup-mode');cardScope='';cardPreviews=new Map();cardPending=new Set();listPosition=null;locationRequested=false;locationBusy=false;locationSeq++;listLocationStatus='尚未定位';departureControl?.destroy();departureControl=null;trip=null;proofControl?.destroy();proofControl=null;epoch++;readSeq++;busy=false;data=null;owner=null;currentId=null;pendingCommand=null;closeModal();$('main').textContent='登入身分已變更，請重新讀取。';$('action').replaceChildren();$('nav').replaceChildren();lock();}
+ function clear(){document.body.classList.remove('pickup-mode','trip-overview-mode');cardScope='';cardPreviews=new Map();cardPending=new Set();listPosition=null;locationRequested=false;locationBusy=false;locationSeq++;listLocationStatus='尚未定位';departureControl?.destroy();departureControl=null;trip=null;proofControl?.destroy();proofControl=null;epoch++;readSeq++;busy=false;data=null;owner=null;currentId=null;pendingCommand=null;closeModal();$('main').textContent='登入身分已變更，請重新讀取。';$('action').replaceChildren();$('nav').replaceChildren();lock();}
  async function load(){const version=epoch,seq=++readSeq,role=actor;
   const session=await auth.getSession();if(version!==epoch||seq!==readSeq)return;
   if(!session){clear();$('main').innerHTML='<h1>請先登入</h1><div class="card"><p>此工作站沿用測試站 Google 登入。</p><a class="primary" href="index.html">前往測試站登入</a></div>';return;}
@@ -63,7 +63,7 @@
   }finally{if(version===epoch){busy=false;lock();departureControl?.refresh();proofControl?.refresh();}}
  }
  function nav(){ $('nav').innerHTML=[['tasks','任務'],['ride','配送'],['money','收益'],['user','我的']].map(([key,label])=>`<button type="button" data-tab="${key}" class="${(tab===key||key==='tasks'&&tab==='available')?'active tap-feedback':''}" ${(tab===key||key==='tasks'&&tab==='available')?'aria-current="page"':''}>${icon(key)}<span>${label}</span></button>`).join(''); }
- function render(){document.body.classList.remove('pickup-mode');departureControl?.destroy();departureControl=null;restoreTrip();nav();$('action').replaceChildren();
+ function render(){document.body.classList.remove('pickup-mode','trip-overview-mode');departureControl?.destroy();departureControl=null;restoreTrip();nav();$('action').replaceChildren();
   if(!data?.workspace_id){$('main').innerHTML='<h1>開始騎手測試</h1><div class="card"><p>建立本人隔離工作區後，先完成模擬資格與車輛審核。這不授予正式工作權限。</p><button class="primary" data-act="init">建立本人模擬工作區</button></div>';return;}
   if(!currentId||!data.tasks.some(t=>t.id===currentId))currentId=active()[0]?.id||data.tasks[0]?.id||null;
   if(tab==='tasks'||tab==='available')renderTasks(tab==='available');else if(tab==='ride')renderRide();else if(tab==='money')renderMoney();else renderProfile();lock();proofControl?.refresh();cameraControl?.refresh();
@@ -94,16 +94,18 @@
  }
 
  function renderSelectedTrip(){
+  document.body.classList.add('trip-overview-mode');
   const items=stops(),done=items.filter(s=>s.done).length,extra=active().filter(t=>!trip.ids.includes(t.id));
-  $('main').innerHTML='<div class="eyebrow">THIS TRIP</div><div class="row"><h1>本趟取送任務</h1>'+(active().length<3?'<button type="button" class="textbtn" data-tab="available">繼續挑選任務 →</button>':'')+'</div><section class="card"><div class="row"><b>已完成 '+done+'／'+items.length+' 項</b><span class="pill">待完成 '+(items.length-done)+' 項</span></div>'+stopList(items)+'</section>'+(extra.length?'<section class="card"><h2>下一趟已選任務</h2><p>'+extra.map(t=>esc(t.bag_code)).join('、')+' · '+esc(quantitySummary(extra))+'</p><p class="muted">本趟交付後，再確認下一趟出發。</p></section>':'');
+  $('main').innerHTML='<button class="textbtn compact-settings" data-act="compact-settings">測試設定</button><div class="row"><h1>本趟取送任務</h1>'+(active().length<3?'<button type="button" class="textbtn" data-tab="available">繼續挑選任務 →</button>':'')+'</div><section class="card"><div class="row"><b>已完成 '+done+'／'+items.length+' 項</b><span class="pill">待完成 '+(items.length-done)+' 項</span></div>'+stopList(items)+'</section>'+(extra.length?'<section class="card"><h2>下一趟已選任務</h2><p>'+extra.map(t=>esc(t.bag_code)).join('、')+' · '+esc(quantitySummary(extra))+'</p><p class="muted">本趟交付後，再確認下一趟出發。</p></section>':'');
   $('action').innerHTML='<button type="button" class="primary" data-tab="ride">前往目前站點 →</button>';
  }
  function renderTasks(forcePicker=false){if(inTrip()&&!forcePicker){renderSelectedTrip();return;}const n=active().length,available=data.available_tasks||[],offered=data.tasks.filter(t=>t.status==='offered');
   if(n>=3){
-   $('main').innerHTML='<div class="eyebrow">READY TO DEPART</div><h1>'+(inTrip()?'已接滿三袋':'準備出發')+'</h1><section class="card"><h2>已選取送任務 '+n+'／3 袋</h2>'+active().map(t=>'<p>'+esc(t.bag_code)+' · '+esc(labels[t.status])+'</p>').join('')+'<p>'+esc(quantitySummary(active()))+'</p><p class="muted">'+(inTrip()?'本趟路線保持不變，續接任務於本趟交付後再出發。':'已接滿三袋，請向右滑動確認出發。')+'</p></section>';
-   if(awaiting().length)$('main').innerHTML+='<p class="muted">另有 '+awaiting().length+' 袋已交付待確認，不佔持袋名額。</p>';
-   if(inTrip())$('action').innerHTML='<button class="primary" data-tab="ride">返回本趟路線 →</button>';
-   else {$('action').innerHTML='<div id="departureConfirm"></div>';mountDeparture();}
+   if(inTrip()){renderSelectedTrip();return;}
+   document.body.classList.add('trip-overview-mode');
+   const items=route.buildStops(active()),done=items.filter(s=>s.done).length;
+   $('main').innerHTML='<button class="textbtn compact-settings" data-act="compact-settings">測試設定</button><h1>本趟取送任務</h1><section class="card"><div class="row"><b>已完成 '+done+'／'+items.length+' 項</b><span class="pill">待完成 '+(items.length-done)+' 項</span></div>'+stopList(items)+'</section>';
+   $('action').innerHTML='<div id="departureConfirm"></div>';mountDeparture();
    window.scrollTo(0,0);return;
   }
   const person=data.people.find(p=>p.key===actor);

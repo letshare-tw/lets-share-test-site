@@ -308,3 +308,29 @@ body,.app{background:#f7f8f5}
 .task-card .task-bottom{margin-top:6px;padding-top:6px;gap:6px}
 .task-card .task-bottom>.muted{font-size:13px}
 .task-card .primary.compact{min-height:44px;font-size:16px;padding:8px 12px}
+
+/* Compact trip overview: normal four-stop phone view; allow overflow for zoom/long addresses. */
+.trip-overview-mode .app{min-height:100dvh;padding-bottom:0;display:flex;flex-direction:column}
+.trip-overview-mode header{padding:8px 16px;flex:none}
+.trip-overview-mode .brand{font-size:18px}
+.trip-overview-mode .brand small{display:none}
+.trip-overview-mode .company-logo{width:30px;height:30px}
+.trip-overview-mode .avatar{width:30px;height:30px;font-size:14px}
+.trip-overview-mode .demo{padding:3px 8px;font-size:10px;flex:none}
+.trip-overview-mode .test-controls{display:none}
+.trip-overview-mode #main{padding:8px 16px;flex:1}
+.trip-overview-mode h1{font-size:25px;line-height:1.25;margin:4px 0 10px}
+.trip-overview-mode .compact-settings{float:right;font-size:12px;min-height:28px;padding:2px 0}
+.trip-overview-mode .card{padding:12px 14px;margin-bottom:8px}
+.trip-overview-mode .card>.row{font-size:16px;gap:6px}
+.trip-overview-mode .pill{font-size:12px;padding:4px 8px}
+.trip-overview-mode .stop-list{margin:6px 0 0}
+.trip-overview-mode .stop-item{gap:9px;padding:8px 0}
+.trip-overview-mode .stop-item b{font-size:16px;line-height:1.35}
+.trip-overview-mode .stop-list .muted{font-size:13px;line-height:1.4}
+.trip-overview-mode .stop-state{font-size:12px;line-height:1.35;margin-top:2px}
+.trip-overview-mode .stop-number{width:26px;height:26px;font-size:15px}
+.trip-overview-mode .dock{position:static;flex:none;margin-top:auto}
+.trip-overview-mode .action{padding:6px 16px}
+.trip-overview-mode .nav{padding:2px 8px 4px}
+@media(min-width:650px){.trip-overview-mode .app{margin:0 auto}}
