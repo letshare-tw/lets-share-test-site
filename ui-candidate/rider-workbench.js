@@ -108,10 +108,18 @@
   }body.append(vs);renderDocuments(body);
   body.append(button('建立一筆模擬取送任務',()=>run('create_tasks')),el('p','新模擬任務預設 1 袋、2 件，可於接單前調整。','rw-muted'));
  }
+ function assignmentVehicle(rider){
+  const cars=snapshot.vehicles.filter(v=>v.rider_key===rider&&v.status==='approved'&&v.owner_authorized);
+  return snapshot.tasks.slice().reverse().filter(t=>t.rider_key===rider).map(t=>cars.find(v=>v.id===t.vehicle_id)).find(Boolean)||cars[0]||null;
+ }
  function assignment(task,action){
-  const candidates=snapshot.vehicles.filter(v=>v.status==='approved'&&v.owner_authorized&&snapshot.people.some(p=>p.key===v.rider_key&&p.eligible));
-  const s=select(candidates.map(v=>[v.id,roles[v.rider_key]+'・'+v.label]));const wrap=el('div',undefined,'rw-actions');
-  wrap.append(field('指定騎手與機車',s),button(action==='assign'?'確認派單':'確認改派',()=>{const v=candidates.find(v=>v.id===s.value);if(!v){message('請先完成騎手與機車審核。');return;}run(action,{task_id:task.id,rider:v.rider_key,vehicle_id:v.id});}));return wrap;
+  const candidates=snapshot.people.filter(p=>p.role==='rider'&&p.eligible&&assignmentVehicle(p.key));
+  const s=select(candidates.map(p=>[p.key,p.label||roles[p.key]]));const wrap=el('div',undefined,'rw-actions');
+  wrap.append(field('指定騎手',s),button(action==='assign'?'確認派單':'確認改派',()=>{
+   const rider=candidates.find(p=>p.key===s.value),v=rider&&assignmentVehicle(rider.key);
+   if(!rider||!v){message('請先完成騎手與機車審核。');return;}
+   run(action,{task_id:task.id,rider:rider.key,vehicle_id:v.id});
+  }));return wrap;
  }
  function renderTasks(){
   const section=card(actor==='receiver'?'待簽收與交接紀錄':'取送任務');const tasks=snapshot.tasks;
