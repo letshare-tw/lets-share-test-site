@@ -187,3 +187,15 @@ body,.app{background:#f7f8f5}
 #bagRecordImage{width:100%;max-height:65vh;object-fit:contain}
 
 .navigation-note{font-size:14px;color:#666;margin:12px 0}.navigation-note summary{cursor:pointer}
+
+/* Delivery proof: one shared viewfinder, scan stack left and tall capture right. */
+.delivery-proof-camera .rider-camera{margin-bottom:12px}
+.delivery-camera-controls{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:stretch;margin:12px 0}
+.delivery-scan-controls{position:relative;display:grid;grid-template-rows:minmax(52px,auto) minmax(52px,auto);gap:10px;min-width:0}
+.delivery-bag-label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+.delivery-scan-controls input{width:100%;min-width:0;box-sizing:border-box;margin:0;padding:12px;font-size:16px;border:1px solid #c9cec8;border-radius:12px}
+.delivery-scan-controls button{width:100%;min-height:52px;margin:0;padding:12px 8px;font-size:18px;line-height:1.4}
+.delivery-capture-control{display:flex;min-width:0}
+.delivery-capture-control .primary{width:100%;height:100%;min-height:114px;margin:0;padding:14px 8px;font-size:22px;line-height:1.5;border-radius:14px;white-space:normal}
+.delivery-proof-camera>img:not([hidden]){display:block;width:100%;max-height:50vh;object-fit:contain;margin:0}
+.delivery-proof-camera .rider-camera video{width:100%;max-height:50vh;object-fit:contain}

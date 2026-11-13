@@ -1,18 +1,18 @@
 "use strict";
 (()=>{
- function mount({host,getKey,onCapture,onStart=()=>{}}){
+ function mount({host,getKey,onCapture,onStart=()=>{},captureHost=null}){
   const make=(tag,text)=>{const n=document.createElement(tag);if(text)n.textContent=text;return n;};
   const view=make('section');view.className='rider-camera';
   const video=make('video');video.muted=true;video.playsInline=true;video.autoplay=true;video.hidden=true;video.setAttribute('aria-label','現場相機取景');
   const state=make('p','在此頁面開啟相機拍攝袋件，優先使用後鏡頭。');state.className='proof-state';state.setAttribute('role','status');
   const open=make('button','開啟網頁相機'),capture=make('button','拍攝照片'),close=make('button','關閉相機');
   for(const b of [open,capture,close])b.type='button';open.className='secondary';capture.className='primary';close.className='cancel';capture.hidden=true;capture.disabled=true;close.hidden=true;
-  view.append(video,state,open,capture,close);host.append(view);
+  view.append(video,state,open);if(captureHost){captureHost.append(capture);view.append(close);host.prepend(view);}else{view.append(capture,close);host.append(view);}
   let stream=null,opening=false,capturing=false,disposed=false,seq=0,scope=null;
   const allowed=()=>!disposed&&host.isConnected&&getKey()!==null;
   const current=()=>allowed()&&scope===getKey();
   const stopTracks=s=>{for(const t of s?.getTracks?.()||[])t.stop();};
-  function buttons(){if(disposed)return;open.hidden=opening||!!stream;open.disabled=capturing||!allowed();capture.hidden=!stream;capture.disabled=opening||capturing||!current()||!video.videoWidth||!video.videoHeight;close.hidden=!opening&&!stream;}
+  function buttons(){if(disposed)return;open.hidden=opening||!!stream;open.disabled=capturing||!allowed();capture.hidden=captureHost?false:!stream;capture.disabled=opening||capturing||!current()||!video.videoWidth||!video.videoHeight;close.hidden=!opening&&!stream;}
   function stop(){seq++;const old=stream;stream=null;scope=null;opening=false;stopTracks(old);try{video.pause();}catch(_){}video.srcObject=null;video.hidden=true;buttons();}
   function metadata(){if(!current()){stop();return;}buttons();if(stream&&video.videoWidth&&video.videoHeight)state.textContent='對準袋件與放置環境，按下拍攝照片。';}
   async function start(){
