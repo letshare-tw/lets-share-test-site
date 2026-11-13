@@ -7,7 +7,7 @@
  const labels={unassigned:'可承接',offered:'待接單',accepted:'前往取件',picked_up:'前往交付',handover_pending:'等待收件端簽收',delivered:'已完成',exception:'異常處理中',cancelled:'已取消'};
  const errors={RIDER_CAPACITY_REACHED:'身上已滿三袋，交付袋件後即可再接單。',RIDER_STALE_STATE:'任務已更新，請確認最新狀態後重試。',RIDER_QUALIFICATION_DENIED:'騎手或本次機車資格不符，請先完成審核。',RIDER_TASK_DENIED:'此任務已被承接或無權操作。',RIDER_PHOTO_REQUIRED:'請先拍攝並儲存現場照片。',RIDER_PHOTO_INVALID:'照片尚未儲存成功或不屬於此任務。',RIDER_BAG_CHECK_REQUIRED:'袋號或封袋確認不符，請重新核對。',RIDER_MEMBER_DENIED:'請使用指定且完成註冊的測試會員。',RIDER_TEST_LOCKED:'騎手測試目前關閉。'};
  let actor=['rider1','rider2'].includes(new URLSearchParams(location.search).get('actor'))?new URLSearchParams(location.search).get('actor'):'rider1';
- let data=null,owner=null,tab='tasks',currentId=null,busy=false,epoch=0,readSeq=0,modalEpoch=0,proofBlob=null,proofUrl=null,photoSeq=0,toastTimer=null,pendingCommand=null,proofControl=null,departureControl=null,trip=null,cameraControl=null;
+ let data=null,owner=null,tab='tasks',currentId=null,busy=false,epoch=0,readSeq=0,modalEpoch=0,proofBlob=null,proofUrl=null,photoSeq=0,toastTimer=null,pendingCommand=null,proofControl=null,departureControl=null,trip=null,cameraControl=null,scanSeq=0;
  const active=()=>data?.tasks?.filter(t=>route.holds(t))||[];
  const awaiting=()=>data?.tasks?.filter(t=>t.status==='handover_pending'||t.status==='exception'&&!!t.rider_handover_at)||[];
  const current=()=>data?.tasks?.find(t=>t.id===currentId);
@@ -35,7 +35,7 @@
 
  function toast(text){clearTimeout(toastTimer);$('toast').textContent=text;$('toast').style.display='block';toastTimer=setTimeout(()=>$('toast').style.display='none',5000);}
  function releaseProof(){photoSeq++;proofBlob=null;if(proofUrl)URL.revokeObjectURL(proofUrl);proofUrl=null;}
- function closeModal(){cameraControl?.destroy();cameraControl=null;proofControl?.destroy();proofControl=null;modalEpoch++;releaseProof();$('sheet').classList.remove('open');$('body').replaceChildren();}
+ function closeModal(){scanSeq++;cameraControl?.destroy();cameraControl=null;proofControl?.destroy();proofControl=null;modalEpoch++;releaseProof();$('sheet').classList.remove('open');$('body').replaceChildren();}
  function modal(html){closeModal();$('body').innerHTML=html+'<button type="button" class="cancel" data-act="close">返回畫面</button>';$('sheet').classList.add('open');$('body').querySelector('button,input,select,textarea')?.focus();}
  function clear(){cardScope='';cardPreviews=new Map();cardPending=new Set();listPosition=null;locationRequested=false;locationBusy=false;locationSeq++;listLocationStatus='尚未定位';departureControl?.destroy();departureControl=null;trip=null;proofControl?.destroy();proofControl=null;epoch++;readSeq++;busy=false;data=null;owner=null;currentId=null;pendingCommand=null;closeModal();$('main').textContent='登入身分已變更，請重新讀取。';$('action').replaceChildren();$('nav').replaceChildren();lock();}
  async function load(){const version=epoch,seq=++readSeq,role=actor;
@@ -153,7 +153,23 @@
   $('retryPosition').addEventListener('click',locate);locate();
  }catch(e){if(!valid())return;$('taskPreview').textContent=errors[e.code]||e.message||'地址讀取失敗，請返回後重新查看。';}
  }
- function proofForm(kind){const t=current();if(!t||!working(kind==='pickup'?'pickup':'delivery'))return;modal(`<h2>${kind==='pickup'?'確認取件':'確認交出袋件'}</h2><p>分享袋：${esc(t.bag_code)} · ${esc(itemQuantity(t))}</p><label class="choice">核對袋號<input id="bag" type="text" autocomplete="off" placeholder="輸入或掃描袋號"></label><button class="secondary${kind==='delivery'?' delivery-button':''}" data-act="scan">模擬掃描袋號</button>${kind==='pickup'?'<label class="choice"><input id="sealed" type="checkbox"> 我已核對封袋完整，未開袋</label>':''}<div id="riderCamera" class="${kind==='delivery'?'delivery-camera':''}"></div><details class="camera-fallback"><summary>相機無法使用時，選擇照片</summary><label class="choice">選擇現場照片<input id="proof" type="file" accept="image/jpeg,image/png,image/webp" style="display:block;width:100%;margin-top:10px"></label></details><img id="preview" alt="現場照片縮圖" hidden><p id="proofState" class="proof-state">照片會先在本機壓縮至 100,000 bytes 以下，再上傳私密儲存空間。</p><div id="proofConfirm"></div>`);
+ async function scanBag(button){
+  const task=current(),input=$('bag'),video=$('riderCamera')?.querySelector('video');
+  if(!task||!input||!video||busy)return;
+  if(!window.LX_RIDER_BAG_SCAN){toast('掃碼元件尚未載入，請手動輸入袋號。');return;}
+  if(video.hidden||!video.srcObject||video.readyState<2){await cameraControl?.start();toast('請等相機畫面出現後，再按掃描袋號。');return;}
+  const seq=++scanSeq,version=epoch,modalVersion=modalEpoch,scope=routeScope(),revision=data.revision,id=task.id,status=task.status,stream=video.srcObject;
+  const valid=()=>seq===scanSeq&&version===epoch&&modalVersion===modalEpoch&&scope===routeScope()&&revision===data?.revision&&!busy&&current()?.id===id&&current()?.status===status&&input.isConnected&&video.srcObject===stream&&(working('pickup')||working('delivery'));
+  button.disabled=true;button.textContent='對準袋號，掃描中…';
+  try{
+   const result=await window.LX_RIDER_BAG_SCAN.scan({video,expected:task.bag_code,getKey:()=>valid()?seq:null});
+   if(!valid())return;
+   if(result.status==='matched'){input.value=result.value;proofControl?.refresh();toast('袋號核對正確。請繼續完成現場拍照。');}
+   else if(result.status!=='cancelled')toast(({unsupported:'此瀏覽器不支援網頁掃碼，請手動輸入袋號。',mismatch:'掃到的袋號與本任務不符，請確認正確袋件。',timeout:'尚未讀到袋號，請對準後重試，或手動輸入。',error:'暫時無法辨識袋號，請重試或手動輸入。'})[result.status]);
+  }finally{if(button.isConnected&&modalVersion===modalEpoch){button.disabled=false;button.textContent='掃描袋號';}}
+ }
+ 
+ function proofForm(kind){const t=current();if(!t||!working(kind==='pickup'?'pickup':'delivery'))return;modal(`<h2>${kind==='pickup'?'確認取件':'確認交出袋件'}</h2><p>分享袋：${esc(t.bag_code)} · ${esc(itemQuantity(t))}</p><label class="choice">核對袋號<input id="bag" type="text" autocomplete="off" placeholder="輸入或掃描袋號"></label><button class="secondary${kind==='delivery'?' delivery-button':''}" data-act="scan">掃描袋號</button>${kind==='pickup'?'<label class="choice"><input id="sealed" type="checkbox"> 我已核對封袋完整，未開袋</label>':''}<div id="riderCamera" class="${kind==='delivery'?'delivery-camera':''}"></div><details class="camera-fallback"><summary>相機無法使用時，選擇照片</summary><label class="choice">選擇現場照片<input id="proof" type="file" accept="image/jpeg,image/png,image/webp" style="display:block;width:100%;margin-top:10px"></label></details><img id="preview" alt="現場照片縮圖" hidden><p id="proofState" class="proof-state">照片會先在本機壓縮至 100,000 bytes 以下，再上傳私密儲存空間。</p><div id="proofConfirm"></div>`);
   const taskId=t.id;
   proofControl=window.LX_RIDER_ARRIVAL?.mount({host:$('proofConfirm'),tone:kind==='delivery'?'apricot':'green',labelText:kind==='pickup'?'向右滑動，確認取件':'向右滑動，確認交付',pendingText:kind==='pickup'?'正在確認取件…':'正在確認交付…',blockedText:kind==='pickup'?'先核對袋號、封袋並拍照':'先核對袋號並完成拍照',ariaLabel:kind==='pickup'?'核袋與拍照完成後，向右滑動確認取件':'核袋與拍照完成後，向右滑動確認交付',getKey:()=>{
    const task=current();
@@ -185,12 +201,12 @@
  function qual(){$('riderWorkbenchEntry')?.click();}
  document.addEventListener('click',async e=>{const b=e.target.closest('button');if(!b||b.disabled)return;if(b.dataset.tab){if(busy)return;closeModal();tab=b.dataset.tab;render();return;}const act=b.dataset.act;if(!act)return;if(busy&&act!=='close')return;
   if(act==='locate-list'){locateTaskList();return;}if(act==='close'){closeModal();return;}if(act==='qual'){qual();return;}if(act==='init'){await command('initialize');return;}if(act==='detail'){detail(b.dataset.id);return;}if(act==='accept'){const car=defaultVehicle();if(!car){toast('目前配送資格不完整，請至「我的」確認。');return;}const r=await command(b.dataset.kind,{task_id:b.dataset.id,vehicle_id:car.id});if(r){currentId=b.dataset.id;tab='tasks';render();toast('已承接，可繼續挑選；準備好再滑動出發。');}return;}
-  if(act==='arrive'){if(!working('pickup'))return;const taskId=currentId,version=epoch;const r=await command('arrive',{task_id:taskId});if(r&&version===epoch&&currentId===taskId&&current()?.status==='accepted'&&current()?.arrived_at&&working('pickup'))proofForm('pickup');return;}if(act==='select'){currentId=b.dataset.id;tab='ride';render();return;}if(act==='pickup'||act==='handover'){proofForm(act==='pickup'?'pickup':'delivery');return;}if(act==='scan'){$('bag').value=current().bag_code;proofControl?.refresh();return;}if(act==='navigate'){await navigate();return;}if(act==='report'){report();return;}if(act==='send-report'){await command('exception',{task_id:currentId,code:$('reason').value,note:$('note').value});return;}if(act==='photo'){await showPhoto(b.dataset.stage);return;}
+  if(act==='arrive'){if(!working('pickup'))return;const taskId=currentId,version=epoch;const r=await command('arrive',{task_id:taskId});if(r&&version===epoch&&currentId===taskId&&current()?.status==='accepted'&&current()?.arrived_at&&working('pickup'))proofForm('pickup');return;}if(act==='select'){currentId=b.dataset.id;tab='ride';render();return;}if(act==='pickup'||act==='handover'){proofForm(act==='pickup'?'pickup':'delivery');return;}if(act==='scan'){await scanBag(b);return;}if(act==='navigate'){await navigate();return;}if(act==='report'){report();return;}if(act==='send-report'){await command('exception',{task_id:currentId,code:$('reason').value,note:$('note').value});return;}if(act==='photo'){await showPhoto(b.dataset.stage);return;}
   if(act==='route'){modal('<h2>本趟取送流程</h2>'+stopList(trip?stops():route.buildStops(active()))+'<p class="muted">依任務順序取件，再送至各收件點；不自動最佳化路線。</p>');return;}
   if(act==='history'){modal('<h2>操作歷程</h2>'+data.events.slice(-30).reverse().map(x=>'<div class="route"><b>'+esc(x.action)+'</b>'+esc(new Date(x.created_at).toLocaleString('zh-TW'))+'</div>').join(''));}
  });
  document.addEventListener('change',e=>{if(e.target.id==='proof')processPhoto(e.target.files?.[0]);else if(e.target.id==='sealed')proofControl?.refresh();});
- document.addEventListener('input',e=>{if(e.target.id==='bag')proofControl?.refresh();});
+ document.addEventListener('input',e=>{if(e.target.id==='bag'){scanSeq++;proofControl?.refresh();}});
  $('actor').value=actor;$('actor').addEventListener('change',()=>{clear();actor=$('actor').value;refresh();});$('reload').addEventListener('click',refresh);$('engineering').addEventListener('click',qual);
  window.addEventListener('lx-share-session-changed',()=>{clear();refresh();});window.addEventListener('pageshow',()=>{if(owner)refresh();});window.addEventListener('focus',()=>{if(owner&&!$('sheet').classList.contains('open')&&!document.querySelector('.rw-dialog[open]'))refresh();});
  document.addEventListener('close',e=>{if(e.target.classList?.contains('rw-dialog'))refresh();},true);

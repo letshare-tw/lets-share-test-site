@@ -30,14 +30,14 @@ const root=path.join(__dirname,'..'),html=fs.readFileSync(path.join(root,'rider.
  assert.equal(doc.querySelector('.arrival-swipe-handle').disabled,true);assert.equal(doc.querySelector('[data-act=finish]'),null,'old click completion is removed');
  swipe();await wait();assert.equal(uploaded.length,0,'no upload before bag/photo');
  await photo();assert.equal(doc.querySelector('#preview').hidden,false);assert.equal(doc.querySelector('.arrival-swipe-handle').disabled,true,'photo alone is insufficient');
- click('[data-act=scan]');assert.equal(doc.querySelector('.arrival-swipe-handle').disabled,true,'seal still required');
+ doc.querySelector('#bag').value=doc.querySelector('#body').textContent.match(/分享袋：\s*(TEST-\d+)/)[1];doc.querySelector('#bag').dispatchEvent(new w.Event('input',{bubbles:true}));assert.equal(doc.querySelector('.arrival-swipe-handle').disabled,true,'seal still required');
  doc.querySelector('#sealed').checked=true;doc.querySelector('#sealed').dispatchEvent(new w.Event('change',{bubbles:true}));
  assert.equal(doc.querySelector('.arrival-swipe-handle').disabled,false);
  doc.querySelector('.arrival-swipe-handle').click();swipe(50);await wait();assert.equal(uploaded.length,0,'tap and short drag do not upload');
  swipe(260,'pointercancel');await wait();assert.equal(uploaded.length,0,'cancel does not upload');
  swipe();await wait();await wait();
  assert.equal(uploaded.length,1);assert.equal(uploaded[0].split('/').slice(0,6).join('/'),'A/w1/t1/rider1/pickup/image');assert.ok(uploaded[0].endsWith('.webp'));assert.equal(data.tasks[0].status,'picked_up');
- click('[data-act=handover]');assert.equal(doc.querySelector('.arrival-swipe-handle').disabled,true,'delivery requires fresh bag check/photo');click('[data-act=scan]');assert.equal(doc.querySelector('.arrival-swipe-handle').disabled,true);await photo();assert.equal(doc.querySelector('.arrival-swipe-handle').disabled,false);swipe();await wait();await wait();
+ click('[data-act=handover]');assert.equal(doc.querySelector('.arrival-swipe-handle').disabled,true,'delivery requires fresh bag check/photo');doc.querySelector('#bag').value=doc.querySelector('#body').textContent.match(/分享袋：\s*(TEST-\d+)/)[1];doc.querySelector('#bag').dispatchEvent(new w.Event('input',{bubbles:true}));assert.equal(doc.querySelector('.arrival-swipe-handle').disabled,true);await photo();assert.equal(doc.querySelector('.arrival-swipe-handle').disabled,false);swipe();await wait();await wait();
  assert.equal(data.tasks[0].status,'handover_pending');assert.ok(doc.querySelector('#main').textContent.includes('等待對方簽收'));assert.ok(!doc.querySelector('#main').textContent.includes('這趟分享，順利送達'));
  click('[data-tab=money]');assert.ok(doc.querySelector('#main').textContent.includes('NT$ —'));
  const u=new URL(w.LX_RIDER_APP.mapsUrl({...task,status:'accepted'}));assert.equal(u.searchParams.get('travelmode'),'two-wheeler');assert.equal(u.searchParams.get('dir_action'),'navigate');assert.equal(u.searchParams.has('origin'),false);
