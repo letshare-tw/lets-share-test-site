@@ -189,16 +189,16 @@ body,.app{background:#f7f8f5}
 .navigation-note{font-size:14px;color:#666;margin:12px 0}.navigation-note summary{cursor:pointer}
 
 /* Delivery proof: one shared viewfinder, scan stack left and tall capture right. */
-.delivery-proof-camera .rider-camera{margin-bottom:12px}
-.delivery-camera-controls{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:stretch;margin:12px 0}
-.delivery-scan-controls{position:relative;display:grid;grid-template-rows:minmax(52px,auto) minmax(52px,auto);gap:10px;min-width:0}
-.delivery-bag-label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
-.delivery-scan-controls input{width:100%;min-width:0;box-sizing:border-box;margin:0;padding:12px;font-size:16px;border:1px solid #c9cec8;border-radius:12px}
-.delivery-scan-controls button{width:100%;min-height:52px;margin:0;padding:12px 8px;font-size:18px;line-height:1.4}
-.delivery-capture-control{display:flex;min-width:0}
-.delivery-capture-control .primary{width:100%;height:100%;min-height:114px;margin:0;padding:14px 8px;font-size:22px;line-height:1.5;border-radius:14px;white-space:normal}
-.delivery-proof-camera>img:not([hidden]){display:block;width:100%;max-height:50vh;object-fit:contain;margin:0}
-.delivery-proof-camera .rider-camera video{width:100%;max-height:50vh;object-fit:contain}
+.proof-camera-layout .rider-camera{margin-bottom:12px}
+.proof-camera-controls{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:stretch;margin:12px 0}
+.proof-scan-controls{position:relative;display:grid;grid-template-rows:minmax(52px,auto) minmax(52px,auto);gap:10px;min-width:0}
+.proof-bag-label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+.proof-scan-controls input{width:100%;min-width:0;box-sizing:border-box;margin:0;padding:12px;font-size:16px;border:1px solid #c9cec8;border-radius:12px}
+.proof-scan-controls button{width:100%;min-height:52px;margin:0;padding:12px 8px;font-size:18px;line-height:1.4}
+.proof-capture-control{display:flex;min-width:0}
+.proof-capture-control .primary{width:100%;height:100%;min-height:114px;margin:0;padding:14px 8px;font-size:22px;line-height:1.5;border-radius:14px;white-space:normal}
+.proof-camera-layout>img:not([hidden]){display:block;width:100%;max-height:50vh;object-fit:contain;margin:0}
+.proof-camera-layout .rider-camera video{width:100%;max-height:50vh;object-fit:contain}
 
 /* Completed pickup/delivery stops: grey text and grey badges with white numerals. */
 .stop-item.stop-done b,.stop-item.stop-done .muted,.stop-item.stop-done .stop-state{color:#737373}
@@ -209,29 +209,34 @@ body,.app{background:#f7f8f5}
 .proof-sheet h2{font-size:21px;line-height:1.3;margin:0 0 6px}
 .proof-sheet>p{font-size:15px;line-height:1.4;margin:5px 0 8px}
 .proof-sheet .rider-camera{position:relative;padding:0;border:0;background:transparent;margin:8px 0}
-.proof-sheet .rider-camera video,.proof-sheet .delivery-proof-camera .rider-camera video,.proof-sheet #preview{width:100%;height:clamp(100px,24dvh,180px);max-height:180px;object-fit:contain;background:#111;border-radius:10px}
+.proof-sheet .rider-camera video,.proof-sheet .proof-camera-layout .rider-camera video,.proof-sheet #preview{width:100%;height:clamp(100px,24dvh,180px);max-height:180px;object-fit:contain;background:#111;border-radius:10px}
 .proof-sheet .rider-camera .proof-state{font-size:12px;line-height:1.3;min-height:0;margin:4px 0}
 .proof-sheet .rider-camera .cancel{position:absolute;top:6px;right:6px;width:auto;min-height:36px;padding:6px 10px;margin:0;border-radius:9px;background:#ffffffed;color:#333;font-size:13px}
 .proof-sheet .rider-camera .secondary{padding:8px;margin-top:4px;min-height:40px;font-size:15px}
-.proof-sheet .delivery-camera-controls{gap:10px;margin:8px 0}
-.proof-sheet .delivery-scan-controls{grid-template-rows:minmax(42px,auto) minmax(42px,auto);gap:6px}
-.proof-sheet .delivery-scan-controls input{font-size:16px;line-height:1.3;padding:8px 10px}
-.proof-sheet .delivery-scan-controls button{min-height:42px;padding:8px;font-size:16px}
-.proof-sheet .delivery-capture-control .primary{min-height:90px;font-size:20px;padding:10px}
+.proof-sheet .proof-camera-controls{gap:10px;margin:8px 0}
+.proof-sheet .proof-scan-controls{grid-template-rows:minmax(42px,auto) minmax(42px,auto);gap:6px}
+.proof-sheet .proof-scan-controls input{font-size:16px;line-height:1.3;padding:8px 10px}
+.proof-sheet .proof-scan-controls button{min-height:42px;padding:8px;font-size:16px}
+.proof-sheet .proof-capture-control .primary{min-height:90px;font-size:20px;padding:10px}
 .proof-sheet .camera-fallback{padding:0 10px;margin:6px 0;border-radius:9px;font-size:13px}
 .proof-sheet .camera-fallback summary{min-height:32px}
 .proof-sheet #proofState{font-size:12px;line-height:1.35;min-height:0;margin:5px 0}
 .proof-sheet #proofConfirm{margin-top:6px}
 .proof-sheet>.cancel{min-height:36px;padding:6px;font-size:15px}
-@media(max-height:620px){.proof-sheet .rider-camera video,.proof-sheet .delivery-proof-camera .rider-camera video,.proof-sheet #preview{height:clamp(80px,18dvh,120px);max-height:120px}.sheetbody.proof-sheet{padding-top:10px}.proof-sheet>p{margin:4px 0}}
+@media(max-height:620px){.proof-sheet .rider-camera video,.proof-sheet .proof-camera-layout .rider-camera video,.proof-sheet #preview{height:clamp(80px,18dvh,120px);max-height:120px}.sheetbody.proof-sheet{padding-top:10px}.proof-sheet>p{margin:4px 0}}
 
 /* Delivery camera expands into all remaining viewport space above fixed-size controls. */
-.sheetbody.proof-sheet:has(.delivery-proof-camera){height:calc(100dvh - 8px);display:flex;flex-direction:column;gap:0}
-.proof-sheet:has(.delivery-proof-camera)>*{flex-shrink:0}
-.proof-sheet .delivery-proof-camera{display:flex;flex-direction:column;flex:1 0 220px;min-height:220px}
-.proof-sheet .delivery-proof-camera .rider-camera{flex:0 0 auto;margin:4px 0 0}
-.proof-sheet .delivery-proof-camera .rider-camera:has(video:not([hidden])){display:flex;flex-direction:column;flex:1 0 110px;min-height:110px}
-.proof-sheet .delivery-proof-camera .rider-camera video:not([hidden]){flex:1 1 0;height:0;min-height:80px;max-height:none;width:100%;object-fit:contain}
-.proof-sheet .delivery-proof-camera .rider-camera .proof-state{flex:0 0 auto}
-.proof-sheet .delivery-proof-camera>#preview:not([hidden]){flex:1 1 0;height:0;min-height:100px;max-height:none;width:100%;object-fit:contain}
-.proof-sheet .delivery-camera-controls{flex:0 0 auto}
+.sheetbody.proof-sheet:has(.proof-camera-layout){height:calc(100dvh - 8px);display:flex;flex-direction:column;gap:0}
+.proof-sheet:has(.proof-camera-layout)>*{flex-shrink:0}
+.proof-sheet .proof-camera-layout{display:flex;flex-direction:column;flex:1 0 220px;min-height:220px}
+.proof-sheet .proof-camera-layout .rider-camera{flex:0 0 auto;margin:4px 0 0}
+.proof-sheet .proof-camera-layout .rider-camera:has(video:not([hidden])){display:flex;flex-direction:column;flex:1 0 110px;min-height:110px}
+.proof-sheet .proof-camera-layout .rider-camera video:not([hidden]){flex:1 1 0;height:0;min-height:80px;max-height:none;width:100%;object-fit:contain}
+.proof-sheet .proof-camera-layout .rider-camera .proof-state{flex:0 0 auto}
+.proof-sheet .proof-camera-layout>#preview:not([hidden]){flex:1 1 0;height:0;min-height:100px;max-height:none;width:100%;object-fit:contain}
+.proof-sheet .proof-camera-controls{flex:0 0 auto}
+
+/* Pickup shares the same viewport layout while retaining green and explicit seal consent. */
+.pickup-camera .pickup-scan-button{background:#09923a;color:#fff}
+.proof-sheet .pickup-seal{display:flex;align-items:center;gap:8px;font-size:14px;line-height:1.4;margin:4px 0;min-height:36px}
+.proof-sheet .pickup-seal input{width:22px;height:22px;flex:none;accent-color:#09923a;margin:0}

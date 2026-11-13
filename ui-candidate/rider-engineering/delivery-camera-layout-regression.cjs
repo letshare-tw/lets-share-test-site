@@ -35,7 +35,7 @@ function flowCount(ctx,selector){assert.equal(ctx.doc.querySelectorAll('#main .s
  const data={workspace_id:'w1',revision:1,people:[{key:'rider1',eligible:true}],vehicles:[],available_tasks:[],events:[],tasks:[task]},session={owner:'A',webCamera:true};
  const seed={'lx-rider-trip-v1:A:w1:rider1':JSON.stringify({scope:'A:w1:rider1',ids:['t1']})};
  const ctx=boot(data,session,seed);await wait();ctx.click('[data-tab=ride]');ctx.click('[data-act=handover]');await wait();
- const {doc}=ctx,host=doc.querySelector('#riderCamera'),controls=doc.querySelector('.delivery-camera-controls');
+ const {doc}=ctx,host=doc.querySelector('#riderCamera'),controls=doc.querySelector('.proof-camera-controls');
  assert.equal(host.firstElementChild.classList.contains('rider-camera'),true,'viewfinder before controls');
  assert.ok(controls.children[0].contains(doc.querySelector('#bag')));assert.ok(controls.children[0].contains(doc.querySelector('[data-act=scan]')));
  assert.ok(controls.children[1].contains(doc.querySelector('#riderCamera button.primary')));
@@ -45,8 +45,9 @@ function flowCount(ctx,selector){assert.equal(ctx.doc.querySelectorAll('#main .s
  doc.querySelector('#bag').value='TEST-001';doc.querySelector('#bag').dispatchEvent(new ctx.w.Event('input',{bubbles:true}));
  ctx.click('#riderCamera button.primary');await wait();
  assert.equal(doc.querySelector('#preview').hidden,false);assert.equal(session.cameraStops,1);assert.equal(ctx.uploads.length,0);
- assert.equal(doc.querySelector('#deliveryCapture button').hidden,false);assert.equal(doc.querySelector('#deliveryCapture button').disabled,true);
+ assert.equal(doc.querySelector('#proofCapture button').hidden,false);assert.equal(doc.querySelector('#proofCapture button').disabled,true);
  assert.equal(doc.querySelector('#proofConfirm button').disabled,false);
  ctx.swipe('#proofConfirm');await wait();await wait();assert.equal(data.tasks[0].status,'handover_pending');assert.equal(ctx.uploads.length,1);
  ctx.d.window.close();console.log('PASS: delivery shared viewfinder; left bag/scan; right capture; one camera; preview; final swipe upload. DOM/media mocks; phone layout pending.');
 })().catch(e=>{console.error(e);process.exitCode=1});
+
