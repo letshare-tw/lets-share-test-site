@@ -20,7 +20,7 @@
 
 /* RIDER-WEB-CAMERA-FILL-01: fill follows the centre of the logo, returns with it. */
 .rw-dialog .arrival-swipe-fill{position:absolute;left:0;top:0;bottom:0;width:var(--swipe-fill,36px);background:var(--swipe-tone,#09923a);pointer-events:none;transition:width 180ms ease-out}
-.rw-dialog .arrival-swipe.delivery-apricot{--swipe-tone:#f4a574}
+.rw-dialog .arrival-swipe.delivery-apricot{--swipe-tone:#FFA726}
 .rw-dialog .arrival-swipe.dragging .arrival-swipe-fill{transition:none}
 .rw-dialog .arrival-swipe.pending .arrival-swipe-fill{width:100%}
 @media(prefers-reduced-motion:reduce){.rw-dialog .arrival-swipe-fill{transition:none}}
