@@ -99,6 +99,13 @@
   $('action').innerHTML='<button type="button" class="primary" data-tab="ride">前往目前站點 →</button>';
  }
  function renderTasks(forcePicker=false){if(inTrip()&&!forcePicker){renderSelectedTrip();return;}const n=active().length,available=data.available_tasks||[],offered=data.tasks.filter(t=>t.status==='offered');
+  if(n>=3){
+   $('main').innerHTML='<div class="eyebrow">READY TO DEPART</div><h1>'+(inTrip()?'已接滿三袋':'準備出發')+'</h1><section class="card"><h2>已選取送任務 '+n+'／3 袋</h2>'+active().map(t=>'<p>'+esc(t.bag_code)+' · '+esc(labels[t.status])+'</p>').join('')+'<p>'+esc(quantitySummary(active()))+'</p><p class="muted">'+(inTrip()?'本趟路線保持不變，續接任務於本趟交付後再出發。':'已接滿三袋，請向右滑動確認出發。')+'</p></section>';
+   if(awaiting().length)$('main').innerHTML+='<p class="muted">另有 '+awaiting().length+' 袋已交付待確認，不佔持袋名額。</p>';
+   if(inTrip())$('action').innerHTML='<button class="primary" data-tab="ride">返回本趟路線 →</button>';
+   else {$('action').innerHTML='<div id="departureConfirm"></div>';mountDeparture();}
+   window.scrollTo(0,0);return;
+  }
   const person=data.people.find(p=>p.key===actor);
   $('main').innerHTML=`<div class="eyebrow">AVAILABLE TASKS</div><div class="row"><h1>挑選任務</h1><span class="pill">待接 ${available.length+offered.length} 件</span></div><div class="capacity"><div class="row"><b>身上任務 ${n}／3 袋</b><button class="textbtn" data-tab="ride">查看本趟路線 →</button></div><div class="slots">${[0,1,2].map(i=>`<i class="${i<n?'filled':''}"></i>`).join('')}</div><p class="reminder">${n>=3?'身上已滿三袋，交付袋件後即釋出名額。':'目前還可接 '+(3-n)+' 件。'}</p></div>${!person?.eligible?'<div class="qual-status">尚未取得有效模擬資格。<button class="textbtn" data-act="qual">查看資格與機車 →</button></div>':''}${[...offered,...available].map(t=>`<article class="card task-card"><div class="row"><span class="pill">衣物取送 · 測試</span><span class="muted">${esc(t.bag_code)}</span></div><div data-card-focus="${esc(t.id)}">${focusMarkup(cardPreviews.get(t.id),t,pickupEstimate(cardPreviews.get(t.id)),true)}</div><p class="task-deadline">取件期限 ${esc(new Date(t.pickup_deadline).toLocaleString('zh-TW'))}</p><div class="row task-bottom"><span class="muted">費率尚未核定</span><button class="primary compact" data-act="detail" data-id="${esc(t.id)}" ${n>=3?'disabled':''}>${n>=3?'已接滿三件':'查看任務 →'}</button></div></article>`).join('')}${!available.length&&!offered.length?'<div class="empty">目前沒有可承接任務。<br><button class="textbtn" data-act="qual">前往測試管理建立模擬任務</button></div>':''}<p class="muted">任務來自本人隔離的測試工作區，不會安排實際取送。</p>`;
   $('main').insertAdjacentHTML('beforeend','<p class="task-distance-note">直線估算，非機車實際里程。<button type="button" class="textbtn" id="listLocate" data-act="locate-list">更新目標距離</button></p>');loadTaskCardPreviews();paintTaskFocus();
