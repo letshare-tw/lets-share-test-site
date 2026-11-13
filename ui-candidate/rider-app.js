@@ -119,10 +119,11 @@
   if(!t){$('main').innerHTML=heading;return;}currentId=t.id;
   const index=items.indexOf(stop),canWork=!stop.blocked&&(!delivery||live.every(route.picked));
   const pending=live.filter(t=>t.status==='handover_pending').length,signed=live.filter(t=>t.status==='delivered').length;
-  $('main').innerHTML=heading+'<div class="row"><h1>'+esc(delivery?'前往送件':t.arrived_at?'確認取件':'前往取件')+'</h1><span class="pill">第 '+(index+1)+'／'+items.length+' 項</span></div><section class="card '+(delivery?'delivery-card':'')+'"><div class="address">'+esc(stop.label)+'</div><p>'+esc(delivery?'同站逐袋核對，交付後即釋出接單名額；簽收紀錄另外追蹤。':'核對分享袋號與封袋完整，拍照後滑動取件。')+'</p><div class="map"><svg viewBox="0 0 350 150"><path d="M0 30h350M0 120h350M65 0v150M280 0v150" stroke="#fff" stroke-width="20"/><path d="M65 120h110V50h77" fill="none" stroke="#777" stroke-width="5" stroke-dasharray="6 8"/><circle cx="252" cy="50" r="12" fill="'+(delivery?'#FFA726':'#09923a')+'"/></svg><div class="maplabel">路線示意 · 非即時地圖</div></div>'+(canWork&&['accepted','picked_up'].includes(t.status)?'<button class="secondary" data-act="navigate">'+icon('arrow')+'開始導航</button><p class="muted">開啟 Google Maps，預設機車模式；目的地為目前待完成站點。若顯示路線預覽，請在 Google Maps 確認並開始。</p>':'')+'<div class="stats"><div><strong>'+esc(quantitySummary(live))+'</strong><span class="muted">申報件數，不開袋點驗</span></div><div><strong>'+esc(t.bag_code)+'</strong><span class="muted">目前核對袋號</span></div></div>'+live.map(b=>'<div class="route"><b>'+esc(b.bag_code)+'</b><span>'+esc(labels[b.status])+'</span>'+(b.receipt_code?'<p>'+esc(b.receipt_code)+'</p>':'')+'</div>').join('')+(delivery?'<p class="muted">已簽收 '+signed+'／'+live.length+' 袋；等待簽收 '+pending+' 袋。</p>':'')+'</section>';
+  $('main').innerHTML=heading+'<div class="row"><h1>'+esc(delivery?'前往送件':t.arrived_at?'確認取件':'前往取件')+'</h1><span class="pill">第 '+(index+1)+'／'+items.length+' 項</span></div><section class="card '+(delivery?'delivery-card':'')+'"><div class="address">'+esc(stop.label)+'</div><p>'+esc(delivery?'逐袋核對、拍照後交付。':'核對分享袋號與封袋完整，拍照後滑動取件。')+'</p><div class="map"><svg viewBox="0 0 350 150"><path d="M0 30h350M0 120h350M65 0v150M280 0v150" stroke="#fff" stroke-width="20"/><path d="M65 120h110V50h77" fill="none" stroke="#777" stroke-width="5" stroke-dasharray="6 8"/><circle cx="252" cy="50" r="12" fill="'+(delivery?'#FFA726':'#09923a')+'"/></svg><div class="maplabel">路線示意 · 非即時地圖</div></div>'+(canWork&&['accepted','picked_up'].includes(t.status)?'<button class="secondary" data-act="navigate">'+icon('arrow')+'開始導航</button><details class="navigation-note"><summary>導航說明</summary><p class="muted">開啟 Google Maps，預設機車模式；目的地為目前待完成站點。若顯示路線預覽，請在 Google Maps 確認並開始。</p></details>':'')+'<div class="stats"><div><strong>'+esc(quantitySummary(live))+'</strong><span class="muted">申報件數，不開袋點驗</span></div><div><strong>'+esc(t.bag_code)+'</strong><span class="muted">目前核對袋號</span></div></div>'+(delivery?'':live.map(b=>'<div class="route"><b>'+esc(b.bag_code)+'</b><span>'+esc(labels[b.status])+'</span>'+(b.receipt_code?'<p>'+esc(b.receipt_code)+'</p>':'')+'</div>').join(''))+(delivery?'<p class="muted">已簽收 '+signed+'／'+live.length+' 袋；等待簽收 '+pending+' 袋。</p>':'')+'</section>';
   if(stop.blocked){$('main').innerHTML+='<section class="card"><h2>異常處理中</h2><p>'+esc(t.exception_code||'')+'</p><p>先回報並由模擬總部處理，保留原持袋責任。</p><button class="secondary" data-act="qual">開啟測試管理</button></section>';}
   else if(stop.waiting){$('main').innerHTML+='<section class="card"><h2>已交出，等待對方簽收</h2><p>已交付袋件不佔接單名額，簽收確認另外保留。</p><button class="secondary" data-act="qual">開啟測試收件端</button></section>';}
-  $('main').innerHTML+='<section class="card"><h2>袋件紀錄</h2><p class="muted">'+esc(t.bag_code)+' · 取件期限 '+esc(new Date(t.pickup_deadline).toLocaleString('zh-TW'))+'</p>'+(t.pickup_photo_path?'<button class="secondary'+(delivery?' delivery-button':'')+'" data-act="photo" data-stage="pickup">查看取件照片</button>':'')+(t.delivery_photo_path?'<button class="secondary" data-act="photo" data-stage="delivery">查看交付照片</button>':'')+'<button class="textbtn" data-act="history">查看操作歷程</button></section>';
+  $('main').innerHTML+='<button type="button" class="secondary records-entry'+(delivery?' delivery-button':'')+'" data-act="bag-records">袋件紀錄與照片 · '+live.length+' 袋</button>';
+
   if(['accepted','picked_up','handover_pending'].includes(t.status))$('main').innerHTML+='<button class="textbtn" data-act="report">⚑ 異常通報</button>';
   if(canWork&&stop.kind==='pickup'&&t.status==='accepted')$('action').innerHTML='<button class="primary" data-act="'+(t.arrived_at?'pickup':'arrive')+'">'+(t.arrived_at?'繼續確認取件':'我已抵達取件點')+' →</button>';
   if(canWork&&delivery&&t.status==='picked_up')$('action').innerHTML='<button class="primary delivery-button" data-act="handover">核對 '+esc(t.bag_code)+' 並交付拍照 →</button>';
@@ -197,11 +198,53 @@
  function mapsUrl(t){const delivery=t.status==='picked_up';if([delivery?t.delivery_lat:t.pickup_lat,delivery?t.delivery_lng:t.pickup_lng].some(v=>v===null||v===undefined||v===''))throw Error('目的地座標不完整');const lat=Number(delivery?t.delivery_lat:t.pickup_lat),lng=Number(delivery?t.delivery_lng:t.pickup_lng);if(!Number.isFinite(lat)||!Number.isFinite(lng)||Math.abs(lat)>90||Math.abs(lng)>180)throw Error('目的地座標不完整');const u=new URL('https://www.google.com/maps/dir/');u.searchParams.set('api','1');u.searchParams.set('destination',lat+','+lng);u.searchParams.set('travelmode','two-wheeler');u.searchParams.set('dir_action','navigate');return u.href;}
  async function navigate(){if(busy||!trip||!nextStop()||nextStop().blocked)return;const version=epoch,id=currentId,role=actor,uid=owner,expected=nextStop().kind==='pickup'?'accepted':'picked_up';try{const latest=await auth.riderRequest('bootstrap',{actor:role},uid);if(version!==epoch)return;const t=latest.tasks.find(t=>t.id===id&&t.status===expected);if(!t)throw Error('任務狀態已變更，請重新讀取。');location.assign(mapsUrl(t));}catch(e){if(version===epoch)toast(e.message);}}
  function report(){modal('<h2>異常通報</h2><p>發現袋數不符或封袋破損，請先回報，不自行開袋或改寫袋數。</p><select id="reason" class="choice"><option value="bag_missing">找不到袋件</option><option value="seal_broken">封袋破損</option><option value="address_issue">地址／袋號問題</option><option value="cannot_deliver">無法交付</option><option value="safety">現場不安全／其他</option></select><textarea id="note" maxlength="200" placeholder="補充說明（不填個資）"></textarea><button class="primary" data-act="send-report">送出通報</button>');}
+
+ async function showBagRecords(){
+  const stop=nextStop(),bags=(stop?.tasks||tripTasks()).filter(t=>t.status!=='cancelled');
+  if(!bags.length)return;
+  const delivery=stop?.kind==='delivery';
+  modal('<h2>袋件紀錄與照片</h2><p class="muted">'+esc(quantitySummary(bags))+' · 點縮圖放大</p><div id="bagRecordList" class="bag-record-list">'+bags.map((t,i)=>'<article class="bag-record-row"><div class="bag-record-photo" id="bagThumb'+i+'">'+(t.pickup_photo_path?'照片載入中…':'尚無取件照片')+'</div><div class="bag-record-info"><h3>'+esc(t.bag_code)+'</h3><p>'+esc(itemQuantity(t))+'</p><p>'+esc(labels[t.status]||'狀態待確認')+'</p><small>取件期限 '+esc(new Date(t.pickup_deadline).toLocaleString('zh-TW'))+'</small>'+(t.receipt_code?'<small>'+esc(t.receipt_code)+'</small>':'')+(t.delivery_photo_path?'<button type="button" class="textbtn" data-record-delivery="'+i+'">查看交付照片</button>':'')+'</div></article>').join('')+'</div><div id="bagRecordViewer" hidden><button type="button" class="textbtn" id="backBagRecords">← 返回袋件列表</button><h3 id="bagRecordTitle"></h3><img id="bagRecordImage" alt="取件現場照片"><p class="muted">短效私密照片，請勿轉傳。</p></div><button class="textbtn" data-act="history">查看操作歷程</button>');
+  const version=epoch,modalVersion=modalEpoch,scope=routeScope(),revision=data.revision,role=actor,idOwner=owner;
+  const valid=()=>version===epoch&&modalVersion===modalEpoch&&scope===routeScope()&&revision===data?.revision&&$('sheet').classList.contains('open');
+  $('backBagRecords').addEventListener('click',()=>{if(!valid())return;$('bagRecordImage').removeAttribute('src');$('bagRecordViewer').hidden=true;$('bagRecordList').hidden=false;});
+  $('bagRecordList').addEventListener('click',async event=>{
+   const button=event.target.closest('[data-record-delivery]');if(!button||button.disabled||!valid())return;
+   const task=bags[Number(button.dataset.recordDelivery)];if(!task?.delivery_photo_path)return;
+   button.disabled=true;
+   try{
+    const r=await auth.riderRequest('proof_link',{actor:role,task_id:task.id,stage:'delivery'},idOwner);
+    if(!valid())return;
+    const url=new URL(r.signed_url);if(url.protocol!=='https:'||url.origin!=='https://rfwqcrvxyjhtmafnbuyy.supabase.co')throw Error();
+    $('bagRecordTitle').textContent=task.bag_code+' · 交付照片';$('bagRecordImage').src=url.href;$('bagRecordList').hidden=true;$('bagRecordViewer').hidden=false;$('backBagRecords').focus();
+   }catch(_){if(valid())toast('交付照片暫時無法讀取，請重試。');}
+   finally{if(valid())button.disabled=false;}
+  });
+  // Fetch only this stop's private pickup links, one at a time, after opening.
+  for(let i=0;i<bags.length;i++){
+   if(!valid())return;
+   const task=bags[i];if(!task.pickup_photo_path)continue;
+   const host=$('bagThumb'+i);
+   try{
+    const r=await auth.riderRequest('proof_link',{actor:role,task_id:task.id,stage:'pickup'},idOwner);
+    if(!valid())return;
+    const url=new URL(r.signed_url);
+    if(url.protocol!=='https:'||url.origin!=='https://rfwqcrvxyjhtmafnbuyy.supabase.co')throw Error('照片來源不符');
+    host.textContent='';
+    const button=document.createElement('button'),img=document.createElement('img');
+    button.type='button';button.className='bag-thumb'+(delivery?' delivery-thumb':'');button.setAttribute('aria-label','放大 '+task.bag_code+' 取件照片');
+    img.alt=task.bag_code+' 取件照片';img.loading='lazy';img.referrerPolicy='no-referrer';
+    img.addEventListener('error',()=>{if(valid()){button.disabled=true;host.textContent='照片無法讀取，請重開列表';}});
+    img.src=url.href;button.append(img);host.append(button);
+    button.addEventListener('click',()=>{if(!valid())return;$('bagRecordTitle').textContent=task.bag_code+' · '+itemQuantity(task);$('bagRecordImage').src=url.href;$('bagRecordList').hidden=true;$('bagRecordViewer').hidden=false;$('backBagRecords').focus();});
+   }catch(_){if(!valid())return;host.textContent='照片暫無法讀取，請重開列表';}
+  }
+ }
+
  async function showPhoto(stage){const t=current(),version=epoch;try{const r=await auth.riderRequest('proof_link',{actor,task_id:t.id,stage},owner);if(version!==epoch)return;const u=new URL(r.signed_url);if(u.origin!=='https://rfwqcrvxyjhtmafnbuyy.supabase.co')throw Error('照片來源不符');modal('<h2>私密現場照片</h2><img alt="任務現場照片" src="'+esc(u.href)+'"><p class="muted">短效閱覽連結，請勿轉傳。</p>');}catch(e){if(version===epoch)toast(e.message||'照片暫時無法讀取。');}}
  function qual(){$('riderWorkbenchEntry')?.click();}
  document.addEventListener('click',async e=>{const b=e.target.closest('button');if(!b||b.disabled)return;if(b.dataset.tab){if(busy)return;closeModal();tab=b.dataset.tab;render();return;}const act=b.dataset.act;if(!act)return;if(busy&&act!=='close')return;
   if(act==='locate-list'){locateTaskList();return;}if(act==='close'){closeModal();return;}if(act==='qual'){qual();return;}if(act==='init'){await command('initialize');return;}if(act==='detail'){detail(b.dataset.id);return;}if(act==='accept'){const car=defaultVehicle();if(!car){toast('目前配送資格不完整，請至「我的」確認。');return;}const r=await command(b.dataset.kind,{task_id:b.dataset.id,vehicle_id:car.id});if(r){currentId=b.dataset.id;tab='tasks';render();toast('已承接，可繼續挑選；準備好再滑動出發。');}return;}
-  if(act==='arrive'){if(!working('pickup'))return;const taskId=currentId,version=epoch;const r=await command('arrive',{task_id:taskId});if(r&&version===epoch&&currentId===taskId&&current()?.status==='accepted'&&current()?.arrived_at&&working('pickup'))proofForm('pickup');return;}if(act==='select'){currentId=b.dataset.id;tab='ride';render();return;}if(act==='pickup'||act==='handover'){proofForm(act==='pickup'?'pickup':'delivery');return;}if(act==='scan'){await scanBag(b);return;}if(act==='navigate'){await navigate();return;}if(act==='report'){report();return;}if(act==='send-report'){await command('exception',{task_id:currentId,code:$('reason').value,note:$('note').value});return;}if(act==='photo'){await showPhoto(b.dataset.stage);return;}
+  if(act==='arrive'){if(!working('pickup'))return;const taskId=currentId,version=epoch;const r=await command('arrive',{task_id:taskId});if(r&&version===epoch&&currentId===taskId&&current()?.status==='accepted'&&current()?.arrived_at&&working('pickup'))proofForm('pickup');return;}if(act==='select'){currentId=b.dataset.id;tab='ride';render();return;}if(act==='pickup'||act==='handover'){proofForm(act==='pickup'?'pickup':'delivery');return;}if(act==='scan'){await scanBag(b);return;}if(act==='navigate'){await navigate();return;}if(act==='report'){report();return;}if(act==='send-report'){await command('exception',{task_id:currentId,code:$('reason').value,note:$('note').value});return;}if(act==='bag-records'){await showBagRecords();return;}if(act==='photo'){await showPhoto(b.dataset.stage);return;}
   if(act==='route'){modal('<h2>本趟取送流程</h2>'+stopList(trip?stops():route.buildStops(active()))+'<p class="muted">依任務順序取件，再送至各收件點；不自動最佳化路線。</p>');return;}
   if(act==='history'){modal('<h2>操作歷程</h2>'+data.events.slice(-30).reverse().map(x=>'<div class="route"><b>'+esc(x.action)+'</b>'+esc(new Date(x.created_at).toLocaleString('zh-TW'))+'</div>').join(''));}
  });
