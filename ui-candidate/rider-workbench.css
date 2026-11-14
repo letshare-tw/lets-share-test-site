@@ -3,3 +3,7 @@
 /* RIDER-CARD-SHADOW-01: match the cart's page background and card elevation. */
 .rw-dialog,.rw-header{background:#f7f8f5}
 .rw-card,.rw-dialog details{background:#fff;border:0;border-radius:20px;box-shadow:0 2px 12px #1b4d2920}
+
+/* RIDER-NEUTRAL-CARDS-01: match the rider information-card palette. */
+.rw-dialog,.rw-header{background:#f2f2f2}
+.rw-card,.rw-dialog details{background:#fff;border:0;box-shadow:0 2px 10px rgba(0,0,0,.055)}
