@@ -1,6 +1,6 @@
 "use strict";
 (()=>{
- function mount({host,getKey,onCapture,onStart=()=>{},captureHost=null}){
+ function mount({host,getKey,onCapture,onStart=()=>{},captureHost=null,facingMode='environment'}){
   const make=(tag,text)=>{const n=document.createElement(tag);if(text)n.textContent=text;return n;};
   const view=make('section');view.className='rider-camera';
   const video=make('video');video.muted=true;video.playsInline=true;video.autoplay=true;video.hidden=true;video.setAttribute('aria-label','現場相機取景');
@@ -20,7 +20,7 @@
    if(window.isSecureContext===false||!navigator.mediaDevices?.getUserMedia){state.textContent='此瀏覽器無法使用網頁相機，請展開下方選擇照片，或使用支援的瀏覽器。';return;}
    onStart();stop();const token=++seq,expected=getKey();scope=expected;opening=true;state.textContent='請允許相機權限，正在開啟取景…';buttons();
    try{
-    const acquired=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:960}}});
+    const acquired=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:facingMode},width:{ideal:1280},height:{ideal:960}}});
     if(disposed||token!==seq||!allowed()||getKey()!==expected){stopTracks(acquired);return;}
     stream=acquired;video.srcObject=acquired;video.hidden=false;
     for(const track of acquired.getVideoTracks())track.addEventListener?.('ended',()=>{if(stream===acquired){stop();state.textContent='相機已停止，可以重新開啟或選擇照片。';}},{once:true});

@@ -257,7 +257,21 @@
   const id=await shareIdentity(expected);if(typeof path!=="string"||!path.startsWith(id+"/"))throw Error("照片不屬於目前帳號。");
   const {error}=await getClient().storage.from("rider-test-proofs").remove([path]);await shareIdentity(id);if(error)throw Error("未使用照片清理待處理。");
  }
- Object.defineProperty(window,"LX_TEST_AUTH_ADAPTER",{value:Object.freeze({mode:"test-auth-only",contract,signInWithGoogle,handleCallback,getSession:verifiedSession,restoreSession:verifiedSession,signOut,getProfile,saveDisplayName,phoneOtp,normalizeTaiwanPhone,validatePhoneToken,requestPhoneOtp,verifyPhoneOtp,saveAddress,saveAdultVerification,getRegistrationStatus,completeRegistration,shareRequest,shareUpload,shareDownload,shareRemove,shareIsolationProbe,sharePhotoLimitProbe,riderRequest,riderProofUpload,riderProofRemove}),writable:false,configurable:false});
+
+ function avatarPath(workspace,actor,id){
+  if(!/^[0-9a-f-]{36}$/.test(workspace)||!['rider1','rider2'].includes(actor))throw Error('騎手資料格式不正確。');
+  return id+'/'+workspace+'/'+actor+'/selfie';
+ }
+ async function riderAvatar(action,workspace,actor,blob,expected){
+  const id=await shareIdentity(expected),path=avatarPath(workspace,actor,id),bucket=getClient().storage.from('rider-test-avatars');
+  if(!['read','save','remove'].includes(action))throw Error('頭像操作不支援。');
+  if(action==='save'&&(!blob||blob.size<1||blob.size>100000||!['image/jpeg','image/png','image/webp'].includes(blob.type)))throw Error('自拍照須為 100,000 bytes 以下的 JPG、PNG 或 WebP。');
+  const r=action==='read'?await bucket.download(path):action==='save'?await bucket.upload(path,blob,{contentType:blob.type,upsert:true,cacheControl:'0'}):await bucket.remove([path]);
+  await shareIdentity(id);
+  if(r.error){if(action==='read'&&['404','400'].includes(String(r.error.status??r.error.statusCode))&&/not.?found|not exist/i.test(r.error.message||''))return null;throw Error('頭像'+(action==='read'?'讀取':action==='save'?'儲存':'移除')+'未完成，請重新讀取確認。');}
+  return action==='read'?r.data:true;
+ }
+ Object.defineProperty(window,"LX_TEST_AUTH_ADAPTER",{value:Object.freeze({mode:"test-auth-only",contract,signInWithGoogle,handleCallback,getSession:verifiedSession,restoreSession:verifiedSession,signOut,getProfile,saveDisplayName,phoneOtp,normalizeTaiwanPhone,validatePhoneToken,requestPhoneOtp,verifyPhoneOtp,saveAddress,saveAdultVerification,getRegistrationStatus,completeRegistration,shareRequest,shareUpload,shareDownload,shareRemove,shareIsolationProbe,sharePhotoLimitProbe,riderRequest,riderProofUpload,riderProofRemove,riderAvatar}),writable:false,configurable:false});
 })();
 
 

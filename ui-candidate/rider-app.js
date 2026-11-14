@@ -8,6 +8,7 @@
  const errors={RIDER_CAPACITY_REACHED:'身上已滿三袋，交付袋件後即可再接單。',RIDER_STALE_STATE:'任務已更新，請確認最新狀態後重試。',RIDER_QUALIFICATION_DENIED:'騎手或本次機車資格不符，請先完成審核。',RIDER_TASK_DENIED:'此任務已被承接或無權操作。',RIDER_PHOTO_REQUIRED:'請先拍攝並儲存現場照片。',RIDER_PHOTO_INVALID:'照片尚未儲存成功或不屬於此任務。',RIDER_BAG_CHECK_REQUIRED:'袋號或封袋確認不符，請重新核對。',RIDER_MEMBER_DENIED:'請使用指定且完成註冊的測試會員。',RIDER_TEST_LOCKED:'騎手測試目前關閉。'};
  let actor=['rider1','rider2'].includes(new URLSearchParams(location.search).get('actor'))?new URLSearchParams(location.search).get('actor'):'rider1';
  let data=null,owner=null,tab='tasks',currentId=null,busy=false,epoch=0,readSeq=0,modalEpoch=0,proofBlob=null,proofUrl=null,photoSeq=0,toastTimer=null,pendingCommand=null,proofControl=null,departureControl=null,trip=null,cameraControl=null,scanSeq=0;
+ let avatarControl=null;
  let deliveryBatch=null;
  const active=()=>data?.tasks?.filter(t=>route.holds(t))||[];
  const awaiting=()=>data?.tasks?.filter(t=>t.status==='handover_pending'||t.status==='exception'&&!!t.rider_handover_at)||[];
@@ -38,7 +39,7 @@
  function releaseProof(){photoSeq++;proofBlob=null;if(proofUrl)URL.revokeObjectURL(proofUrl);proofUrl=null;}
  function closeModal(){ $('body').classList.remove('proof-sheet');scanSeq++;cameraControl?.destroy();cameraControl=null;proofControl?.destroy();proofControl=null;modalEpoch++;releaseProof();$('sheet').classList.remove('open');$('body').replaceChildren();}
  function modal(html){closeModal();$('body').innerHTML=html+'<button type="button" class="cancel" data-act="close">返回畫面</button>';$('sheet').classList.add('open');const heading=$('body').querySelector('h2');if(heading){heading.tabIndex=-1;heading.focus({preventScroll:true});}else $('body').querySelector('button')?.focus({preventScroll:true});}
- function clear(){deliveryBatch=null;document.body.classList.remove('pickup-mode','trip-overview-mode');cardScope='';cardPreviews=new Map();cardPending=new Set();listPosition=null;locationRequested=false;locationBusy=false;locationSeq++;listLocationStatus='尚未定位';departureControl?.destroy();departureControl=null;trip=null;proofControl?.destroy();proofControl=null;epoch++;readSeq++;busy=false;data=null;owner=null;currentId=null;pendingCommand=null;closeModal();$('main').textContent='登入身分已變更，請重新讀取。';$('action').replaceChildren();$('nav').replaceChildren();lock();}
+ function clear(){avatarControl?.destroy();avatarControl=null;deliveryBatch=null;document.body.classList.remove('pickup-mode','trip-overview-mode');cardScope='';cardPreviews=new Map();cardPending=new Set();listPosition=null;locationRequested=false;locationBusy=false;locationSeq++;listLocationStatus='尚未定位';departureControl?.destroy();departureControl=null;trip=null;proofControl?.destroy();proofControl=null;epoch++;readSeq++;busy=false;data=null;owner=null;currentId=null;pendingCommand=null;closeModal();$('main').textContent='登入身分已變更，請重新讀取。';$('action').replaceChildren();$('nav').replaceChildren();lock();}
  async function load(){const version=epoch,seq=++readSeq,role=actor;
   const session=await auth.getSession();if(version!==epoch||seq!==readSeq)return;
   if(!session){clear();$('main').innerHTML='<h1>請先登入</h1><div class="card"><p>此工作站沿用測試站 Google 登入。</p><a class="primary" href="index.html">前往測試站登入</a></div>';return;}
@@ -64,10 +65,11 @@
   }finally{if(version===epoch){busy=false;lock();departureControl?.refresh();proofControl?.refresh();}}
  }
  function nav(){ $('nav').innerHTML=[['tasks','任務'],['ride','配送'],['money','收益'],['user','我的']].map(([key,label])=>`<button type="button" data-tab="${key}" class="${(tab===key||key==='tasks'&&tab==='available')?'active tap-feedback':''}" ${(tab===key||key==='tasks'&&tab==='available')?'aria-current="page"':''}>${icon(key)}<span>${label}</span></button>`).join(''); }
- function render(){document.body.classList.remove('pickup-mode','trip-overview-mode');departureControl?.destroy();departureControl=null;restoreTrip();nav();$('action').replaceChildren();
+ function render(){avatarControl?.destroy();avatarControl=null;document.body.classList.remove('pickup-mode','trip-overview-mode');departureControl?.destroy();departureControl=null;restoreTrip();nav();$('action').replaceChildren();
   if(!data?.workspace_id){$('main').innerHTML='<h1>開始騎手測試</h1><div class="card"><p>建立本人隔離工作區後，先完成模擬資格與車輛審核。這不授予正式工作權限。</p><button class="primary" data-act="init">建立本人模擬工作區</button></div>';return;}
   if(!currentId||!data.tasks.some(t=>t.id===currentId))currentId=active()[0]?.id||data.tasks[0]?.id||null;
   if(tab==='tasks'||tab==='available')renderTasks(tab==='available');else if(tab==='ride')renderRide();else if(tab==='money')renderMoney();else renderProfile();lock();proofControl?.refresh();cameraControl?.refresh();
+  avatarControl=window.LX_RIDER_AVATAR?.mount({host:$('riderSelfie'),header:$('avatar'),getContext:()=>owner&&data?.workspace_id?{owner,workspace:data.workspace_id,actor,epoch}:null});
  }
 
  let cardScope='',cardPreviews=new Map(),cardPending=new Set(),listPosition=null,listLocationStatus='尚未定位',locationRequested=false,locationBusy=false,locationSeq=0;
@@ -141,7 +143,7 @@
   if(canWork&&delivery&&t.status==='picked_up')$('action').innerHTML='<button class="primary delivery-button" data-act="handover">同站袋件掃碼與拍照 →</button>';
  }
  function renderMoney(){$('main').innerHTML=`<div class="eyebrow">YOUR EARNINGS</div><h1>我的收益</h1><div class="card"><span class="muted">本期配送收益</span><div class="money">NT$ —</div><span class="pill">正式費率與付款鎖定</span></div><div class="card"><h2>配送紀錄</h2>${data.tasks.map(t=>`<div class="route"><b>${esc(t.bag_code)}</b><span>${esc(labels[t.status])}</span>${t.receipt_code?'<p class="muted">'+esc(t.receipt_code)+'</p>':''}</div>`).join('')||'<p>尚無配送紀錄。</p>'}<p class="muted">只顯示後端任務紀錄，不以示範金額冒充已賺收益。</p></div>`;}
- function renderProfile(){const p=data.people.find(p=>p.key===actor);$('main').innerHTML=`<div class="eyebrow">RIDER PROFILE</div><h1>我的騎手資料</h1><div class="card"><div class="row"><h2>${esc(p?.label||'模擬騎手')}</h2><span class="pill">${p?.eligible?'模擬資格有效':'尚不可接單'}</span></div><p class="muted">工作區內的模擬角色，不是正式工作帳號。</p><div class="route"><b>良民證有效期限</b>${esc(p?.cert_valid_until||'尚未核准')}</div><div class="route"><b>我的機車</b>${data.vehicles.map(v=>'<p>'+esc(v.label)+' · '+esc({approved:'已核准',pending:'待審核',revoked:'授權已撤回'}[v.status])+'</p>').join('')||'尚未新增'}</div><button class="secondary" data-act="qual">查看資格、車輛與模擬證件</button><button class="cancel" data-act="history">查看操作歷程</button></div>`;}
+ function renderProfile(){const p=data.people.find(p=>p.key===actor);$('main').innerHTML=`<div class="eyebrow">RIDER PROFILE</div><h1>我的騎手資料</h1><section class="card" id="riderSelfie"><h2>自拍頭像</h2><div class="selfie-current">騎</div><p role="status">正在讀取本人頭像…</p><button type="button" class="secondary selfie-edit">拍攝／更換自拍頭像</button><button type="button" class="cancel selfie-remove">移除自拍頭像</button></section><div class="card"><div class="row"><h2>${esc(p?.label||'模擬騎手')}</h2><span class="pill">${p?.eligible?'模擬資格有效':'尚不可接單'}</span></div><p class="muted">工作區內的模擬角色，不是正式工作帳號。</p><div class="route"><b>良民證有效期限</b>${esc(p?.cert_valid_until||'尚未核准')}</div><div class="route"><b>我的機車</b>${data.vehicles.map(v=>'<p>'+esc(v.label)+' · '+esc({approved:'已核准',pending:'待審核',revoked:'授權已撤回'}[v.status])+'</p>').join('')||'尚未新增'}</div><button class="secondary" data-act="qual">查看資格、車輛與模擬證件</button><button class="cancel" data-act="history">查看操作歷程</button></div>`;}
  function defaultVehicle(){const cars=(data?.vehicles||[]).filter(v=>v.status==='approved'&&v.owner_authorized&&(!v.rider_key||v.rider_key===actor));return (data?.tasks||[]).slice().reverse().map(t=>cars.find(v=>v.id===t.vehicle_id)).find(Boolean)||cars[0]||null;}
  async function detail(id){
  const t=[...(data.available_tasks||[]),...data.tasks].find(t=>t.id===id);if(!t)return;

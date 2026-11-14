@@ -342,3 +342,15 @@ body,.app{background:#f7f8f5}
 .batch-list p{font-size:13px;line-height:1.4;margin:4px 0}
 .proof-sheet #proofConfirm:has(.batch-list){flex:none}
 #batchProgress{font-size:14px;line-height:1.5;overflow-wrap:anywhere}
+
+/* Rider private selfie: preserve whole photo, no crop. */
+.avatar{overflow:hidden}
+.avatar img{width:100%;height:100%;object-fit:contain;background:#f1f1f1}
+.selfie-current{width:88px;height:88px;margin:12px auto;border-radius:50%;background:#f1f1f1;overflow:hidden;display:grid;place-items:center}
+.selfie-current img{width:100%;height:100%;object-fit:contain}
+.selfie-dialog{box-sizing:border-box;width:calc(100% - 16px);max-width:460px;max-height:calc(100dvh - 16px);overflow:auto;padding:16px;border:0;border-radius:20px}
+.selfie-dialog::backdrop{background:#172f2566}
+.selfie-note,.selfie-dialog [role=status]{font-size:14px;line-height:1.5}
+.selfie-preview{display:block;width:100%;max-height:35dvh;object-fit:contain}
+.selfie-preview[hidden]{display:none}
+.selfie-dialog input{max-width:100%}
