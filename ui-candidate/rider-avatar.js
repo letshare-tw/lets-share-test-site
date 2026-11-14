@@ -2,7 +2,7 @@
 (()=>{
  function mount({host,header,getContext}){
   const auth=window.LX_TEST_AUTH_ADAPTER,ctx=getContext(),key=JSON.stringify(ctx);
-  let dead=false,url=null,photoUrl=null,photo=null,camera=null,dialog=null,seq=0,working=false;
+  let dead=false,url=null,photoUrl=null,photo=null,camera=null,dialog=null,guideCleanup=null,seq=0,working=false;
   const valid=()=>!dead&&JSON.stringify(getContext())===key;
   const api=(action,blob)=>auth.riderAvatar(action,ctx.workspace,ctx.actor,blob,ctx.owner);
   const node=(tag,text)=>{const e=document.createElement(tag);if(text)e.textContent=text;return e;};
@@ -13,10 +13,10 @@
   }
   const status=host?.querySelector('[role="status"]');
   async function read(){const ticket=++seq;try{const blob=await api('read');if(!valid()||ticket!==seq)return;if(blob&&(blob.size>100000||!['image/jpeg','image/png','image/webp'].includes(blob.type)))throw Error('頭像格式不符。');show(blob);if(status)status.textContent=blob?'已儲存本人自拍頭像。':'尚未設定自拍頭像。';}catch(e){if(valid()&&ticket===seq&&status)status.textContent=e.message;}}
-  function cleanEditor(){camera?.destroy();camera=null;if(photoUrl)URL.revokeObjectURL(photoUrl);photoUrl=null;photo=null;dialog?.remove();dialog=null;}
+  function cleanEditor(){guideCleanup?.();guideCleanup=null;camera?.destroy();camera=null;if(photoUrl)URL.revokeObjectURL(photoUrl);photoUrl=null;photo=null;dialog?.remove();dialog=null;}
   function open(){
    if(!valid()||working)return;cleanEditor();dialog=node('dialog');dialog.className='rw-dialog selfie-dialog';
-   dialog.innerHTML='<h2>騎手自拍頭像</h2><p class="selfie-note">請拍攝清楚正面自拍照，按儲存才上傳；僅作本人騎手頭像，不進行人臉辨識。</p><div class="selfie-camera"></div><img class="selfie-preview" alt="待儲存自拍預覽" hidden><details><summary>選擇現有自拍照</summary><input type="file" accept="image/jpeg,image/png,image/webp"></details><p role="status"></p><button type="button" class="primary selfie-save" disabled>儲存自拍頭像</button><button type="button" class="cancel selfie-close">取消</button>';
+   dialog.innerHTML='<h2>騎手自拍頭像</h2><p class="selfie-note">請將完整頭部放進中央圓框，頭頂與下巴留些空間。圓框僅供定位，儲存保留完整照片。</p><div class="selfie-camera"></div><img class="selfie-preview" alt="待儲存自拍預覽" hidden><details><summary>選擇現有自拍照</summary><input type="file" accept="image/jpeg,image/png,image/webp"></details><p role="status"></p><button type="button" class="primary selfie-save" disabled>儲存自拍頭像</button><button type="button" class="cancel selfie-close">取消</button>';
    document.body.append(dialog);dialog.showModal();
    const own=dialog,ticket=++seq,preview=dialog.querySelector('.selfie-preview'),msg=dialog.querySelector('[role="status"]'),save=dialog.querySelector('.selfie-save');
    const active=()=>valid()&&dialog===own&&own.open&&ticket===seq;
@@ -38,6 +38,23 @@
     catch(e){if(active())msg.textContent=e.message;}
     finally{working=false;if(active()){save.disabled=!photo;own.querySelector('.selfie-close').disabled=false;own.querySelector('input').disabled=false;}}
    };
+   const video=dialog.querySelector('.selfie-camera video');
+   if(video){
+    const frame=node('div');frame.className='selfie-viewfinder';
+    const guide=node('div');guide.className='selfie-guide';guide.setAttribute('aria-hidden','true');
+    const circle=node('div');circle.className='selfie-guide-circle';guide.append(circle);
+    video.before(frame);frame.append(video,guide);
+    const resize=()=>{
+     if(!active())return;const box=video.getBoundingClientRect();
+     const fit=video.videoWidth&&video.videoHeight?Math.min(box.width/video.videoWidth,box.height/video.videoHeight):0;
+     const width=fit?video.videoWidth*fit:box.width,height=fit?video.videoHeight*fit:box.height;
+     frame.style.setProperty('--selfie-guide-size',Math.max(0,Math.min(width,height)*0.72)+'px');
+    };
+    const observer=window.ResizeObserver?new ResizeObserver(resize):null;observer?.observe(video);
+    video.addEventListener('loadedmetadata',resize);window.addEventListener('resize',resize);
+    guideCleanup=()=>{observer?.disconnect();video.removeEventListener('loadedmetadata',resize);window.removeEventListener('resize',resize);};
+    resize();
+   }
    void camera?.start();
   }
   host?.querySelector('.selfie-edit')?.addEventListener('click',open);

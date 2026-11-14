@@ -354,3 +354,10 @@ body,.app{background:#f7f8f5}
 .selfie-preview{display:block;width:100%;max-height:35dvh;object-fit:contain}
 .selfie-preview[hidden]{display:none}
 .selfie-dialog input{max-width:100%}
+
+/* Selfie framing aid is display-only; camera canvas still captures the whole image. */
+.selfie-viewfinder{position:relative;overflow:hidden;border-radius:10px;background:#111}
+.selfie-viewfinder video{border-radius:0}
+.selfie-guide{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
+.selfie-guide-circle{box-sizing:border-box;width:var(--selfie-guide-size,0px);height:var(--selfie-guide-size,0px);border:2px solid #fff;border-radius:50%;box-shadow:0 0 0 999px #0008}
+.selfie-viewfinder:has(video[hidden]) .selfie-guide{display:none}
