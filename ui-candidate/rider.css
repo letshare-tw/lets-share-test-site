@@ -366,8 +366,3 @@ body,.app{background:#f7f8f5}
 .selfie-dialog .selfie-preview{display:block;width:min(100%,240px);height:auto;aspect-ratio:1;max-height:none;margin:12px auto;border-radius:50%;object-fit:cover}
 .selfie-dialog .selfie-preview[hidden]{display:none}
 .avatar img,.selfie-current img{display:block;object-fit:cover;object-position:center}
-
-/* RIDER-NEUTRAL-CARDS-01: neutral grey canvas, white information cards, subtle elevation. */
-:root{--rider-page-background:#f2f2f2;--rider-information-background:#fff;--rider-information-shadow:0 2px 10px rgba(0,0,0,.055)}
-body,.app{background:var(--rider-page-background)}
-.card,.card:nth-of-type(even),.task-card,.card.task-card:nth-of-type(even),.capacity,.qual-status{background:var(--rider-information-background);border:0;box-shadow:var(--rider-information-shadow)}
