@@ -361,3 +361,8 @@ body,.app{background:#f7f8f5}
 .selfie-guide{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
 .selfie-guide-circle{box-sizing:border-box;width:var(--selfie-guide-size,0px);height:var(--selfie-guide-size,0px);border:2px solid #fff;border-radius:50%;box-shadow:0 0 0 999px #0008}
 .selfie-viewfinder:has(video[hidden]) .selfie-guide{display:none}
+
+/* Selfie preview and saved circular avatars use the same square guide crop. */
+.selfie-dialog .selfie-preview{display:block;width:min(100%,240px);height:auto;aspect-ratio:1;max-height:none;margin:12px auto;border-radius:50%;object-fit:cover}
+.selfie-dialog .selfie-preview[hidden]{display:none}
+.avatar img,.selfie-current img{display:block;object-fit:cover;object-position:center}
