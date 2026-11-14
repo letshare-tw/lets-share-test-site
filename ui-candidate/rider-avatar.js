@@ -22,27 +22,26 @@
   function cleanEditor(){guideCleanup?.();guideCleanup=null;camera?.destroy();camera=null;if(photoUrl)URL.revokeObjectURL(photoUrl);photoUrl=null;photo=null;dialog?.remove();dialog=null;}
   function open(){
    if(!valid()||working)return;cleanEditor();dialog=node('dialog');dialog.className='rw-dialog selfie-dialog';
-   dialog.innerHTML='<h2>騎手自拍頭像</h2><p class="selfie-note">請將完整頭部放進中央圓框，頭頂與下巴留些空間。頭像會依圓框範圍取像，請確認頭頂、兩側與下巴都在圓內。</p><div class="selfie-camera"></div><img class="selfie-preview" alt="待儲存自拍預覽" hidden><details><summary>選擇現有自拍照</summary><input type="file" accept="image/jpeg,image/png,image/webp"></details><p role="status"></p><button type="button" class="primary selfie-save" disabled>儲存自拍頭像</button><button type="button" class="cancel selfie-close">取消</button>';
+   dialog.innerHTML='<h2>騎手自拍頭像</h2><p class="selfie-note">請將完整頭部放進中央圓框，頭頂與下巴留些空間。頭像會依圓框範圍取像，請確認頭頂、兩側與下巴都在圓內。</p><div class="selfie-camera"></div><img class="selfie-preview" alt="待儲存自拍預覽" hidden><p role="status"></p><button type="button" class="primary selfie-save" disabled>儲存自拍頭像</button><button type="button" class="cancel selfie-close">取消</button>';
    document.body.append(dialog);dialog.showModal();
    const own=dialog,ticket=++seq,preview=dialog.querySelector('.selfie-preview'),msg=dialog.querySelector('[role="status"]'),save=dialog.querySelector('.selfie-save');
    const active=()=>valid()&&dialog===own&&own.open&&ticket===seq;
    const reset=()=>{photo=null;if(photoUrl)URL.revokeObjectURL(photoUrl);photoUrl=null;preview.hidden=true;preview.removeAttribute('src');save.disabled=true;};
-   async function prepare(file,fromCamera=false){
+   async function prepare(file){
     if(!file||!active()||working)return false;reset();msg.textContent='自拍照壓縮中…';const photoTicket=++photoSeq;
-    try{const full=await window.LX_RIDER_PHOTO.compress(file);if(!active()||photoTicket!==photoSeq)return false;const square=await cropSelfie(full,fromCamera?GUIDE_RATIO:1);if(!active()||photoTicket!==photoSeq)return false;const blob=await window.LX_RIDER_PHOTO.compress(square);if(!active()||photoTicket!==photoSeq)return false;photo=blob;photoUrl=URL.createObjectURL(blob);preview.src=photoUrl;preview.hidden=false;save.disabled=false;msg.textContent='預覽確認後，按儲存自拍頭像。';return true;}
+    try{const full=await window.LX_RIDER_PHOTO.compress(file);if(!active()||photoTicket!==photoSeq)return false;const square=await cropSelfie(full,GUIDE_RATIO);if(!active()||photoTicket!==photoSeq)return false;const blob=await window.LX_RIDER_PHOTO.compress(square);if(!active()||photoTicket!==photoSeq)return false;photo=blob;photoUrl=URL.createObjectURL(blob);preview.src=photoUrl;preview.hidden=false;save.disabled=false;msg.textContent='預覽確認後，按儲存自拍頭像。';return true;}
     catch(e){if(active()&&photoTicket===photoSeq)msg.textContent=e.message;return false;}
    }
    let photoSeq=0;
-   camera=window.LX_RIDER_CAMERA?.mount({host:dialog.querySelector('.selfie-camera'),facingMode:'user',getKey:()=>active()&&!working?key:null,onStart:()=>{photoSeq++;reset();},onCapture:blob=>prepare(blob,true)});
-   dialog.querySelector('input').addEventListener('change',e=>{camera?.stop();void prepare(e.target.files?.[0]);});
+   camera=window.LX_RIDER_CAMERA?.mount({host:dialog.querySelector('.selfie-camera'),facingMode:'user',fileFallback:false,getKey:()=>active()&&!working?key:null,onStart:()=>{photoSeq++;reset();},onCapture:prepare});
    dialog.querySelector('.selfie-close').onclick=()=>{if(!working){seq++;cleanEditor();}};
    dialog.addEventListener('cancel',e=>{if(working)e.preventDefault();else{seq++;cleanEditor();}});
    dialog.addEventListener('close',()=>{if(dialog===own){seq++;cleanEditor();}});
    save.onclick=async()=>{
-    if(!active()||!photo||working)return;working=true;camera?.stop();save.disabled=true;dialog.querySelector('.selfie-close').disabled=true;dialog.querySelector('input').disabled=true;msg.textContent='正在儲存自拍頭像…';
+    if(!active()||!photo||working)return;working=true;camera?.stop();save.disabled=true;dialog.querySelector('.selfie-close').disabled=true;msg.textContent='正在儲存自拍頭像…';
     try{await api('save',photo);if(!active())return;const stored=await api('read');if(!active())return;if(!stored)throw Error('請重新讀取確認頭像儲存結果。');show(stored);if(status)status.textContent='自拍頭像已儲存。';seq++;cleanEditor();}
     catch(e){if(active())msg.textContent=e.message;}
-    finally{working=false;if(active()){save.disabled=!photo;own.querySelector('.selfie-close').disabled=false;own.querySelector('input').disabled=false;}}
+    finally{working=false;if(active()){save.disabled=!photo;own.querySelector('.selfie-close').disabled=false;}}
    };
    const video=dialog.querySelector('.selfie-camera video');
    if(video){
