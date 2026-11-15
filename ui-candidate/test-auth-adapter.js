@@ -8,7 +8,7 @@
  const contract=Object.freeze({version:"B-01D-03-C06",enabled:true,allowOAuth:true,allowSession:true,allowProfile:true,projectRef,allowedPageOrigin:origin,callbackPath:base+"auth-callback.html"});
  let client;
  function environment(){
-  if(location.origin!==origin||![base,base+"index.html",base+"rider.html",contract.callbackPath].includes(location.pathname))throw Error("登入僅供指定獨立測試站使用");
+  if(location.origin!==origin||![base,base+"index.html",base+"rider.html",base+"artisan.html",contract.callbackPath].includes(location.pathname))throw Error("登入僅供指定獨立測試站使用");
  }
  function getClient(){
   environment();
@@ -39,8 +39,9 @@
   const googleName=[meta.full_name,meta.name,[meta.given_name,meta.family_name].filter(Boolean).join(" ")].find(v=>typeof v==="string"&&v.trim())||"";
   return {user:{id:check.data.user.id,email:check.data.user.email||"",avatarUrl,googleName:googleName.trim(),phone:check.data.user.phone||"",phoneVerified:!!check.data.user.phone_confirmed_at}};
  }
- async function signInWithGoogle(){
+ async function signInWithGoogle(returnPage){
   const c=getClient();
+  if(returnPage==="artisan")sessionStorage.setItem("lx-test-auth-return","artisan");else sessionStorage.removeItem("lx-test-auth-return");
   localStorage.setItem(pendingKey,String(Date.now()));
   try{
    const {data,error}=await c.auth.signInWithOAuth({provider:"google",options:{redirectTo:origin+contract.callbackPath,skipBrowserRedirect:true,queryParams:{prompt:"select_account"}}});
@@ -258,6 +259,13 @@
   const {error}=await getClient().storage.from("rider-test-proofs").remove([path]);await shareIdentity(id);if(error)throw Error("未使用照片清理待處理。");
  }
 
+ async function artisanRequest(action,payload={},expected){
+  const id=await shareIdentity(expected);
+  const {data,error}=await getClient().rpc("lx_artisan_test_gateway",{p_action:action,p_payload:payload});
+  await shareIdentity(id);
+  if(error){const e=Error("職人測試操作未完成。");e.code=/^ARTISAN_[A-Z_]+$/.test(error.message||"")?error.message:"ARTISAN_REQUEST_FAILED";throw e;}
+  if(!data||data.user_id!==id)throw Error("職人回應身分不符。");return data;
+ }
  function avatarPath(workspace,actor,id){
   if(!/^[0-9a-f-]{36}$/.test(workspace)||!['rider1','rider2'].includes(actor))throw Error('騎手資料格式不正確。');
   return id+'/'+workspace+'/'+actor+'/selfie';
@@ -271,7 +279,8 @@
   if(r.error){if(action==='read'&&['404','400'].includes(String(r.error.status??r.error.statusCode))&&/not.?found|not exist/i.test(r.error.message||''))return null;throw Error('頭像'+(action==='read'?'讀取':action==='save'?'儲存':'移除')+'未完成，請重新讀取確認。');}
   return action==='read'?r.data:true;
  }
- Object.defineProperty(window,"LX_TEST_AUTH_ADAPTER",{value:Object.freeze({mode:"test-auth-only",contract,signInWithGoogle,handleCallback,getSession:verifiedSession,restoreSession:verifiedSession,signOut,getProfile,saveDisplayName,phoneOtp,normalizeTaiwanPhone,validatePhoneToken,requestPhoneOtp,verifyPhoneOtp,saveAddress,saveAdultVerification,getRegistrationStatus,completeRegistration,shareRequest,shareUpload,shareDownload,shareRemove,shareIsolationProbe,sharePhotoLimitProbe,riderRequest,riderProofUpload,riderProofRemove,riderAvatar}),writable:false,configurable:false});
+ Object.defineProperty(window,"LX_TEST_AUTH_ADAPTER",{value:Object.freeze({mode:"test-auth-only",contract,signInWithGoogle,handleCallback,getSession:verifiedSession,restoreSession:verifiedSession,signOut,getProfile,saveDisplayName,phoneOtp,normalizeTaiwanPhone,validatePhoneToken,requestPhoneOtp,verifyPhoneOtp,saveAddress,saveAdultVerification,getRegistrationStatus,completeRegistration,shareRequest,shareUpload,shareDownload,shareRemove,shareIsolationProbe,sharePhotoLimitProbe,riderRequest,riderProofUpload,riderProofRemove,riderAvatar,artisanRequest}),writable:false,configurable:false});
 })();
+
 
 
