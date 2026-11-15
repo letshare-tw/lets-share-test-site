@@ -16,7 +16,7 @@
   if(!state.activated){gate('身份已確認。請由本人啟用測試工作站。','activate');return;}
   window.LX_ARTISAN_STATE=state;
   const person=document.querySelector('.side-person');if(person)person.innerHTML='<div class="avatar">'+esc((state.display_name||'職').slice(0,1))+'</div><div>'+esc(state.display_name)+'<small>本人測試工作站</small></div>';
-  const script=document.createElement('script');script.src='artisan-app.js?v=ARTISAN-CAMERA-05';
+  const script=document.createElement('script');script.src='artisan-app.js?v=ARTISAN-CAMERA-06';
   script.onload=()=>{ready=true;document.body.classList.remove('auth-pending');};
   script.onerror=()=>gate('工作站程式載入失敗，請重新整理。');document.body.append(script);
  }catch(e){gate(copy[e.code]||'登入或工作站讀取未完成，請重新整理重試。');}finally{loading=false;}}
