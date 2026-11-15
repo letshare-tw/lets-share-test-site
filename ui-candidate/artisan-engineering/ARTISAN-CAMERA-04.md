@@ -1,0 +1,5 @@
+# ARTISAN-CAMERA-04
+Base b83cfd7ab3cc9ae555748d59684c3d2258d02e6d. Frontend only, no DB changes.
+Modal order: Photos -> flat measurements -> inspection/product data -> storage/catalog.
+Opening modal (including next item) calls live rear camera; removed open/close controls and photo-view dropdown. Former control area is native horizontally scrolling snap selector 正面/反面/瑕疵 with tap-accessible buttons. Current selection is in hidden garmentPhotoView, capture labels follow selection. Defect view hides silhouette for closeup, front/reverse restore it. Returning from background attempts camera only when garment modal is open; close/cancel/pagehide/logout still stops tracks. Permission failure asks user to grant permission then close/reopen modal, without a gallery fallback.
+Verified: syntax, section order, no removed buttons, auto-open attempt, three selection labels, detail guide hide/restore. Device camera permission/snap ergonomics need phone verification. Product data/photos still local demo; receiving backend unchanged.
