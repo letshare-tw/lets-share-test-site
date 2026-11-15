@@ -16,7 +16,7 @@
   if(!state.activated){gate('身份已確認。請由本人啟用測試工作站。','activate');return;}
   window.LX_ARTISAN_STATE=state;
   const person=document.querySelector('.side-person');if(person)person.innerHTML='<div class="avatar">'+esc((state.display_name||'職').slice(0,1))+'</div><div>'+esc(state.display_name)+'<small>本人測試工作站</small></div>';
-  const script=document.createElement('script');script.src='artisan-app.js?v=ARTISAN-TEST-02';
+  const script=document.createElement('script');script.src='artisan-app.js?v=ARTISAN-CAMERA-03';
   script.onload=()=>{ready=true;document.body.classList.remove('auth-pending');};
   script.onerror=()=>gate('工作站程式載入失敗，請重新整理。');document.body.append(script);
  }catch(e){gate(copy[e.code]||'登入或工作站讀取未完成，請重新整理重試。');}finally{loading=false;}}
@@ -37,8 +37,8 @@
  document.addEventListener('click',async e=>{const b=e.target.closest('button');if(!b)return;
   if(b.id==='artisanLogin'){b.disabled=true;try{await auth.signInWithGoogle('artisan');}catch{b.disabled=false;document.getElementById('authError').textContent='登入未開始，請重試。';}}
   if(b.id==='artisanActivate'){if(busy)return;busy=true;b.disabled=true;try{await request('activate',{confirm_test_only:true});await boot();}catch(err){gate(copy[err.code]||'測試工作站啟用未完成，請重新讀取。');}finally{busy=false;}}
-  if(b.id==='artisanLogout'){document.body.classList.add('auth-pending');main.innerHTML='<section class="card">登出中…</section>';if(typeof stopScan==='function')stopScan();try{await auth.signOut();location.replace('artisan.html');}catch{location.reload();}}
+  if(b.id==='artisanLogout'){document.body.classList.add('auth-pending');main.innerHTML='<section class="card">登出中…</section>';if(typeof stopScan==='function')stopScan();if(typeof stopGarmentCamera==='function')stopGarmentCamera();try{await auth.signOut();location.replace('artisan.html');}catch{location.reload();}}
  });
- window.addEventListener('lx-share-session-changed',async()=>{if(!ready)return;try{const s=await auth.getSession();if(s?.user?.id!==user?.id){document.body.classList.add('auth-pending');if(typeof stopScan==='function')stopScan();main.replaceChildren();location.reload();}}catch{location.reload();}});
+ window.addEventListener('lx-share-session-changed',async()=>{if(!ready)return;try{const s=await auth.getSession();if(s?.user?.id!==user?.id){document.body.classList.add('auth-pending');if(typeof stopScan==='function')stopScan();if(typeof stopGarmentCamera==='function')stopGarmentCamera();main.replaceChildren();location.reload();}}catch{location.reload();}});
  boot();
 })();
